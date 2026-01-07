@@ -1,0 +1,24 @@
+﻿Build started 1/7/2026 8:34:26 PM.
+     1>Project "X:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\MyEngine.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IX:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\include/ /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _DEBUG /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yc"stdafx.h" /Fp"Debug\myengine.pch" /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt src\Core\GameEngine.cpp src\Core\Window.cpp
+         Window.cpp
+         GameEngine.cpp
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"X:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\myengine.exe" /INCREMENTAL /NOLOGO /LIBPATH:X:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\lib/ glu32.lib glaux.lib opengl32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"X:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\myengine.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"X:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\myengine.lib" /MACHINE:X86 Debug\GameEngine.obj
+         Debug\InputManager.obj
+         Debug\Renderer.obj
+         Debug\Window.obj
+         Debug\main.obj
+         Debug\Matrix4.obj
+         Debug\Quaternion.obj
+         Debug\SceneManager.obj
+         Debug\stdafx.obj
+         lib\glaux.lib
+         lib\glext.lib
+         MyEngine.vcxproj -> X:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\myengine.exe
+     1>Done Building Project "X:\PROJECTS\AppDevProjects\OpenGLProjects\202512OpenGL\MyGameEngine\MyEngine\MyEngine.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:02.79

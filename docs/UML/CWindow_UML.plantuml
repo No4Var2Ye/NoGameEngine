@@ -1,0 +1,45 @@
+﻿@startuml CWindow_UML
+class CWindow {
+  - m_hWnd: HWND = nullptr
+  - m_hInstance: HINSTANCE = nullptr
+  - m_Fullscreen: BOOL = false
+  - m_Minimized: BOOL = false
+  - m_Maximized: BOOL = false
+  - m_WindowRect: RECT
+  - m_WindowStyle: DWORD = 0
+  - m_WindowExStyle: DWORD = 0
+  - m_Config: EngineConfig
+  
+  ' 构造函数和析构函数
+  + CWindow()
+  + ~CWindow()
+  - CWindow(const CWindow&) = delete
+  - operator=(const CWindow&) = delete
+
+  ' 主要公共接口
+  + Create(hInstance: HINSTANCE, config: const EngineConfig&): BOOL
+  + Destroy(): void
+  + Show(): void
+  + Hide(): void
+  + ToggleVisibility(): void
+  + ToggleFullscreen(): void
+  + SetTitle(title: const wchar_t*): void
+  + SetPosition(x: INT, y: INT, width: INT, height: INT): void
+  
+  ' Getter方法
+  + GetHWND(): HWND const
+  + GetInstance(): HINSTANCE const
+  + IsFullscreen(): BOOL const
+  + IsActive(): BOOL const
+  + GetClientWidth(): INT const
+  + GetClientHeight(): INT const
+  
+  ' 私有方法
+  - HandleMessage(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT
+  - RegisterWindowClass(): BOOL
+  - SetFullscreen(enable: BOOL): BOOL
+  
+  ' 静态方法
+  {static} WndProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT CALLBACK
+  {static} ProcessMessages(): BOOL
+}

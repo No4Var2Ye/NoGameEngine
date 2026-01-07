@@ -1,0 +1,94 @@
+﻿@startuml CInputManager
+
+' 设置主题
+skinparam class {
+    BackgroundColor White
+    BorderColor #333333
+    ArrowColor #333333
+    FontName Arial
+}
+skinparam classFontStyle bold
+skinparam classAttributeIconSize 0
+skinparam noteBackgroundColor #FFFFCC
+skinparam noteBorderColor #FF9900
+
+title InputManager.h 类图
+
+' 主类
+class CInputManager {
+    - HWND m_hWnd
+    - HINSTANCE m_hInstance
+    - std::array<BYTE, KEY_COUNT> m_CurrentKeyState
+    - std::array<BYTE, KEY_COUNT> m_PreviousKeyState
+    - std::array<BOOL, KEY_COUNT> m_KeyPressed
+    - std::array<BOOL, KEY_COUNT> m_KeyReleased
+    - POINT m_MousePosition
+    - POINT m_PreviousMousePosition
+    - POINT m_MouseDelta
+    - int m_MouseWheelDelta
+    - std::array<BOOL, MOUSE_BUTTON_COUNT> m_CurrentMouseButtons
+    - std::array<BOOL, MOUSE_BUTTON_COUNT> m_PreviousMouseButtons
+    - std::array<BOOL, MOUSE_BUTTON_COUNT> m_MouseButtonPressed
+    - std::array<BOOL, MOUSE_BUTTON_COUNT> m_MouseButtonReleased
+    - BOOL m_InputEnabled
+    - BOOL m_MouseLocked
+    - POINT m_MouseLockPosition
+    - BOOL m_ShowCursor
+    
+    - UpdateKeyboard()
+    - UpdateMouse()
+    - LRESULT HandleMessage(HWND, UINT, WPARAM, LPARAM)
+    - int GetKeyIndex(UINT) const
+    - int GetMouseButtonIndex(MouseButton) const
+    
+    + CInputManager()
+    + ~CInputManager()
+    - CInputManager(const CInputManager&)
+    - CInputManager& operator=(const CInputManager&)
+    
+    + BOOL Initialize(HWND, HINSTANCE)
+    + void Shutdown()
+    + void Update()
+    + static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM)
+    
+    ' 键盘查询
+    + BOOL IsKeyDown(UINT) const
+    + BOOL IsKeyPressed(UINT) const
+    + BOOL IsKeyReleased(UINT) const
+    + BOOL IsKeyUp(UINT) const
+    + int GetPressedKeys(std::vector<UINT>&) const
+    
+    ' 鼠标查询
+    + BOOL IsMouseButtonDown(MouseButton) const
+    + BOOL IsMouseButtonPressed(MouseButton) const
+    + BOOL IsMouseButtonReleased(MouseButton) const
+    + BOOL IsMouseButtonUp(MouseButton) const
+    + POINT GetMousePosition() const
+    + int GetMouseX() const
+    + int GetMouseY() const
+    + POINT GetMouseDelta() const
+    + int GetMouseDeltaX() const
+    + int GetMouseDeltaY() const
+    + int GetMouseWheelDelta() const
+    
+    ' 鼠标控制
+    + void SetMousePosition(int, int)
+    + void ShowCursor()
+    + void HideCursor()
+    + void ToggleCursor()
+    + void LockMouse()
+    + void UnlockMouse()
+    + void ToggleMouseLock()
+    
+    ' 输入控制
+    + void EnableInput()
+    + void DisableInput()
+    + BOOL IsInputEnabled() const
+    + void Clear()
+    + BOOL IsAnyKeyPressed() const
+    + BOOL IsAnyMouseButtonPressed() const
+    + BOOL IsKeyComboDown(UINT, UINT) const
+    + void GetKeyboardState(std::array<BYTE, KEY_COUNT>&) const
+}
+
+@enduml

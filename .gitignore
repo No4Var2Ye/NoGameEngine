@@ -1,0 +1,21 @@
+﻿
+.vscode/
+
+cache/
+
+ipch/
+
+MyMath/**/*
+MyWindow/**/*
+tmp/**/*
+
+# Visual Studio
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.ilk
+*.pdb
+*.vcxproj*
+Release/**/*
+Debug/**/*
