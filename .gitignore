@@ -9,6 +9,8 @@ MyMath/**/*
 MyWindow/**/*
 tmp/**/*
 
+**/*.exe
+
 # Visual Studio
 *.opensdf
 *.sdf
@@ -17,5 +19,16 @@ tmp/**/*
 *.ilk
 *.pdb
 *.vcxproj*
-Release/**/*
-Debug/**/*
+**/Release/
+**/Debug/
+*.sdf
+*.user
+*.filters
+*.user
+*.db
+*.obj
+*.log
+*.tlog
+*.lastbuildstate
+*.cache
+*.ipch
