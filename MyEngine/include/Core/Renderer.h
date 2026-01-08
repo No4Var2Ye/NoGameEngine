@@ -38,9 +38,9 @@ private:
     std::chrono::high_resolution_clock::time_point m_LastFPSTime; // 上次计算FPS的时间
     FLOAT m_FPSSmoothingFactor;                                   // 平滑因子
 
-    static const int SAMPLE_COUNT = 60;     // 记录最近 60 帧
+    static const INT SAMPLE_COUNT = 60;     // 记录最近 60 帧
     FLOAT m_FrameTimeHistory[SAMPLE_COUNT]; // 缓冲区数组
-    int m_NextIndex;                        // 下一个要写入的位置
+    INT m_NextIndex;                        // 下一个要写入的位置
 
     FLOAT m_DeltaTime;    // 帧间隔时间
     FLOAT m_MinDeltaTime; // 最小帧时间
@@ -151,6 +151,8 @@ public:
      * @param top 上裁剪面
      * @param zNear 近裁剪面
      * @param zFar 远裁剪面
+     * @note zNear 典型值 0.1 0.01 1.0
+     * @note zFar 典型值 109.0 1000.0 10000.0
      */
     void SetOrthoProjection(FLOAT left, FLOAT right, FLOAT bottom, FLOAT top, FLOAT zNear, FLOAT zFar);
 
@@ -163,7 +165,7 @@ public:
     void Clear(BOOL clearColor = TRUE, BOOL clearDepth = TRUE, BOOL clearStencil = FALSE);
 
     FLOAT GetFPS() const { return m_FPS; } // 获取当前帧率
-    void AddFrameSample(FLOAT dt);
+    void AddFrameSample(FLOAT dt); // 记录上一帧步长
     FLOAT GetAverageFrameTime() const; // 获取平均耗时（用于计算平滑 FPS）
     FLOAT GetSmoothFPS() const;        // 获取平滑帧率
 

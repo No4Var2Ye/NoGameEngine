@@ -1,11 +1,19 @@
 ﻿
+// ======================================================================
 #include "stdafx.h"
-#include "Core/InputManager.h"
-#include <windowsx.h>
+
 #include <cassert>
+#include <windowsx.h>
+#include "Core/InputManager.h"
+// ======================================================================
 
 CInputManager::CInputManager()
-    : m_hWnd(nullptr), m_hInstance(nullptr), m_MouseWheelDelta(0), m_InputEnabled(TRUE), m_MouseLocked(FALSE), m_ShowCursor(TRUE)
+    : m_hWnd(nullptr),      // 窗口句柄
+      m_hInstance(nullptr), // 应用程序实例
+      m_MouseWheelDelta(0), // 鼠标移动增量
+      m_InputEnabled(TRUE), // 输入是否启用
+      m_MouseLocked(FALSE), // 鼠标是否锁定
+      m_ShowCursor(TRUE)    // 是否显示鼠标指针
 {
     // 初始化鼠标位置
     m_MousePosition = {0, 0};
@@ -65,7 +73,7 @@ BOOL CInputManager::Initialize(HWND hWnd, HINSTANCE hInstance)
 
     if (!RegisterRawInputDevices(rid, 2, sizeof(rid[0])))
     {
-        OutputDebugStringA("注册原始输入设备失败\n");
+        OutputDebugStringA("Critical: 注册原始输入设备失败\n");
         return FALSE;
     }
 
@@ -105,15 +113,22 @@ void CInputManager::Update()
     m_MouseButtonPressed.fill(FALSE);
     m_MouseButtonReleased.fill(FALSE);
 
-    // 重置鼠标增量
-    m_MouseDelta = {0, 0};
-    m_MouseWheelDelta = 0;
-
     // 更新键盘状态
     UpdateKeyboard();
 
     // 更新鼠标状态
-    UpdateMouse();
+    for (int i = 0; i < MOUSE_BUTTON_COUNT; ++i)
+    {
+        m_MouseButtonPressed[i] = m_CurrentMouseButtons[i] && !m_PreviousMouseButtons[i];
+        m_MouseButtonReleased[i] = !m_CurrentMouseButtons[i] && m_PreviousMouseButtons[i];
+    }
+}
+
+// 在 Update 之后，或者在帧渲染开始前调用此方法来“清零”位移
+void CInputManager::ClearDelta()
+{
+    m_MouseDelta = {0, 0};
+    m_MouseWheelDelta = 0;
 }
 
 LRESULT CALLBACK CInputManager::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -147,7 +162,7 @@ void CInputManager::UpdateKeyboard()
     }
 
     // 计算按键按下和释放状态
-    for (int i = 0; i < KEY_COUNT; ++i)
+    for (INT i = 0; i < KEY_COUNT; ++i)
     {
         BOOL currentState = (m_CurrentKeyState[i] & 0x80) != 0;
         BOOL previousState = (m_PreviousKeyState[i] & 0x80) != 0;
@@ -174,7 +189,7 @@ void CInputManager::UpdateMouse()
     }
 
     // 计算鼠标按键按下和释放状态
-    for (int i = 0; i < MOUSE_BUTTON_COUNT; ++i)
+    for (INT i = 0; i < MOUSE_BUTTON_COUNT; ++i)
     {
         m_MouseButtonPressed[i] = m_CurrentMouseButtons[i] && !m_PreviousMouseButtons[i];
         m_MouseButtonReleased[i] = !m_CurrentMouseButtons[i] && m_PreviousMouseButtons[i];
@@ -188,11 +203,21 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
     switch (msg)
     {
+    case WM_KILLFOCUS:
+    case WM_ACTIVATE:
+        if (LOWORD(wParam) == WA_INACTIVE)
+        {
+            Clear();
+            if (m_MouseLocked)
+                UnlockMouse();
+        }
+        return 0;
+
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     {
         UINT vk = static_cast<UINT>(wParam);
-        int index = GetKeyIndex(vk);
+        INT index = GetKeyIndex(vk);
         if (index >= 0 && index < KEY_COUNT)
         {
             m_CurrentKeyState[index] = 0x80; // 设置按下状态
@@ -204,7 +229,7 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_SYSKEYUP:
     {
         UINT vk = static_cast<UINT>(wParam);
-        int index = GetKeyIndex(vk);
+        INT index = GetKeyIndex(vk);
         if (index >= 0 && index < KEY_COUNT)
         {
             m_CurrentKeyState[index] = 0; // 清除按下状态
@@ -212,29 +237,25 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     }
     break;
 
+    // 鼠标按键
     case WM_LBUTTONDOWN:
-        m_CurrentMouseButtons[GetMouseButtonIndex(MouseButton::Left)] = TRUE;
-        break;
-
+        m_CurrentMouseButtons[(INT)MouseButton::Left] = TRUE;
+        return 0;
     case WM_LBUTTONUP:
-        m_CurrentMouseButtons[GetMouseButtonIndex(MouseButton::Left)] = FALSE;
-        break;
-
+        m_CurrentMouseButtons[(INT)MouseButton::Left] = FALSE;
+        return 0;
     case WM_RBUTTONDOWN:
-        m_CurrentMouseButtons[GetMouseButtonIndex(MouseButton::Right)] = TRUE;
-        break;
-
+        m_CurrentMouseButtons[(INT)MouseButton::Right] = TRUE;
+        return 0;
     case WM_RBUTTONUP:
-        m_CurrentMouseButtons[GetMouseButtonIndex(MouseButton::Right)] = FALSE;
-        break;
-
+        m_CurrentMouseButtons[(INT)MouseButton::Right] = FALSE;
+        return 0;
     case WM_MBUTTONDOWN:
-        m_CurrentMouseButtons[GetMouseButtonIndex(MouseButton::Middle)] = TRUE;
-        break;
-
+        m_CurrentMouseButtons[(INT)MouseButton::Middle] = TRUE;
+        return 0;
     case WM_MBUTTONUP:
-        m_CurrentMouseButtons[GetMouseButtonIndex(MouseButton::Middle)] = FALSE;
-        break;
+        m_CurrentMouseButtons[(INT)MouseButton::Middle] = FALSE;
+        return 0;
 
     case WM_XBUTTONDOWN:
     {
@@ -264,34 +285,36 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     }
     break;
 
-    case WM_MOUSEWHEEL:
-        m_MouseWheelDelta += GET_WHEEL_DELTA_WPARAM(wParam);
-        break;
-
     case WM_MOUSEMOVE:
-        // 鼠标移动已经在UpdateMouse中处理
+        // 鼠标位置更新
+        m_PreviousMousePosition = m_MousePosition;
+        m_MousePosition.x = GET_X_LPARAM(lParam);
+        m_MousePosition.y = GET_Y_LPARAM(lParam);
         break;
 
     case WM_INPUT:
-    {
-        UINT dwSize = sizeof(RAWINPUT);
-        static BYTE lpb[sizeof(RAWINPUT)];
-
-        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-
-        RAWINPUT *raw = (RAWINPUT *)lpb;
-
-        if (raw->header.dwType == RIM_TYPEMOUSE)
+        // INFO: 用于相机旋转
         {
-            // 处理原始鼠标输入
-            if (raw->data.mouse.usFlags == MOUSE_MOVE_RELATIVE)
+            UINT dwSize = sizeof(RAWINPUT);
+            static BYTE lpb[sizeof(RAWINPUT)];
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+            RAWINPUT *raw = (RAWINPUT *)lpb;
+
+            if (raw->header.dwType == RIM_TYPEMOUSE)
             {
-                m_MouseDelta.x += raw->data.mouse.lLastX;
-                m_MouseDelta.y += raw->data.mouse.lLastY;
+                // 处理原始鼠标输入
+                if (raw->data.mouse.usFlags == MOUSE_MOVE_RELATIVE)
+                {
+                    m_MouseDelta.x += raw->data.mouse.lLastX;
+                    m_MouseDelta.y += raw->data.mouse.lLastY;
+                }
             }
         }
-    }
-    break;
+        break;
+
+    case WM_MOUSEWHEEL:
+        m_MouseWheelDelta += GET_WHEEL_DELTA_WPARAM(wParam);
+        break;
     }
 
     return 0;
@@ -299,7 +322,7 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
 BOOL CInputManager::IsKeyDown(UINT vk) const
 {
-    int index = GetKeyIndex(vk);
+    INT index = GetKeyIndex(vk);
     if (index >= 0 && index < KEY_COUNT)
     {
         return (m_CurrentKeyState[index] & 0x80) != 0;
@@ -309,7 +332,7 @@ BOOL CInputManager::IsKeyDown(UINT vk) const
 
 BOOL CInputManager::IsKeyPressed(UINT vk) const
 {
-    int index = GetKeyIndex(vk);
+    INT index = GetKeyIndex(vk);
     if (index >= 0 && index < KEY_COUNT)
     {
         return m_KeyPressed[index];
@@ -319,7 +342,7 @@ BOOL CInputManager::IsKeyPressed(UINT vk) const
 
 BOOL CInputManager::IsKeyReleased(UINT vk) const
 {
-    int index = GetKeyIndex(vk);
+    INT index = GetKeyIndex(vk);
     if (index >= 0 && index < KEY_COUNT)
     {
         return m_KeyReleased[index];
@@ -332,23 +355,23 @@ BOOL CInputManager::IsKeyUp(UINT vk) const
     return !IsKeyDown(vk);
 }
 
-int CInputManager::GetKeyIndex(UINT vk) const
+INT CInputManager::GetKeyIndex(UINT vk) const
 {
     if (vk >= 0 && vk < KEY_COUNT)
     {
-        return static_cast<int>(vk);
+        return static_cast<INT>(vk);
     }
     return -1;
 }
 
-int CInputManager::GetMouseButtonIndex(MouseButton button) const
+INT CInputManager::GetMouseButtonIndex(MouseButton button) const
 {
-    return static_cast<int>(button);
+    return static_cast<INT>(button);
 }
 
 BOOL CInputManager::IsMouseButtonDown(MouseButton button) const
 {
-    int index = GetMouseButtonIndex(button);
+    INT index = GetMouseButtonIndex(button);
     if (index >= 0 && index < MOUSE_BUTTON_COUNT)
     {
         return m_CurrentMouseButtons[index];
@@ -358,7 +381,7 @@ BOOL CInputManager::IsMouseButtonDown(MouseButton button) const
 
 BOOL CInputManager::IsMouseButtonPressed(MouseButton button) const
 {
-    int index = GetMouseButtonIndex(button);
+    INT index = GetMouseButtonIndex(button);
     if (index >= 0 && index < MOUSE_BUTTON_COUNT)
     {
         return m_MouseButtonPressed[index];
@@ -368,7 +391,7 @@ BOOL CInputManager::IsMouseButtonPressed(MouseButton button) const
 
 BOOL CInputManager::IsMouseButtonReleased(MouseButton button) const
 {
-    int index = GetMouseButtonIndex(button);
+    INT index = GetMouseButtonIndex(button);
     if (index >= 0 && index < MOUSE_BUTTON_COUNT)
     {
         return m_MouseButtonReleased[index];
@@ -381,7 +404,7 @@ BOOL CInputManager::IsMouseButtonUp(MouseButton button) const
     return !IsMouseButtonDown(button);
 }
 
-void CInputManager::SetMousePosition(int x, int y)
+void CInputManager::SetMousePosition(INT x, INT y)
 {
     POINT pt = {x, y};
     ClientToScreen(m_hWnd, &pt);
@@ -395,14 +418,30 @@ void CInputManager::SetMousePosition(int x, int y)
 
 void CInputManager::ShowCursor()
 {
-    ::ShowCursor(TRUE);
-    m_ShowCursor = TRUE;
+    if (!m_ShowCursor)
+    {
+        int count = ::ShowCursor(TRUE);
+        // 如果计数器仍然小于 0，强制补足
+        while (count < 0)
+        {
+            count = ::ShowCursor(TRUE);
+        }
+        m_ShowCursor = TRUE;
+    }
 }
 
 void CInputManager::HideCursor()
 {
-    ::ShowCursor(FALSE);
-    m_ShowCursor = FALSE;
+    if (m_ShowCursor)
+    {
+        int count = ::ShowCursor(FALSE);
+        // 如果计数器仍然大于等于 0，强制减小
+        while (count >= 0)
+        {
+            count = ::ShowCursor(FALSE);
+        }
+        m_ShowCursor = FALSE;
+    }
 }
 
 void CInputManager::ToggleCursor()
@@ -424,23 +463,25 @@ void CInputManager::LockMouse()
 
     RECT rect;
     GetClientRect(m_hWnd, &rect);
+    POINT center = {(rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2};
 
-    int centerX = rect.left + (rect.right - rect.left) / 2;
-    int centerY = rect.top + (rect.bottom - rect.top) / 2;
-
-    SetMousePosition(centerX, centerY);
-    m_MouseLockPosition = {centerX, centerY};
+    // 锁定前记录当前位置，解锁时可以还原（可选）
+    SetMousePosition(center.x, center.y);
     m_MouseLocked = TRUE;
-
     HideCursor();
+
+    // 限制鼠标在窗口内移动
+    ClientToScreen(m_hWnd, (LPPOINT)&rect.left);
+    ClientToScreen(m_hWnd, (LPPOINT)&rect.right);
+    ClipCursor(&rect);
 }
 
 void CInputManager::UnlockMouse()
 {
     if (!m_MouseLocked)
         return;
-
     m_MouseLocked = FALSE;
+    ClipCursor(NULL); // 释放鼠标限制
     ShowCursor();
 }
 
@@ -456,11 +497,11 @@ void CInputManager::ToggleMouseLock()
     }
 }
 
-int CInputManager::GetPressedKeys(std::vector<UINT> &keys) const
+INT CInputManager::GetPressedKeys(std::vector<UINT> &keys) const
 {
     keys.clear();
 
-    for (int i = 0; i < KEY_COUNT; ++i)
+    for (INT i = 0; i < KEY_COUNT; ++i)
     {
         if (m_KeyPressed[i])
         {
@@ -468,7 +509,7 @@ int CInputManager::GetPressedKeys(std::vector<UINT> &keys) const
         }
     }
 
-    return static_cast<int>(keys.size());
+    return static_cast<INT>(keys.size());
 }
 
 void CInputManager::Clear()

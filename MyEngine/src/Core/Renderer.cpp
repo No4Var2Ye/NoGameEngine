@@ -10,7 +10,7 @@
 // ======================================================================
 
 // ======================================================================
-// ==================== 共有方法实现 =====================================
+// ==================== 公有方法实现 =====================================
 
 CRenderer::CRenderer()
     : m_hWnd(nullptr),                  // 窗口句柄
@@ -32,10 +32,14 @@ CRenderer::CRenderer()
       m_MinDeltaTime(0.0f),             // 最小帧时间
       m_MaxDeltaTime(0.1f)              // 最大帧时间, 100ms 阈值
 {
-    // 初始化清除颜色
-    m_ClearColor[0] = 0.2f; // R
-    m_ClearColor[1] = 0.3f; // G
-    m_ClearColor[2] = 0.8f; // B
+    // TODO: 初始化清除颜色
+    // m_ClearColor[0] = 0.2f; // R
+    // m_ClearColor[1] = 0.3f; // G
+    // m_ClearColor[2] = 0.8f; // B
+    // m_ClearColor[3] = 1.0f; // A
+    m_ClearColor[0] = 1.0f; // R
+    m_ClearColor[1] = 1.0f; // G
+    m_ClearColor[2] = 1.0f; // B
     m_ClearColor[3] = 1.0f; // A
 
     m_LastCounter.QuadPart = 0;
@@ -68,6 +72,7 @@ BOOL CRenderer::Initialize(HWND hWnd)
     }
 
     // 2. 设置像素格式
+    // 告诉Windows需要什么样的图形缓冲区
     if (!SetupPixelFormat())
     {
         MessageBoxW(NULL, L"设置像素格式失败!", L"渲染器错误", MB_OK | MB_ICONERROR);
@@ -75,6 +80,7 @@ BOOL CRenderer::Initialize(HWND hWnd)
     }
 
     // 3. 创建OpenGL渲染上下文
+    // OpenGL的工作环境, 记录状态
     m_hRC = wglCreateContext(m_hDC);
     if (!m_hRC)
     {
@@ -108,12 +114,15 @@ BOOL CRenderer::Initialize(HWND hWnd)
     m_AspectRatio = (m_Height > 0) ? static_cast<FLOAT>(m_Width) / static_cast<FLOAT>(m_Height) : 1.0f;
 
     // 9. 设置视口
+    // 定义窗口坐标的NDC标准化设备坐标的映射
+    // 告诉OpenGL在窗口的哪个区域绘制
     SetViewport(0, 0, m_Width, m_Height);
 
     // 10. 设置默认投影矩阵
+    // 定义3D到2D的投影变换
+    // 透视投影模拟人眼视角
+    // SetOrthoProjection(FLOAT left, FLOAT right, FLOAT bottom, FLOAT top, FLOAT zNear, FLOAT zFar);
     SetPerspectiveProjection(45.0f, m_AspectRatio, 0.1f, 1000.0f);
-
-    m_GLInitialized = TRUE;
 
     // 输出OpenGL信息
     std::string info = GetGLInfo();
@@ -295,10 +304,17 @@ void CRenderer::SetViewport(INT x, INT y, INT width, INT height)
 
 void CRenderer::SetPerspectiveProjection(FLOAT fovY, FLOAT aspect, FLOAT zNear, FLOAT zFar)
 {
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
+    // 投影矩阵
+    // | f/a  0        0        0 |
+    // | 0    f        0        0 |
+    // | 0    0  (fz+n)/(n-fz) -1 |
+    // | 0    0  (2fz*n)/(n-fz) 0 |
 
-    FLOAT f = 1.0f / tan(fovY * 0.5f * Math::PI / 180.0f);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity(); // 将当前矩阵设置为单位矩阵
+
+    // FLOAT f = 1.0f / tan(fovY * 0.5f * Math::PI / 180.0f);
+    FLOAT f = 1.0f / Math::Tan(fovY * Math::PI / 360.0f);
 
     FLOAT m[16] = {0};
     m[0] = f / aspect;
@@ -314,6 +330,11 @@ void CRenderer::SetPerspectiveProjection(FLOAT fovY, FLOAT aspect, FLOAT zNear, 
 
 void CRenderer::SetOrthoProjection(FLOAT left, FLOAT right, FLOAT bottom, FLOAT top, FLOAT zNear, FLOAT zFar)
 {
+    // |      2/(r-l)         0             0      0 |
+    // |       0             2/(t-b)        0      0 |
+    // |       0              0           -2/(f-n) 0 |
+    // | -(r+l)/(r-l)   -(t+b)/t-b    -(f+n)/(f-n) 1 |
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
@@ -335,10 +356,13 @@ void CRenderer::Clear(BOOL clearColor, BOOL clearDepth, BOOL clearStencil)
     GLbitfield mask = 0;
 
     if (clearColor)
+        // 颜色缓冲区
         mask |= GL_COLOR_BUFFER_BIT;
     if (clearDepth)
+        // 深度缓冲区
         mask |= GL_DEPTH_BUFFER_BIT;
     if (clearStencil)
+        // 模板缓冲区
         mask |= GL_STENCIL_BUFFER_BIT;
 
     if (mask != 0)
@@ -424,14 +448,14 @@ void CRenderer::ResetState()
 std::string CRenderer::GetGLInfo() const
 {
     std::ostringstream oss;
-    oss << "=== OpenGL 信息 ===\n";
-    oss << "OpenGL版本: " << GetGLVersion() << "\n";
-    oss << "渲染器: " << GetGLRenderer() << "\n";
-    oss << "供应商: " << GetGLVendor() << "\n";
-    oss << "窗口尺寸: " << m_Width << "x" << m_Height << "\n";
-    oss << "宽高比: " << std::fixed << std::setprecision(2) << m_AspectRatio << "\n";
-    oss << "垂直同步: " << (m_VSyncEnabled ? "启用" : "禁用") << "\n";
-    oss << "===================\n";
+    oss << "|====================== OpenGL 信息 ======================\n";
+    oss << "|OpenGL版本: " << GetGLVersion() << "\n";
+    oss << "|渲染器: " << GetGLRenderer() << "\n";
+    oss << "|供应商: " << GetGLVendor() << "\n";
+    oss << "|窗口尺寸: " << m_Width << "x" << m_Height << "\n";
+    oss << "|宽高比: " << std::fixed << std::setprecision(2) << m_AspectRatio << "\n";
+    oss << "|垂直同步: " << (m_VSyncEnabled ? "启用" : "禁用") << "\n";
+    oss << "|=========================================================\n";
 
     return oss.str();
 }
@@ -482,6 +506,7 @@ void CRenderer::CheckGLExtensions()
 {
     // 检查WGL扩展支持
     const char *extensions = reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
+    // 检查是否支持垂直同步控制
     if (extensions && strstr(extensions, "WGL_EXT_swap_control"))
     {
         m_WGLSwapControlSupported = TRUE;

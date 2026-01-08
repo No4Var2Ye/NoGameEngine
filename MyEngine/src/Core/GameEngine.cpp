@@ -36,7 +36,7 @@ CGameEngine::CGameEngine()
 // TODO: 初始化引擎
 BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 {
-    std::wcout << L"=== 引擎初始化开始 ===" << std::endl;
+    // std::wcout << L"========= 引擎初始化开始 =========" << std::endl;
 
     // 判断是是否已经初始化
     if (m_Initialized)

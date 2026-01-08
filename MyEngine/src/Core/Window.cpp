@@ -617,7 +617,8 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             PostMessage(hWnd, WM_CLOSE, 0, 0);
             Sleep(1000);
         }
-        else if (wParam == VK_F11)
+        else if (wParam == VK_F11 || wParam == VK_F1 )
+        // else if (wParam == VK_F11)
         // else if (wParam == VK_F11 || (wParam == VK_RETURN && (HIWORD(lParam) & KF_ALTDOWN)))
         {
             // F11键 - 切换全屏
