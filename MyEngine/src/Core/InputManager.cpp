@@ -2,8 +2,8 @@
 // ======================================================================
 #include "stdafx.h"
 
-#include <cassert>
 #include <windowsx.h>
+#include <cassert>
 #include "Core/InputManager.h"
 // ======================================================================
 
@@ -71,9 +71,17 @@ BOOL CInputManager::Initialize(HWND hWnd, HINSTANCE hInstance)
     rid[1].dwFlags = 0;
     rid[1].hwndTarget = hWnd;
 
+    SetWindowLongPtr(m_hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
+    // 验证是否设置成功
+    if (GetWindowLongPtr(m_hWnd, GWLP_USERDATA) == 0)
+    {
+        OutputDebugStringA("Warning: SetWindowLongPtr 失败！\n");
+    }
+
     if (!RegisterRawInputDevices(rid, 2, sizeof(rid[0])))
     {
-        OutputDebugStringA("Critical: 注册原始输入设备失败\n");
+        OutputDebugStringA("Warning: 注册原始输入设备失败\n");
         return FALSE;
     }
 
@@ -85,13 +93,13 @@ void CInputManager::Shutdown()
     // 解锁鼠标
     if (m_MouseLocked)
     {
-        UnlockMouse();
+        this->UnlockMouse();
     }
 
     // 显示鼠标
     if (!m_ShowCursor)
     {
-        ShowCursor();
+        this->ShowCursor();
     }
 
     m_hWnd = nullptr;
@@ -131,7 +139,7 @@ void CInputManager::ClearDelta()
     m_MouseWheelDelta = 0;
 }
 
-LRESULT CALLBACK CInputManager::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK CInputManager::InputWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     // 获取输入管理器实例
     CInputManager *pInputManager = nullptr;
@@ -147,28 +155,36 @@ LRESULT CALLBACK CInputManager::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, L
             return result;
         }
     }
+    else
+    {
+        OutputDebugStringA("Warning: InputManager instance not found in UserData\n");
+    }
 
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 void CInputManager::UpdateKeyboard()
 {
+    // 1. 保存上一帧状态
+    m_PreviousKeyState = m_CurrentKeyState;
 
-    // 获取当前键盘状态
-    // 使用 :: 表示全局命名空间，调用 Windows API
-    if (!::GetKeyboardState(m_CurrentKeyState.data()))
+    // 2. 获取当前键盘状态
+    HRESULT hr = ::GetKeyboardState(m_CurrentKeyState.data());
+
+    if (FAILED(hr))
     {
+        std::cerr << "获取键盘状态失败！错误码: 0x" << std::hex << hr << std::dec << std::endl;
         return;
     }
 
     // 计算按键按下和释放状态
     for (INT i = 0; i < KEY_COUNT; ++i)
     {
-        BOOL currentState = (m_CurrentKeyState[i] & 0x80) != 0;
-        BOOL previousState = (m_PreviousKeyState[i] & 0x80) != 0;
+        BYTE currentState = m_CurrentKeyState[i];
+        BYTE previousState = m_PreviousKeyState[i];
 
-        m_KeyPressed[i] = currentState && !previousState;
-        m_KeyReleased[i] = !currentState && previousState;
+        m_KeyPressed[i] = ((currentState & 0x80) && !(previousState & 0x80));
+        m_KeyReleased[i] = (!(currentState & 0x80) && (previousState & 0x80));
     }
 }
 
@@ -216,6 +232,10 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     {
+        char buf[128];
+        sprintf_s(buf, "Input: Key Down [VK: %u]\n", (UINT)wParam);
+        OutputDebugStringA(buf);
+
         UINT vk = static_cast<UINT>(wParam);
         INT index = GetKeyIndex(vk);
         if (index >= 0 && index < KEY_COUNT)
@@ -239,6 +259,7 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
     // 鼠标按键
     case WM_LBUTTONDOWN:
+        OutputDebugStringA("Input: Left Mouse Button Down\n");
         m_CurrentMouseButtons[(INT)MouseButton::Left] = TRUE;
         return 0;
     case WM_LBUTTONUP:
@@ -246,12 +267,14 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
         return 0;
     case WM_RBUTTONDOWN:
         m_CurrentMouseButtons[(INT)MouseButton::Right] = TRUE;
+        OutputDebugStringA("Input: Right Mouse Button Down\n");
         return 0;
     case WM_RBUTTONUP:
         m_CurrentMouseButtons[(INT)MouseButton::Right] = FALSE;
         return 0;
     case WM_MBUTTONDOWN:
         m_CurrentMouseButtons[(INT)MouseButton::Middle] = TRUE;
+        OutputDebugStringA("Input: Middle Mouse Button Down\n");
         return 0;
     case WM_MBUTTONUP:
         m_CurrentMouseButtons[(INT)MouseButton::Middle] = FALSE;
@@ -295,18 +318,24 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_INPUT:
         // INFO: 用于相机旋转
         {
-            UINT dwSize = sizeof(RAWINPUT);
-            static BYTE lpb[sizeof(RAWINPUT)];
-            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-            RAWINPUT *raw = (RAWINPUT *)lpb;
+            UINT dataSize = 0;
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, nullptr, &dataSize, sizeof(RAWINPUTHEADER));
 
-            if (raw->header.dwType == RIM_TYPEMOUSE)
+            if (dataSize > 0)
             {
-                // 处理原始鼠标输入
-                if (raw->data.mouse.usFlags == MOUSE_MOVE_RELATIVE)
+                UINT dwSize = sizeof(RAWINPUT);
+                static BYTE lpb[sizeof(RAWINPUT)];
+                GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+                RAWINPUT *raw = (RAWINPUT *)lpb;
+
+                if (raw->header.dwType == RIM_TYPEMOUSE)
                 {
-                    m_MouseDelta.x += raw->data.mouse.lLastX;
-                    m_MouseDelta.y += raw->data.mouse.lLastY;
+                    // 处理原始鼠标输入
+                    if (raw->data.mouse.usFlags == MOUSE_MOVE_RELATIVE)
+                    {
+                        m_MouseDelta.x += raw->data.mouse.lLastX;
+                        m_MouseDelta.y += raw->data.mouse.lLastY;
+                    }
                 }
             }
         }
@@ -325,6 +354,7 @@ BOOL CInputManager::IsKeyDown(UINT vk) const
     INT index = GetKeyIndex(vk);
     if (index >= 0 && index < KEY_COUNT)
     {
+        // std::cout << "Key " << vk << " index " << index << " state: " << (int)m_CurrentKeyState[index] << std::endl;
         return (m_CurrentKeyState[index] & 0x80) != 0;
     }
     return FALSE;
@@ -357,7 +387,7 @@ BOOL CInputManager::IsKeyUp(UINT vk) const
 
 INT CInputManager::GetKeyIndex(UINT vk) const
 {
-    if (vk >= 0 && vk < KEY_COUNT)
+    if (vk < KEY_COUNT)
     {
         return static_cast<INT>(vk);
     }
@@ -526,6 +556,7 @@ void CInputManager::Clear()
 
     m_MouseDelta = {0, 0};
     m_MouseWheelDelta = 0;
+    m_MouseWheelAccumulated = 0;
 }
 
 BOOL CInputManager::IsAnyKeyPressed() const

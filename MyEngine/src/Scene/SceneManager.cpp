@@ -6,7 +6,6 @@
 #include "Scene/SceneManager.h"
 // ======================================================================
 
-
 CSceneManager::CSceneManager()
     : m_CurrentScene(nullptr),                  //
       m_NextScene(nullptr),                     //
@@ -354,24 +353,54 @@ void CSceneManager::Render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, -2.0f); // 向后移动2个单位
+    glPushMatrix();  // 保存当前矩阵状态
 
-    // 绘制一个简单的彩色三角形
+    // glTranslatef(0.0f, 0.0f, -10.0f);     // 最后：平移到(3,0,0)
+    glRotatef(60.0f, 1.0f, 1.0f, 0.0f); // 中间：绕Y轴旋转45度
+    // glScalef(0.5f, 0.5f, 0.5f);         // 首先：缩小到一半
+    // 四面体的4个顶点（正四面体）
+    FLOAT tetrahedronVertices[4][3] = {
+        {1.0f, 1.0f, 1.0f},   // 顶点0: 右上前
+        {-1.0f, -1.0f, 1.0f}, // 顶点1: 左下前
+        {-1.0f, 1.0f, -1.0f}, // 顶点2: 左后上
+        {1.0f, -1.0f, -1.0f}  // 顶点3: 右后下
+    };
+    // 四面体的4个面颜色
+    FLOAT tetrahedronColors[4][4] = {
+        {1.0f, 0.0f, 0.0f, 1.0f}, // 面0: 红色
+        {0.0f, 1.0f, 0.0f, 1.0f}, // 面1: 绿色
+        {0.0f, 0.0f, 1.0f, 1.0f}, // 面2: 蓝色
+        {1.0f, 1.0f, 0.0f, 1.0f}  // 面3: 黄色
+    };
     glBegin(GL_TRIANGLES);
-    glColor3f(1.0f, 0.0f, 0.0f); // 红色
-    glVertex3f(-0.5f, -0.5f, 0.0f);
-    glColor3f(0.0f, 1.0f, 0.0f); // 绿色
-    glVertex3f(0.5f, -0.5f, 0.0f);
-    glColor3f(0.0f, 0.0f, 1.0f); // 蓝色
-    glVertex3f(0.0f, 0.5f, 0.0f);
+    // 面0: 顶点0,1,2
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex3fv(tetrahedronVertices[0]);
+    glVertex3fv(tetrahedronVertices[1]);
+    glVertex3fv(tetrahedronVertices[2]);
+    // 面1: 顶点0,2,3
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex3fv(tetrahedronVertices[0]);
+    glVertex3fv(tetrahedronVertices[2]);
+    glVertex3fv(tetrahedronVertices[3]);
+    // 面2: 顶点0,3,1
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex3fv(tetrahedronVertices[0]);
+    glVertex3fv(tetrahedronVertices[3]);
+    glVertex3fv(tetrahedronVertices[1]);
+    // 面3: 顶点1,3,2
+    glColor3f(1.0f, 1.0f, 0.0f);
+    glVertex3fv(tetrahedronVertices[1]);
+    glVertex3fv(tetrahedronVertices[3]);
+    glVertex3fv(tetrahedronVertices[2]);
     glEnd();
-
+    glPopMatrix();  // 恢复矩阵
+    
     // SwapBuffers(wglGetCurrentDC());
-
+    
     // if (!m_Initialized || !m_RenderEnabled)
     //     return;
-
+    
     // // 渲染当前场景
     // if (m_CurrentScene && !IsInTransition())
     // {

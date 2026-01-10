@@ -47,6 +47,7 @@ private:
     POINT m_MouseDelta;            // 鼠标移动增量
 
     INT m_MouseWheelDelta = 0;                                   // 鼠标滚轮增量
+    INT m_MouseWheelAccumulated = 0;                             // 累积值（用于某些特殊需求）
     std::array<BOOL, MOUSE_BUTTON_COUNT> m_CurrentMouseButtons;  // 当前帧鼠标按键状态
     std::array<BOOL, MOUSE_BUTTON_COUNT> m_PreviousMouseButtons; // 上一帧鼠标按键状态
     std::array<BOOL, MOUSE_BUTTON_COUNT> m_MouseButtonPressed;   // 鼠标按键刚按下
@@ -59,16 +60,6 @@ private:
 
     void UpdateKeyboard(); // 更新键盘状态
     void UpdateMouse();    // 更新鼠标状态
-
-    /**
-     * @brief 处理Windows消息
-     * @param hWnd 窗口句柄
-     * @param msg 消息
-     * @param wParam 参数1
-     * @param lParam 参数2
-     * @return 是否处理了消息
-     */
-    LRESULT HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     /**
      * @brief 获取虚拟键对应的数组索引
@@ -93,6 +84,16 @@ public:
     CInputManager &operator=(const CInputManager &) = delete;
 
     /**
+     * @brief 处理Windows消息
+     * @param hWnd 窗口句柄
+     * @param msg 消息
+     * @param wParam 参数1
+     * @param lParam 参数2
+     * @return 是否处理了消息
+     */
+    LRESULT HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+    /**
      * @brief 初始化输入管理器
      * @param hWnd 窗口句柄
      * @param hInstance 应用程序实例
@@ -113,7 +114,7 @@ public:
      * @param lParam 参数2
      * @return 是否处理了消息
      */
-    static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK InputWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     // ==================================================================
     // 键盘输入查询
@@ -186,15 +187,25 @@ public:
      */
     BOOL IsMouseButtonUp(MouseButton button) const;
 
+    // 鼠标滚轮事件处理
+    void OnMouseWheel(INT delta)
+    {
+        m_MouseWheelAccumulated += delta;
+        m_MouseWheelDelta = delta; // 记录当前帧的增量
+    }
+
     POINT GetMousePosition() const { return m_MousePosition; } // 获取鼠标位置
     INT GetMouseX() const { return m_MousePosition.x; }        // 获取鼠标X坐标
     INT GetMouseY() const { return m_MousePosition.y; }        // 获取鼠标Y坐标
 
     POINT GetMouseDelta() const { return m_MouseDelta; }                       // 获取鼠标移动增量
+    INT GetMouseWheelAccumulated() const { return m_MouseWheelAccumulated; }   // 获取滚轮累积值
     INT GetMouseDeltaX() const { return m_MouseDelta.x; }                      // 获取鼠标X方向移动增量
     INT GetMouseDeltaY() const { return m_MouseDelta.y; }                      // 获取鼠标Y方向移动增量
     INT GetMouseWheelDelta() const { return m_MouseWheelDelta; }               // 获取鼠标滚轮增量
-    int GetMouseWheelSteps() const { return m_MouseWheelDelta / WHEEL_DELTA; } // 获取标准化的滚轮滚动量
+    INT GetMouseWheelSteps() const { return m_MouseWheelDelta / WHEEL_DELTA; } // 获取标准化的滚轮滚动量
+    void ResetMouseWheel() { m_MouseWheelDelta = 0; }         // 重置滚轮累计值
+    void ResetMouseWheelAccumulated() { m_MouseWheelAccumulated = 0; }         // 重置滚轮累计值
 
     // ==================================================================
     // 鼠标控制

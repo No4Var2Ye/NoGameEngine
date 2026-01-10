@@ -15,6 +15,7 @@
 class CWindow;
 class CRenderer;
 class CInputManager;
+class CCamera;
 class CResourceManager;
 class CSceneManager;
 
@@ -41,9 +42,13 @@ private:
     // ======================================================================
     // 引擎子系统
     // ======================================================================
+    // 基础系统
     std::unique_ptr<CWindow> m_Window;
     std::unique_ptr<CRenderer> m_Renderer;
+    
+    // 逻辑系统
     std::unique_ptr<CInputManager> m_InputManager;
+    std::unique_ptr<CCamera> m_pMainCamera;
     // std::unique_ptr<CResourceManager> m_ResourceManager;
     std::unique_ptr<CSceneManager> m_SceneManager;
 
@@ -51,13 +56,18 @@ private:
     // TODO: 输入处理
     // ======================================================================
     // 或者创建专用的输入处理类
-    void ProcessInput(float delatTime);
+    void ProcessInput(FLOAT delatTime);
 
     // TODO: 相机控制相关
-    void ProcessCameraInput(float deltaTime);
-    void ProcessUInput(float deltaTime);
+    void ProcessCameraInput(FLOAT deltaTime);
+    // TODO: UI控制相关
+    void ProcessUInput(FLOAT deltaTime);
 
+    // ======================================================================
+    // 系统信息
+    // ======================================================================
     // TODO: 显示调试信息
+    BOOL m_ShowDebugInfo;
     void DisplayDebugInfo();
 
 public:
@@ -72,10 +82,8 @@ public:
     CWindow *GetWindow() const { return m_Window.get(); } // 使用 get() 返回原始指针
     CRenderer *GetRenderer() const { return m_Renderer.get(); }
     CInputManager *GetInputManager() const { return m_InputManager.get(); }
+    CCamera *GetMainCamera() const { return m_pMainCamera.get(); }
 
-    // ======================================================================
-    // 系统信息
-    // ======================================================================
 
 }; // class GameEngine
 

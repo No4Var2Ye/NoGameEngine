@@ -1,4 +1,5 @@
-﻿/**
+﻿
+/**
  * @file MyEngine/main.cpp
  * @brief OpenGL 3D游戏主程序
  * @details 基于Win32 API和OpenGL的3D游戏框架, 使用固定功能管线
@@ -30,10 +31,13 @@
 // ======================================================================
 #include "stdafx.h"
 
+// #ifdef MYDEDUG
+// #undef MYDEDUG
+// #endif
+
 #include "EngineConfig.h"
 #include "Core/GameEngine.h"
 // ======================================================================
-
 
 // Windows程序(宽字节)入口点
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
@@ -48,7 +52,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
  * @return int 程序退出代码
  */
 {
-    
+    std::wcout.imbue(std::locale("chs"));
+
 #ifdef MYDEDUG
     // 分配控制台
     AllocConsole();

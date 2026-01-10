@@ -4,7 +4,10 @@
 
 #include <tchar.h>
 #include <cassert>
+#include <functional>
 #include "Core/Window.h"
+#include "Core/GameEngine.h"
+#include "Core/InputManager.h"
 
 // ======================================================================
 
@@ -200,8 +203,8 @@ void CWindow::ToggleVisibility()
 
 void CWindow::ToggleFullscreen()
 {
-    std::cout << "ToggleFullscreen() 被调用" << std::endl;
-    std::cout << "当前全屏状态: " << (m_Fullscreen ? "是" : "否") << std::endl;
+    // std::cout << "ToggleFullscreen() 被调用" << std::endl;
+    // std::cout << "当前全屏状态: " << (m_Fullscreen ? "是" : "否") << std::endl;
 
     if (m_hWnd)
     {
@@ -249,50 +252,80 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
 
     if (enable)
     {
+        OutputDebugStringA("切换到无边框全屏模式...\n");
+
         // 保存窗口位置和样式
         GetWindowRect(m_hWnd, &m_WindowRect);
 
-        // 获取屏幕大小
-        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+        // 2. 获取当前窗口所在的显示器信息 (处理多显示器全屏的关键)
+        HMONITOR hMonitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi = {sizeof(mi)};
+        GetMonitorInfo(hMonitor, &mi);
 
-        char buffer[256];
-        sprintf_s(buffer, sizeof(buffer),
-                  "无边框全屏: %dx%d\n", screenWidth, screenHeight);
-        OutputDebugStringA(buffer);
+        int screenWidth = mi.rcMonitor.right - mi.rcMonitor.left;
+        int screenHeight = mi.rcMonitor.bottom - mi.rcMonitor.top;
+ 
 
-        // 移除所有边框和标题栏
-        SetWindowLong(m_hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
-        SetWindowLong(m_hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+        // 3. 修改样式：移除标题栏、边框等
+        // 注意：不建议直接硬编码样式，最好在 m_WindowStyle 中预存
+        SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
 
-        // 覆盖整个屏幕
-        SetWindowPos(m_hWnd, HWND_TOP, 0, 0,
-                     screenWidth, screenHeight,
-                     SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+        // 4. 设置位置：使用显示器的 rcMonitor 覆盖整个屏幕（包含任务栏）
+        SetWindowPos(m_hWnd, HWND_TOP,
+                     mi.rcMonitor.left,
+                     mi.rcMonitor.top,
+                     mi.rcMonitor.right - mi.rcMonitor.left,
+                     mi.rcMonitor.bottom - mi.rcMonitor.top,
+                     SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
-        // 隐藏光标
-        ShowMouseCursor(FALSE);
+        // 5. 立即更新窗口
+        UpdateWindow(m_hWnd);
+
+        // 6. 重要：调用回调函数，通知渲染器尺寸改变
+        if (m_ResizeCallback)
+        {
+            m_ResizeCallback(screenWidth, screenHeight);
+        }
+
+        // 7. 隐藏光标
+        this->ShowMouseCursor(FALSE);
 
         m_Fullscreen = TRUE;
         OutputDebugStringA("无边框全屏设置完成\n");
     }
     else
     {
+        // 1. 恢复显示设置
+        ChangeDisplaySettingsW(NULL, 0);
+
         // 恢复窗口样式
         SetWindowLong(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
         SetWindowLong(m_hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_WINDOWEDGE);
 
         // 恢复位置
         SetWindowPos(m_hWnd, HWND_TOP,
-                     m_WindowRect.left, m_WindowRect.top,
+                     m_WindowRect.left,
+                     m_WindowRect.top,
                      m_WindowRect.right - m_WindowRect.left,
                      m_WindowRect.bottom - m_WindowRect.top,
-                     SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+                     SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+        // 重要：恢复时也要调用回调
+        int width = m_WindowRect.right - m_WindowRect.left;
+        int height = m_WindowRect.bottom - m_WindowRect.top;
+        
+        UpdateWindow(m_hWnd);
+
+        if (m_ResizeCallback)
+        {
+            m_ResizeCallback(width, height);
+        }
 
         // 显示光标
-        ShowMouseCursor(TRUE);
-
+        this->ShowMouseCursor(TRUE);
         m_Fullscreen = FALSE;
+
         OutputDebugStringA("窗口模式恢复完成\n");
     }
 
@@ -526,6 +559,12 @@ LRESULT CALLBACK CWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 
 LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    // 这样 InputManager 才能监听到 WM_KEYDOWN, WM_MOUSEMOVE 等消息
+    auto pInput = CGameEngine::GetInstance().GetInputManager();
+    if (pInput)
+    {
+        pInput->HandleMessage(hWnd, msg, wParam, lParam);
+    }
 
     switch (msg)
     {
@@ -605,24 +644,23 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     // TODO: 按键设置
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
-        char buffer[64];
-        sprintf_s(buffer, sizeof(buffer), "收到按键: 0x%X (虚拟键码)\n", wParam);
-        OutputDebugStringA(buffer);
+        // char buffer[64];
+        // sprintf_s(buffer, sizeof(buffer), "收到按键: 0x%X (虚拟键码)\n", wParam);
+        // OutputDebugStringA(buffer);
 
         // 按键按下
         if (wParam == VK_ESCAPE)
         {
             // ESC键 - 退出程序
-            OutputDebugStringA("ESC 键被按下，退出程序\n");
+            // OutputDebugStringA("ESC 键被按下，退出程序\n");
             PostMessage(hWnd, WM_CLOSE, 0, 0);
             Sleep(1000);
         }
-        else if (wParam == VK_F11 || wParam == VK_F1 )
-        // else if (wParam == VK_F11)
+        else if (wParam == VK_F11)
         // else if (wParam == VK_F11 || (wParam == VK_RETURN && (HIWORD(lParam) & KF_ALTDOWN)))
         {
             // F11键 - 切换全屏
-            OutputDebugStringA("F11 键被按下!\n");
+            // OutputDebugStringA("F11 键被按下!\n");
             ToggleFullscreen();
         }
         return 0;
@@ -655,7 +693,7 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
         // 关闭窗口
         DestroyWindow(hWnd);
         return 0;
-    
+
     case WM_DESTROY:
         // 窗口销毁
         PostQuitMessage(0);

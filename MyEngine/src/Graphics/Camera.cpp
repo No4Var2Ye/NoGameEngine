@@ -1,96 +1,89 @@
-﻿// ======================================================================
+﻿
+// ======================================================================
 #include "stdafx.h"
+
 #include "Graphics/Camera.h"
-#include "Math/MathUtils.h"
-#include <cmath>
-#include <cstdlib>
-#include <ctime>
 // ======================================================================
 
 using namespace Math;
 
-/**
- * @brief 构造函数
- */
+// ======================================================================
+// ===================== 公用方法 ========================================
 CCamera::CCamera(CameraMode mode)
-    : m_Mode(mode)
-    , m_Position(0.0f, 0.0f, 0.0f)
-    , m_Target(0.0f, 0.0f, -1.0f)
-    , m_Up(0.0f, 1.0f, 0.0f)
-    , m_Forward(0.0f, 0.0f, -1.0f)
-    , m_Right(1.0f, 0.0f, 0.0f)
-    , m_WorldUp(0.0f, 1.0f, 0.0f)
-    , m_Yaw(-90.0f)
-    , m_Pitch(0.0f)
-    , m_Roll(0.0f)
-    , m_MoveSpeed(5.0f)
-    , m_RotationSpeed(1.0f)
-    , m_ZoomSpeed(2.0f)
-    , m_ThirdPersonTarget(0.0f, 0.0f, 0.0f)
-    , m_Distance(5.0f)
-    , m_Height(2.0f)
-    , m_AngleAroundTarget(0.0f)
-    , m_OrbitCenter(0.0f, 0.0f, 0.0f)
-    , m_OrbitDistance(10.0f)
-    , m_OrbitPhi(45.0f)
-    , m_OrbitTheta(0.0f)
-    , m_Fov(45.0f)
-    , m_AspectRatio(4.0f / 3.0f)
-    , m_NearPlane(0.1f)
-    , m_FarPlane(1000.0f)
-    , m_EnableMouseLook(FALSE)
-    , m_LastMousePos({0, 0})
-    , m_MouseLookActive(FALSE)
-    , m_MouseSensitivity(0.1f)
-    , m_ClampPitch(TRUE)
-    , m_MinPitch(-89.0f)
-    , m_MaxPitch(89.0f)
-    , m_ClampDistance(TRUE)
-    , m_MinDistance(1.0f)
-    , m_MaxDistance(50.0f)
-    , m_ShakeEnabled(FALSE)
-    , m_ShakeIntensity(0.0f)
-    , m_ShakeDuration(0.0f)
-    , m_ShakeTimer(0.0f)
-    , m_ShakeOffset(0.0f, 0.0f, 0.0f)
+    : m_Mode(mode),                          // 摄像机模式
+      m_Position(0.0f, 0.0f, 0.0f),          // 摄像机位置
+      m_Target(0.0f, 0.0f, -1.0f),           // 观察目标
+      m_Up(0.0f, 1.0f, 0.0f),                // 上方向
+      m_Forward(0.0f, 0.0f, -1.0f),          // 前方向
+      m_Right(1.0f, 0.0f, 0.0f),             // 右方向
+      m_WorldUp(0.0f, 1.0f, 0.0f),           // 世界上方向
+      m_Yaw(-90.0f),                         // 偏航角（绕Y轴旋转）
+      m_Pitch(0.0f),                         // 俯仰角（绕X轴旋转）
+      m_Roll(0.0f),                          // 翻滚角（绕Z轴旋转）
+      m_MoveSpeed(5.0f),                     // 移动速度
+      m_RotationSpeed(1.0f),                 // 旋转速度
+      m_ZoomSpeed(2.0f),                     // 缩放速度
+      m_ThirdPersonTarget(0.0f, 0.0f, 0.0f), // 第三人称跟踪目标
+      m_Distance(5.0f),                      // 距离目标的距离
+      m_Height(2.0f),                        // 相对高度
+      m_AngleAroundTarget(0.0f),             // 围绕目标的角度
+      m_OrbitCenter(0.0f, 0.0f, 0.0f),       // 轨道中心
+      m_OrbitDistance(10.0f),                // 轨道距离
+      m_OrbitPhi(45.0f),                     // 垂直角度
+      m_OrbitTheta(0.0f),                    // 水平角度
+      m_Fov(45.0f),                          // 视野角度
+      m_AspectRatio(4.0f / 3.0f),            // 宽高比
+      m_NearPlane(0.1f),                     // 近裁剪面
+      m_FarPlane(1000.0f),                   // 远裁剪面
+      m_EnableMouseLook(FALSE),              // 是否启用鼠标视角控制
+      m_LastMousePos({0, 0}),                // 上一帧鼠标位置
+      m_MouseLookActive(FALSE),              // 鼠标视角是否激活
+      m_MouseSensitivity(0.1f),              // 鼠标灵敏度
+      m_ClampPitch(TRUE),                    // 是否限制俯仰角
+      m_MinPitch(-89.0f),                    // 最小俯仰角
+      m_MaxPitch(89.0f),                     // 最大俯仰角
+      m_ClampDistance(TRUE),                 // 是否限制距离
+      m_MinDistance(1.0f),                   // 最小距离
+      m_MaxDistance(50.0f),                  // 最大距离
+      m_ShakeEnabled(FALSE),                 // 是否启用震动
+      m_ShakeIntensity(0.0f),                // 震动强度
+      m_ShakeDuration(0.0f),                 // 震动持续时间
+      m_ShakeTimer(0.0f),                    // 震动计时器
+      m_ShakeOffset(0.0f, 0.0f, 0.0f)        // 震动偏移
 {
     srand(static_cast<unsigned>(time(NULL)));
     UpdateCameraVectors();
 }
 
-/**
- * @brief 初始化摄像机
- */
-void CCamera::Initialize(const Vector3& position, const Vector3& target, const Vector3& up)
+void CCamera::Initialize(const Vector3 &position, const Vector3 &target, const Vector3 &up)
 {
     m_Position = position;
     m_Target = target;
     m_WorldUp = up;
     m_Up = up;
-    
+
     // 计算初始方向
     m_Forward = (m_Target - m_Position).Normalize();
     m_Right = m_Forward.Cross(m_WorldUp).Normalize();
     m_Up = m_Right.Cross(m_Forward).Normalize();
-    
+
     // 计算初始欧拉角
     Vector3 forward = m_Forward;
     m_Yaw = atan2(forward.z, forward.x) * RAD_TO_DEG;
     m_Pitch = asin(forward.y) * RAD_TO_DEG;
-    
+
     // 限制俯仰角
     if (m_ClampPitch)
     {
-        if (m_Pitch > m_MaxPitch) m_Pitch = m_MaxPitch;
-        if (m_Pitch < m_MinPitch) m_Pitch = m_MinPitch;
+        if (m_Pitch > m_MaxPitch)
+            m_Pitch = m_MaxPitch;
+        if (m_Pitch < m_MinPitch)
+            m_Pitch = m_MinPitch;
     }
-    
+
     UpdateCameraVectors();
 }
 
-/**
- * @brief 设置投影参数
- */
 void CCamera::SetProjection(FLOAT fov, FLOAT aspectRatio, FLOAT nearPlane, FLOAT farPlane)
 {
     m_Fov = fov;
@@ -99,38 +92,32 @@ void CCamera::SetProjection(FLOAT fov, FLOAT aspectRatio, FLOAT nearPlane, FLOAT
     m_FarPlane = farPlane;
 }
 
-/**
- * @brief 更新摄像机轴向量
- */
 void CCamera::UpdateCameraVectors()
 {
     // 根据欧拉角计算前方向向量
     FLOAT yawRad = ToRadians(m_Yaw);
     FLOAT pitchRad = ToRadians(m_Pitch);
-    
+
     Vector3 forward;
     forward.x = cos(yawRad) * cos(pitchRad);
     forward.y = sin(pitchRad);
     forward.z = sin(yawRad) * cos(pitchRad);
-    
+
     m_Forward = forward.Normalize();
-    
+
     // 计算右方向和上方向
     m_Right = m_Forward.Cross(m_WorldUp).Normalize();
     m_Up = m_Right.Cross(m_Forward).Normalize();
 }
 
-/**
- * @brief 设置摄像机模式
- */
 void CCamera::SetMode(CameraMode mode)
 {
     if (m_Mode == mode)
         return;
-    
+
     CameraMode oldMode = m_Mode;
     m_Mode = mode;
-    
+
     // 模式切换时的初始化
     switch (mode)
     {
@@ -142,7 +129,7 @@ void CCamera::SetMode(CameraMode mode)
             m_AngleAroundTarget = 0.0f;
         }
         break;
-        
+
     case CameraMode::Orbital:
         if (oldMode != CameraMode::Orbital)
         {
@@ -151,19 +138,16 @@ void CCamera::SetMode(CameraMode mode)
             m_OrbitTheta = 0.0f;
         }
         break;
-        
+
     default:
         break;
     }
 }
 
-/**
- * @brief 移动摄像机
- */
 void CCamera::Move(FLOAT forward, FLOAT right, FLOAT up)
 {
     Vector3 moveOffset(0.0f, 0.0f, 0.0f);
-    
+
     // 根据模式计算移动
     switch (m_Mode)
     {
@@ -173,12 +157,12 @@ void CCamera::Move(FLOAT forward, FLOAT right, FLOAT up)
         m_Position = m_Position + moveOffset * m_MoveSpeed;
         m_Target = m_Position + m_Forward;
         break;
-        
+
     case CameraMode::ThirdPerson:
         // 第三人称摄像机移动目标
         m_ThirdPersonTarget = m_ThirdPersonTarget + m_Forward * forward + m_Right * right + m_Up * up;
         break;
-        
+
     case CameraMode::Orbital:
         // 轨道摄像机移动中心
         m_OrbitCenter = m_OrbitCenter + m_Forward * forward + m_Right * right + m_Up * up;
@@ -186,24 +170,23 @@ void CCamera::Move(FLOAT forward, FLOAT right, FLOAT up)
     }
 }
 
-/**
- * @brief 旋转摄像机
- */
 void CCamera::Rotate(FLOAT yaw, FLOAT pitch, FLOAT roll)
 {
     m_Yaw += yaw * m_RotationSpeed;
     m_Pitch += pitch * m_RotationSpeed;
     m_Roll += roll * m_RotationSpeed;
-    
+
     // 限制俯仰角
     if (m_ClampPitch)
     {
-        if (m_Pitch > m_MaxPitch) m_Pitch = m_MaxPitch;
-        if (m_Pitch < m_MinPitch) m_Pitch = m_MinPitch;
+        if (m_Pitch > m_MaxPitch)
+            m_Pitch = m_MaxPitch;
+        if (m_Pitch < m_MinPitch)
+            m_Pitch = m_MinPitch;
     }
-    
+
     UpdateCameraVectors();
-    
+
     // 根据模式更新目标
     switch (m_Mode)
     {
@@ -211,15 +194,12 @@ void CCamera::Rotate(FLOAT yaw, FLOAT pitch, FLOAT roll)
     case CameraMode::FreeLook:
         m_Target = m_Position + m_Forward;
         break;
-        
+
     default:
         break;
     }
 }
 
-/**
- * @brief 缩放摄像机
- */
 void CCamera::Zoom(FLOAT amount)
 {
     switch (m_Mode)
@@ -229,161 +209,135 @@ void CCamera::Zoom(FLOAT amount)
         // 自由视角缩放是向前移动
         Move(amount, 0.0f, 0.0f);
         break;
-        
+
     case CameraMode::ThirdPerson:
         m_Distance -= amount * m_ZoomSpeed;
         if (m_ClampDistance)
         {
-            if (m_Distance < m_MinDistance) m_Distance = m_MinDistance;
-            if (m_Distance > m_MaxDistance) m_Distance = m_MaxDistance;
+            if (m_Distance < m_MinDistance)
+                m_Distance = m_MinDistance;
+            if (m_Distance > m_MaxDistance)
+                m_Distance = m_MaxDistance;
         }
         break;
-        
+
     case CameraMode::Orbital:
         m_OrbitDistance -= amount * m_ZoomSpeed;
         if (m_ClampDistance)
         {
-            if (m_OrbitDistance < m_MinDistance) m_OrbitDistance = m_MinDistance;
-            if (m_OrbitDistance > m_MaxDistance) m_OrbitDistance = m_MaxDistance;
+            if (m_OrbitDistance < m_MinDistance)
+                m_OrbitDistance = m_MinDistance;
+            if (m_OrbitDistance > m_MaxDistance)
+                m_OrbitDistance = m_MaxDistance;
         }
         break;
     }
 }
 
-/**
- * @brief 设置摄像机位置
- */
-void CCamera::SetPosition(const Vector3& position)
+void CCamera::SetPosition(const Vector3 &position)
 {
     m_Position = position;
-    
+
     if (m_Mode == CameraMode::FirstPerson || m_Mode == CameraMode::FreeLook)
     {
         m_Target = m_Position + m_Forward;
     }
 }
 
-/**
- * @brief 设置观察目标
- */
-void CCamera::SetTarget(const Vector3& target)
+void CCamera::SetTarget(const Vector3 &target)
 {
     m_Target = target;
-    
+
     if (m_Mode == CameraMode::FirstPerson || m_Mode == CameraMode::FreeLook)
     {
         m_Forward = (m_Target - m_Position).Normalize();
-        
+
         // 重新计算欧拉角
         Vector3 forward = m_Forward;
         m_Yaw = atan2(forward.z, forward.x) * RAD_TO_DEG;
         m_Pitch = asin(forward.y) * RAD_TO_DEG;
-        
+
         UpdateCameraVectors();
     }
 }
 
-/**
- * @brief 看向指定位置
- */
-void CCamera::LookAt(const Vector3& position)
+void CCamera::LookAt(const Vector3 &position)
 {
     SetTarget(position);
 }
 
-/**
- * @brief 设置欧拉角
- */
 void CCamera::SetEulerAngles(FLOAT yaw, FLOAT pitch, FLOAT roll)
 {
     m_Yaw = yaw;
     m_Pitch = pitch;
     m_Roll = roll;
-    
+
     if (m_ClampPitch)
     {
-        if (m_Pitch > m_MaxPitch) m_Pitch = m_MaxPitch;
-        if (m_Pitch < m_MinPitch) m_Pitch = m_MinPitch;
+        if (m_Pitch > m_MaxPitch)
+            m_Pitch = m_MaxPitch;
+        if (m_Pitch < m_MinPitch)
+            m_Pitch = m_MinPitch;
     }
-    
+
     UpdateCameraVectors();
-    
+
     if (m_Mode == CameraMode::FirstPerson || m_Mode == CameraMode::FreeLook)
     {
         m_Target = m_Position + m_Forward;
     }
 }
 
-/**
- * @brief 设置第三人称跟踪目标
- */
-void CCamera::SetThirdPersonTarget(const Vector3& target)
+void CCamera::SetThirdPersonTarget(const Vector3 &target)
 {
     m_ThirdPersonTarget = target;
 }
 
-/**
- * @brief 设置第三人称距离
- */
 void CCamera::SetThirdPersonDistance(FLOAT distance)
 {
     m_Distance = distance;
     if (m_ClampDistance)
     {
-        if (m_Distance < m_MinDistance) m_Distance = m_MinDistance;
-        if (m_Distance > m_MaxDistance) m_Distance = m_MaxDistance;
+        if (m_Distance < m_MinDistance)
+            m_Distance = m_MinDistance;
+        if (m_Distance > m_MaxDistance)
+            m_Distance = m_MaxDistance;
     }
 }
 
-/**
- * @brief 设置第三人称高度
- */
 void CCamera::SetThirdPersonHeight(FLOAT height)
 {
     m_Height = height;
 }
 
-/**
- * @brief 设置第三人称角度
- */
 void CCamera::SetThirdPersonAngle(FLOAT angle)
 {
     m_AngleAroundTarget = angle;
 }
 
-/**
- * @brief 设置轨道中心
- */
-void CCamera::SetOrbitCenter(const Vector3& center)
+void CCamera::SetOrbitCenter(const Vector3 &center)
 {
     m_OrbitCenter = center;
 }
 
-/**
- * @brief 设置轨道距离
- */
 void CCamera::SetOrbitDistance(FLOAT distance)
 {
     m_OrbitDistance = distance;
     if (m_ClampDistance)
     {
-        if (m_OrbitDistance < m_MinDistance) m_OrbitDistance = m_MinDistance;
-        if (m_OrbitDistance > m_MaxDistance) m_OrbitDistance = m_MaxDistance;
+        if (m_OrbitDistance < m_MinDistance)
+            m_OrbitDistance = m_MinDistance;
+        if (m_OrbitDistance > m_MaxDistance)
+            m_OrbitDistance = m_MaxDistance;
     }
 }
 
-/**
- * @brief 设置轨道角度
- */
 void CCamera::SetOrbitAngles(FLOAT phi, FLOAT theta)
 {
     m_OrbitPhi = phi;
     m_OrbitTheta = theta;
 }
 
-/**
- * @brief 启用鼠标视角控制
- */
 void CCamera::EnableMouseLook(BOOL enable)
 {
     m_EnableMouseLook = enable;
@@ -393,9 +347,6 @@ void CCamera::EnableMouseLook(BOOL enable)
     }
 }
 
-/**
- * @brief 开始鼠标视角控制
- */
 void CCamera::StartMouseLook()
 {
     if (m_EnableMouseLook)
@@ -405,31 +356,25 @@ void CCamera::StartMouseLook()
     }
 }
 
-/**
- * @brief 停止鼠标视角控制
- */
 void CCamera::StopMouseLook()
 {
     m_MouseLookActive = FALSE;
 }
 
-/**
- * @brief 处理鼠标移动
- */
-void CCamera::ProcessMouseMovement(int x, int y)
+void CCamera::ProcessMouseMovement(INT x, INT y)
 {
     if (!m_MouseLookActive)
         return;
-    
-    int deltaX = x - m_LastMousePos.x;
-    int deltaY = m_LastMousePos.y - y;  // 反转Y轴
-    
+
+    INT deltaX = x - m_LastMousePos.x;
+    INT deltaY = m_LastMousePos.y - y; // 反转Y轴
+
     m_LastMousePos.x = x;
     m_LastMousePos.y = y;
-    
+
     FLOAT xOffset = static_cast<FLOAT>(deltaX) * m_MouseSensitivity;
     FLOAT yOffset = static_cast<FLOAT>(deltaY) * m_MouseSensitivity;
-    
+
     // 根据模式处理鼠标移动
     switch (m_Mode)
     {
@@ -437,96 +382,85 @@ void CCamera::ProcessMouseMovement(int x, int y)
     case CameraMode::FreeLook:
         Rotate(xOffset, yOffset);
         break;
-        
+
     case CameraMode::ThirdPerson:
+        // 第三人称：水平移动旋转环绕角，垂直移动旋转俯仰角
         m_AngleAroundTarget -= xOffset;
+        m_Pitch -= yOffset; // 复用 Pitch 来控制观察高度
+        if (m_ClampPitch)
+        {
+            m_Pitch = (m_Pitch > m_MaxPitch) ? m_MaxPitch : (m_Pitch < m_MinPitch ? m_MinPitch : m_Pitch);
+        }
         break;
-        
+
     case CameraMode::Orbital:
         m_OrbitTheta += xOffset;
         m_OrbitPhi -= yOffset;
-        
-        // 限制Phi角度
-        if (m_OrbitPhi > 89.0f) m_OrbitPhi = 89.0f;
-        if (m_OrbitPhi < 1.0f) m_OrbitPhi = 1.0f;
+        m_OrbitPhi = (m_OrbitPhi > 179.0f) ? 179.0f : (m_OrbitPhi < 1.0f ? 1.0f : m_OrbitPhi);
         break;
     }
+    m_ViewDirty = true;
 }
 
-/**
- * @brief 处理鼠标滚轮
- */
-void CCamera::ProcessMouseWheel(int delta)
+void CCamera::ProcessMouseWheel(INT delta)
 {
-    FLOAT zoomAmount = static_cast<FLOAT>(delta) / 120.0f;  // 标准滚轮单位
+    FLOAT zoomAmount = static_cast<FLOAT>(delta) / 120.0f; // 标准滚轮单位
     Zoom(zoomAmount);
 }
 
-/**
- * @brief 更新第一人称摄像机
- */
 void CCamera::UpdateFirstPerson()
 {
     // 第一人称摄像机位置固定，目标随旋转变化
     m_Target = m_Position + m_Forward;
 }
 
-/**
- * @brief 更新第三人称摄像机
- */
-void CCamera::UpdateThirdPerson()
+void CCamera::UpdateThirdPerson(FLOAT deltaTime)
 {
     // 计算水平距离
-    FLOAT horizontalDistance = m_Distance * cos(ToRadians(m_Pitch));
-    FLOAT verticalDistance = m_Distance * sin(ToRadians(m_Pitch));
-    
+    FLOAT horizontalDistance = m_Distance * Math::Cos(ToRadians(m_Pitch));
+    FLOAT verticalDistance = m_Distance * Math::Sin(ToRadians(m_Pitch));
+
     // 计算摄像机位置
-    FLOAT theta = ToRadians(m_ThirdPersonTarget.x + m_AngleAroundTarget);
-    FLOAT offsetX = horizontalDistance * sin(theta);
-    FLOAT offsetZ = horizontalDistance * cos(theta);
-    
-    m_Position.x = m_ThirdPersonTarget.x - offsetX;
-    m_Position.y = m_ThirdPersonTarget.y + verticalDistance + m_Height;
-    m_Position.z = m_ThirdPersonTarget.z - offsetZ;
-    
-    // 摄像机看向目标
-    m_Target = m_ThirdPersonTarget;
-    m_Target.y += m_Height;
-    
+    FLOAT theta = ToRadians(m_AngleAroundTarget);
+    FLOAT offsetX = horizontalDistance * Math::Sin(theta);
+    FLOAT offsetZ = horizontalDistance * Math::Cos(theta);
+
+    Vector3 desiredPosition;
+    desiredPosition.x = m_ThirdPersonTarget.x - offsetX;
+    desiredPosition.y = m_ThirdPersonTarget.y + verticalDistance + m_Height;
+    desiredPosition.z = m_ThirdPersonTarget.z - offsetZ;
+
+    // 平滑插值 (Lerp): 防止相机跟随角色时产生高频抖动
+    m_Position = Vector3::Lerp(m_Position, desiredPosition, deltaTime * m_FollowSpeed);
+
+    // 始终看向目标中心（可根据高度偏移）
+    m_Target = m_ThirdPersonTarget + Vector3(0, m_Height * 0.5f, 0);
+
     // 更新前方向
     m_Forward = (m_Target - m_Position).Normalize();
 }
 
-/**
- * @brief 更新自由视角摄像机
- */
 void CCamera::UpdateFreeLook()
 {
     // 自由视角和第一人称类似
     UpdateFirstPerson();
 }
 
-/**
- * @brief 更新轨道视角摄像机
- */
 void CCamera::UpdateOrbital()
 {
     // 将球坐标转换为笛卡尔坐标
     FLOAT phiRad = ToRadians(m_OrbitPhi);
     FLOAT thetaRad = ToRadians(m_OrbitTheta);
-    
-    m_Position.x = m_OrbitCenter.x + m_OrbitDistance * sin(phiRad) * cos(thetaRad);
-    m_Position.y = m_OrbitCenter.y + m_OrbitDistance * cos(phiRad);
-    m_Position.z = m_OrbitCenter.z + m_OrbitDistance * sin(phiRad) * sin(thetaRad);
-    
+
+    m_Position.x = m_OrbitCenter.x + m_OrbitDistance * Math::Sin(phiRad) * Math::Cos(thetaRad);
+    m_Position.y = m_OrbitCenter.y + m_OrbitDistance * Math::Cos(phiRad);
+    m_Position.z = m_OrbitCenter.z + m_OrbitDistance * Math::Sin(phiRad) * Math::Sin(thetaRad);
+
     // 摄像机看向中心
     m_Target = m_OrbitCenter;
     m_Forward = (m_Target - m_Position).Normalize();
 }
 
-/**
- * @brief 启动摄像机震动
- */
 void CCamera::StartShake(FLOAT intensity, FLOAT duration)
 {
     m_ShakeEnabled = TRUE;
@@ -536,9 +470,6 @@ void CCamera::StartShake(FLOAT intensity, FLOAT duration)
     m_ShakeOffset = Vector3(0.0f, 0.0f, 0.0f);
 }
 
-/**
- * @brief 停止摄像机震动
- */
 void CCamera::StopShake()
 {
     m_ShakeEnabled = FALSE;
@@ -548,21 +479,15 @@ void CCamera::StopShake()
     m_ShakeOffset = Vector3(0.0f, 0.0f, 0.0f);
 }
 
-/**
- * @brief 生成随机震动偏移
- */
 void CCamera::GenerateShakeOffset()
 {
     FLOAT x = (static_cast<FLOAT>(rand()) / RAND_MAX * 2.0f - 1.0f) * m_ShakeIntensity;
     FLOAT y = (static_cast<FLOAT>(rand()) / RAND_MAX * 2.0f - 1.0f) * m_ShakeIntensity;
     FLOAT z = (static_cast<FLOAT>(rand()) / RAND_MAX * 2.0f - 1.0f) * m_ShakeIntensity;
-    
+
     m_ShakeOffset = Vector3(x, y, z);
 }
 
-/**
- * @brief 设置俯仰角限制
- */
 void CCamera::SetPitchLimits(FLOAT minPitch, FLOAT maxPitch)
 {
     m_MinPitch = minPitch;
@@ -570,9 +495,6 @@ void CCamera::SetPitchLimits(FLOAT minPitch, FLOAT maxPitch)
     m_ClampPitch = TRUE;
 }
 
-/**
- * @brief 设置距离限制
- */
 void CCamera::SetDistanceLimits(FLOAT minDistance, FLOAT maxDistance)
 {
     m_MinDistance = minDistance;
@@ -580,126 +502,77 @@ void CCamera::SetDistanceLimits(FLOAT minDistance, FLOAT maxDistance)
     m_ClampDistance = TRUE;
 }
 
-/**
- * @brief 获取欧拉角
- */
-void CCamera::GetEulerAngles(FLOAT& yaw, FLOAT& pitch, FLOAT& roll) const
+void CCamera::GetEulerAngles(FLOAT &yaw, FLOAT &pitch, FLOAT &roll) const
 {
     yaw = m_Yaw;
     pitch = m_Pitch;
     roll = m_Roll;
 }
 
-/**
- * @brief 计算观察矩阵
- */
-void CCamera::CalculateLookAtMatrix(const Vector3& position, const Vector3& target, const Vector3& up, FLOAT* matrix)
+void CCamera::CalculateLookAtMatrix(const Vector3 &position, const Vector3 &target, const Vector3 &up, Matrix4 &matrix)
 {
-    Vector3 zaxis = (target - position).Normalize();
-    Vector3 xaxis = zaxis.Cross(up).Normalize();
-    Vector3 yaxis = xaxis.Cross(zaxis);
-    
-    matrix[0] = xaxis.x;  matrix[4] = xaxis.y;  matrix[8]  = xaxis.z;  matrix[12] = -xaxis.Dot(position);
-    matrix[1] = yaxis.x;  matrix[5] = yaxis.y;  matrix[9]  = yaxis.z;  matrix[13] = -yaxis.Dot(position);
-    matrix[2] = -zaxis.x; matrix[6] = -zaxis.y; matrix[10] = -zaxis.z; matrix[14] = zaxis.Dot(position);
-    matrix[3] = 0.0f;     matrix[7] = 0.0f;     matrix[11] = 0.0f;     matrix[15] = 1.0f;
+    matrix = Matrix4::LookAt(position, target, up);
 }
 
-/**
- * @brief 获取观察矩阵
- */
-void CCamera::GetViewMatrix(FLOAT* matrix) const
+void CCamera::GetViewMatrix(Matrix4 &matrix) const
 {
-    Vector3 position = m_Position;
-    Vector3 target = m_Target;
-    
-    // 应用摄像机震动
-    if (m_ShakeEnabled)
+    if (m_ViewDirty || m_ShakeEnabled) // 有震动时必须实时计算
     {
-        position = position + m_ShakeOffset;
-        target = target + m_ShakeOffset;
-    }
-    
-    CalculateLookAtMatrix(position, target, m_Up, matrix);
-}
+        Vector3 finalPos = m_Position;
+        Vector3 finalTarget = m_Target;
 
-/**
- * @brief 获取投影矩阵
- */
-void CCamera::GetProjectionMatrix(FLOAT* matrix) const
-{
-    FLOAT f = 1.0f / tan(ToRadians(m_Fov) * 0.5f);
-    FLOAT aspect = m_AspectRatio;
-    FLOAT zNear = m_NearPlane;
-    FLOAT zFar = m_FarPlane;
-    
-    matrix[0] = f / aspect;
-    matrix[1] = 0.0f;
-    matrix[2] = 0.0f;
-    matrix[3] = 0.0f;
-    
-    matrix[4] = 0.0f;
-    matrix[5] = f;
-    matrix[6] = 0.0f;
-    matrix[7] = 0.0f;
-    
-    matrix[8] = 0.0f;
-    matrix[9] = 0.0f;
-    matrix[10] = (zFar + zNear) / (zNear - zFar);
-    matrix[11] = -1.0f;
-    
-    matrix[12] = 0.0f;
-    matrix[13] = 0.0f;
-    matrix[14] = (2.0f * zFar * zNear) / (zNear - zFar);
-    matrix[15] = 0.0f;
-}
-
-/**
- * @brief 获取视图投影矩阵
- */
-void CCamera::GetViewProjectionMatrix(FLOAT* matrix) const
-{
-    FLOAT view[16], proj[16];
-    GetViewMatrix(view);
-    GetProjectionMatrix(proj);
-    
-    // 矩阵乘法: result = proj * view
-    for (int i = 0; i < 4; ++i)
-    {
-        for (int j = 0; j < 4; ++j)
+        if (m_ShakeEnabled)
         {
-            matrix[i * 4 + j] = 0.0f;
-            for (int k = 0; k < 4; ++k)
-            {
-                matrix[i * 4 + j] += proj[i * 4 + k] * view[k * 4 + j];
-            }
+            finalPos = finalPos + m_ShakeOffset;
+            finalTarget = finalTarget + m_ShakeOffset;
         }
+
+        CalculateLookAtMatrix(finalPos, finalTarget, m_Up, m_CachedView);
+        m_ViewDirty = FALSE;
     }
+    matrix = m_CachedView;
 }
 
-/**
- * @brief 更新摄像机
- */
+void CCamera::GetProjectionMatrix(Matrix4 &matrix) const
+{
+    matrix = Matrix4::Perspective(m_Fov, m_AspectRatio, m_NearPlane, m_FarPlane);
+}
+
+void CCamera::GetViewProjectionMatrix(Matrix4 &matrix) const
+{
+    if (m_ProjDirty)
+    {
+        m_CachedProj = Matrix4::Perspective(m_Fov, m_AspectRatio, m_NearPlane, m_FarPlane);
+        m_ProjDirty = false;
+    }
+
+    // 计算 matrix = proj * view
+    // 在列优先布局下，matrix[c][r] = sum(proj[k][r] * view[c][k])
+    // 其中 c 为列索引，r 为行索引
+
+    matrix = m_CachedProj;
+}
+
 void CCamera::Update(FLOAT deltaTime)
 {
-    // 根据模式更新摄像机位置
+    // 1. 根据模式更新摄像机位置
     switch (m_Mode)
     {
     case CameraMode::FirstPerson:
-        UpdateFirstPerson();
+        m_Target = m_Position + m_Forward;
         break;
     case CameraMode::ThirdPerson:
-        UpdateThirdPerson();
+        UpdateThirdPerson(deltaTime);
         break;
-    // case CameraMode::FreeLook:
-    //     UpdateFreeLook();
-    //     break;
-    // case CameraMode::Orbital:
-    //     UpdateOrbital();
-    //     break;
+    case CameraMode::FreeLook:
+        m_Target = m_Position + m_Forward;
+        break;
+    case CameraMode::Orbital:
+        UpdateOrbital();
+        break;
     }
-    
-    // 更新摄像机震动
+
+    // 2. 更新摄像机震动
     if (m_ShakeEnabled)
     {
         m_ShakeTimer += deltaTime;
@@ -713,35 +586,59 @@ void CCamera::Update(FLOAT deltaTime)
             GenerateShakeOffset();
         }
     }
+
+    // 3. 标记视图矩阵需要重新生成
+    m_ViewDirty = true;
 }
 
-/**
- * @brief 应用摄像机视图矩阵
- */
 void CCamera::ApplyViewMatrix() const
 {
-    FLOAT viewMatrix[16];
+    Matrix4 viewMatrix;
     GetViewMatrix(viewMatrix);
-    
+
+    // std::cout << "[调试] 应用视图矩阵:" << std::endl;
+    // std::cout << "  位置: (" << m_Position.x << ", " << m_Position.y << ", " << m_Position.z << ")" << std::endl;
+    // std::cout << "  目标: (" << m_Target.x << ", " << m_Target.y << ", " << m_Target.z << ")" << std::endl;
+
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     std::cout << "  ";
+    //     for (int j = 0; j < 4; j++)
+    //     {
+    //         std::cout << viewMatrix.m[i * 4 + j] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
     glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(viewMatrix);
+    glLoadMatrixf(viewMatrix.m);
+
+    // 检查OpenGL错误
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR)
+    {
+        std::cout << "[错误] glLoadMatrixf失败: " << error << std::endl;
+    }
 }
 
-/**
- * @brief 应用摄像机投影矩阵
- */
 void CCamera::ApplyProjectionMatrix() const
 {
-    FLOAT projMatrix[16];
+    Matrix4 projMatrix;
     GetProjectionMatrix(projMatrix);
-    
+
+    // std::cout << "[调试] 应用投影矩阵:" << std::endl;
+    // std::cout << "  FOV: " << m_Fov << ", 宽高比: " << m_AspectRatio << std::endl;
+
     glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(projMatrix);
+    glLoadMatrixf(projMatrix.m);
+
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR)
+    {
+        std::cout << "[错误] glLoadMatrixf失败: " << error << std::endl;
+    }
 }
 
-/**
- * @brief 重置摄像机
- */
 void CCamera::Reset()
 {
     m_Position = Vector3(0.0f, 0.0f, 0.0f);
@@ -750,42 +647,42 @@ void CCamera::Reset()
     m_WorldUp = Vector3(0.0f, 1.0f, 0.0f);
     m_Forward = Vector3(0.0f, 0.0f, -1.0f);
     m_Right = Vector3(1.0f, 0.0f, 0.0f);
-    
+
     m_Yaw = -90.0f;
     m_Pitch = 0.0f;
     m_Roll = 0.0f;
-    
+
     m_MoveSpeed = 5.0f;
     m_RotationSpeed = 1.0f;
     m_ZoomSpeed = 2.0f;
-    
+
     m_ThirdPersonTarget = Vector3(0.0f, 0.0f, 0.0f);
     m_Distance = 5.0f;
     m_Height = 2.0f;
     m_AngleAroundTarget = 0.0f;
-    
+
     m_OrbitCenter = Vector3(0.0f, 0.0f, 0.0f);
     m_OrbitDistance = 10.0f;
     m_OrbitPhi = 45.0f;
     m_OrbitTheta = 0.0f;
-    
+
     m_Fov = 45.0f;
     m_AspectRatio = 4.0f / 3.0f;
     m_NearPlane = 0.1f;
     m_FarPlane = 1000.0f;
-    
+
     m_EnableMouseLook = FALSE;
     m_LastMousePos = {0, 0};
     m_MouseLookActive = FALSE;
     m_MouseSensitivity = 0.1f;
-    
+
     m_ClampPitch = TRUE;
     m_MinPitch = -89.0f;
     m_MaxPitch = 89.0f;
-    
+
     m_ClampDistance = TRUE;
     m_MinDistance = 1.0f;
     m_MaxDistance = 50.0f;
-    
+
     StopShake();
 }

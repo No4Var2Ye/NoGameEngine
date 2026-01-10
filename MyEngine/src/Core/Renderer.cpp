@@ -174,12 +174,13 @@ void CRenderer::BeginFrame()
     if (!m_GLInitialized)
         return;
 
-    // 清除缓冲区
-    Clear();
+    // 1. 确保写入权限开启（防止 Clear 无效）
+    // 写入掩码函数, 控制哪些缓冲区可以被写入
+    glDepthMask(GL_TRUE);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    // 重置模型视图矩阵
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    // 2. 清除缓冲区
+    Clear(TRUE, TRUE, FALSE);
 }
 
 void CRenderer::EndFrame()
@@ -187,17 +188,38 @@ void CRenderer::EndFrame()
     if (!m_GLInitialized)
         return;
 
-    // 交换缓冲区
+    // 1. 错误检查 (Debug 模式下非常有用)
+#ifdef MYDEBUG
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR)
+    { /* 记录错误日志 */
+    }
+#endif
+
+    // 2. 绘制调试信息 (Debug Overlay)
+    // 渲染 FPS 等文字通常放在交换缓冲之前的最后一步
+    // RenderDebugInfo()
+
+    // 3. 交换缓冲区
     SwapBuffers(m_hDC);
 
-    // 更新帧率统计
+    // 4. 更新帧率统计
     UpdateFPS();
+
+    // 5. 状态收尾
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(0);
 }
 
 void CRenderer::Reset(INT width, INT height)
 {
     if (!m_GLInitialized)
         return;
+
+    char buffer[256];
+    sprintf_s(buffer, sizeof(buffer),
+              "渲染器重置: %dx%d\n", width, height);
+    OutputDebugStringA(buffer);
 
     m_Width = width;
     m_Height = height;
@@ -208,6 +230,15 @@ void CRenderer::Reset(INT width, INT height)
 
     // 更新投影矩阵
     SetPerspectiveProjection(45.0f, m_AspectRatio, 0.1f, 1000.0f);
+
+    // 3. 清除OpenGL错误
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR)
+    {
+        sprintf_s(buffer, sizeof(buffer),
+                  "OpenGL错误在Reset后: 0x%X\n", error);
+        OutputDebugStringA(buffer);
+    }
 }
 
 void CRenderer::SetClearColor(FLOAT r, FLOAT g, FLOAT b, FLOAT a)
