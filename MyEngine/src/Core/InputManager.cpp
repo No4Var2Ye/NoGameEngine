@@ -111,10 +111,6 @@ void CInputManager::Update()
     if (!m_InputEnabled)
         return;
 
-    // 保存上一帧状态
-    m_PreviousKeyState = m_CurrentKeyState;
-    m_PreviousMouseButtons = m_CurrentMouseButtons;
-
     // 重置按键状态
     m_KeyPressed.fill(FALSE);
     m_KeyReleased.fill(FALSE);
@@ -123,16 +119,19 @@ void CInputManager::Update()
 
     // 更新键盘状态
     UpdateKeyboard();
-
+    
     // 更新鼠标状态
     for (int i = 0; i < MOUSE_BUTTON_COUNT; ++i)
     {
         m_MouseButtonPressed[i] = m_CurrentMouseButtons[i] && !m_PreviousMouseButtons[i];
         m_MouseButtonReleased[i] = !m_CurrentMouseButtons[i] && m_PreviousMouseButtons[i];
     }
+    
+    // 保存上一帧状态
+    m_PreviousKeyState = m_CurrentKeyState;
+    m_PreviousMouseButtons = m_CurrentMouseButtons;
 }
 
-// 在 Update 之后，或者在帧渲染开始前调用此方法来“清零”位移
 void CInputManager::ClearDelta()
 {
     m_MouseDelta = {0, 0};
@@ -232,9 +231,9 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     {
-        char buf[128];
-        sprintf_s(buf, "Input: Key Down [VK: %u]\n", (UINT)wParam);
-        OutputDebugStringA(buf);
+        // char buf[128];
+        // sprintf_s(buf, "Input: Key Down [VK: %u]\n", (UINT)wParam);
+        // OutputDebugStringA(buf);
 
         UINT vk = static_cast<UINT>(wParam);
         INT index = GetKeyIndex(vk);
@@ -259,7 +258,7 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
     // 鼠标按键
     case WM_LBUTTONDOWN:
-        OutputDebugStringA("Input: Left Mouse Button Down\n");
+        // OutputDebugStringA("Input: Left Mouse Button Down\n");
         m_CurrentMouseButtons[(INT)MouseButton::Left] = TRUE;
         return 0;
     case WM_LBUTTONUP:
@@ -267,14 +266,14 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
         return 0;
     case WM_RBUTTONDOWN:
         m_CurrentMouseButtons[(INT)MouseButton::Right] = TRUE;
-        OutputDebugStringA("Input: Right Mouse Button Down\n");
+        // OutputDebugStringA("Input: Right Mouse Button Down\n");
         return 0;
     case WM_RBUTTONUP:
         m_CurrentMouseButtons[(INT)MouseButton::Right] = FALSE;
         return 0;
     case WM_MBUTTONDOWN:
         m_CurrentMouseButtons[(INT)MouseButton::Middle] = TRUE;
-        OutputDebugStringA("Input: Middle Mouse Button Down\n");
+        // OutputDebugStringA("Input: Middle Mouse Button Down\n");
         return 0;
     case WM_MBUTTONUP:
         m_CurrentMouseButtons[(INT)MouseButton::Middle] = FALSE;
@@ -414,7 +413,22 @@ BOOL CInputManager::IsMouseButtonPressed(MouseButton button) const
     INT index = GetMouseButtonIndex(button);
     if (index >= 0 && index < MOUSE_BUTTON_COUNT)
     {
-        return m_MouseButtonPressed[index];
+        if (m_MouseButtonPressed[index])
+        {
+            // 使用简单的映射来显示按键名称
+            const char *buttonNames[] = {"Left", "Right", "Middle", "X1", "X2"};
+            std::string name = (index < 5) ? buttonNames[index] : std::to_string(index);
+
+            // 输出到控制台
+            std::cout << "[Input] Mouse Button Pressed: " << name << std::endl;
+
+            // 同时输出到 Visual Studio 的调试输出窗口（方便在没有控制台的情况下查看）
+            char buf[64];
+            sprintf_s(buf, "[Input] Mouse Button Pressed: %s\n", name.c_str());
+            OutputDebugStringA(buf);
+
+            return TRUE;
+        }
     }
     return FALSE;
 }

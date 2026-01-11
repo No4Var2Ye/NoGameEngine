@@ -174,6 +174,8 @@ void CRenderer::BeginFrame()
     if (!m_GLInitialized)
         return;
 
+    // std::cout << "Rendering..." << std::endl;
+
     // 1. 确保写入权限开启（防止 Clear 无效）
     // 写入掩码函数, 控制哪些缓冲区可以被写入
     glDepthMask(GL_TRUE);
@@ -573,6 +575,10 @@ void CRenderer::SetupRenderState()
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+
+    // 启用多重采样抗锯齿
+    // 如果硬件和像素格式支持，这将显著平滑远处的网格线
+    glEnable(GL_MULTISAMPLE);
 
     // 设置混合函数
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

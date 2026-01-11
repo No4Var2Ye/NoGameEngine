@@ -323,6 +323,51 @@ void CSceneManager::ReloadCurrentScene()
     m_CurrentScene->Reload();
 }
 
+void DrawGrid(){
+// ========================================================
+    // 1. 绘制参考地平面 (Grid)
+    // ========================================================
+
+        glDisable(GL_LIGHTING); // 调试阶段关闭光照，确保颜色准确
+
+        float size = 100.0f; // 地面大小
+        float step = 1.0f;   // 网格间距
+
+        glBegin(GL_LINES);
+        for (float i = -size; i <= size; i += step)
+        {
+            // 颜色：深灰色，中心轴可以用深白色区分
+            if (i == 0)
+                glColor3f(0.8f, 0.8f, 0.8f);
+            else
+                glColor3f(0.4f, 0.4f, 0.4f);
+
+            // 绘制横线 (平行于 Z 轴)
+            glVertex3f(i, 0.0f, -size);
+            glVertex3f(i, 0.0f, size);
+
+            // 绘制纵线 (平行于 X 轴)
+            glVertex3f(-size, 0.0f, i);
+            glVertex3f(size, 0.0f, i);
+        }
+        glEnd();
+
+        // 可选：绘制世界坐标轴 (X-红, Y-绿, Z-蓝)
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+        glColor3f(1.0f, 0.0f, 0.0f);
+        glVertex3f(0, 0.1f, 0);
+        glVertex3f(5, 0.1f, 0); // X轴
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0, 0.1f, 0);
+        glVertex3f(0, 5.1f, 0); // Y轴
+        glColor3f(0.0f, 0.0f, 1.0f);
+        glVertex3f(0, 0.1f, 0);
+        glVertex3f(0, 0.1f, 5); // Z轴
+        glEnd();
+        glLineWidth(1.0f);
+}
+
 void CSceneManager::Update(FLOAT deltaTime)
 {
     if (!m_Initialized || m_Paused || !m_UpdateEnabled)
@@ -348,59 +393,75 @@ void CSceneManager::Render()
     if (!m_Initialized || !m_RenderEnabled)
         return;
 
-    // 最简单：设置一个纯色背景
-    glClearColor(0.2f, 0.3f, 0.8f, 1.0f); // 蓝色背景
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();  // 保存当前矩阵状态
 
-    // glTranslatef(0.0f, 0.0f, -10.0f);     // 最后：平移到(3,0,0)
-    glRotatef(60.0f, 1.0f, 1.0f, 0.0f); // 中间：绕Y轴旋转45度
-    // glScalef(0.5f, 0.5f, 0.5f);         // 首先：缩小到一半
-    // 四面体的4个顶点（正四面体）
-    FLOAT tetrahedronVertices[4][3] = {
-        {1.0f, 1.0f, 1.0f},   // 顶点0: 右上前
-        {-1.0f, -1.0f, 1.0f}, // 顶点1: 左下前
-        {-1.0f, 1.0f, -1.0f}, // 顶点2: 左后上
-        {1.0f, -1.0f, -1.0f}  // 顶点3: 右后下
-    };
-    // 四面体的4个面颜色
-    FLOAT tetrahedronColors[4][4] = {
-        {1.0f, 0.0f, 0.0f, 1.0f}, // 面0: 红色
-        {0.0f, 1.0f, 0.0f, 1.0f}, // 面1: 绿色
-        {0.0f, 0.0f, 1.0f, 1.0f}, // 面2: 蓝色
-        {1.0f, 1.0f, 0.0f, 1.0f}  // 面3: 黄色
-    };
-    glBegin(GL_TRIANGLES);
-    // 面0: 顶点0,1,2
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex3fv(tetrahedronVertices[0]);
-    glVertex3fv(tetrahedronVertices[1]);
-    glVertex3fv(tetrahedronVertices[2]);
-    // 面1: 顶点0,2,3
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex3fv(tetrahedronVertices[0]);
-    glVertex3fv(tetrahedronVertices[2]);
-    glVertex3fv(tetrahedronVertices[3]);
-    // 面2: 顶点0,3,1
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glVertex3fv(tetrahedronVertices[0]);
-    glVertex3fv(tetrahedronVertices[3]);
-    glVertex3fv(tetrahedronVertices[1]);
-    // 面3: 顶点1,3,2
-    glColor3f(1.0f, 1.0f, 0.0f);
-    glVertex3fv(tetrahedronVertices[1]);
-    glVertex3fv(tetrahedronVertices[3]);
-    glVertex3fv(tetrahedronVertices[2]);
-    glEnd();
-    glPopMatrix();  // 恢复矩阵
-    
+glPushMatrix();
+    DrawGrid(); // 之前的网格逻辑
+    glPopMatrix();
+
+    glPushMatrix(); // 保存当前矩阵状态
+    {
+
+        // 将立方体稍微抬高一点，放在坐标原点上方
+        glTranslatef(0.0f, 1.0f, 0.0f);
+
+        // 让立方体自己旋转，方便观察 3D 效果
+        // static float rotation = 0.0f;
+        // rotation += 0.5f;
+        // glRotatef(rotation, 0.0f, 1.0f, 0.0f);
+        glBegin(GL_QUADS);
+        {
+            // 前面 (Z+)
+            glColor3f(1.0f, 0.0f, 0.0f); // 红色
+            glVertex3f(-1.0f, -1.0f, 1.0f);
+            glVertex3f(1.0f, -1.0f, 1.0f);
+            glVertex3f(1.0f, 1.0f, 1.0f);
+            glVertex3f(-1.0f, 1.0f, 1.0f);
+
+            // 后面 (Z-)
+            glColor3f(0.0f, 1.0f, 0.0f); // 绿色
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, -1.0f, -1.0f);
+
+            // 顶面 (Y+)
+            glColor3f(0.0f, 0.0f, 1.0f); // 蓝色
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(-1.0f, 1.0f, 1.0f);
+            glVertex3f(1.0f, 1.0f, 1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
+
+            // 底面 (Y-)
+            glColor3f(1.0f, 1.0f, 0.0f); // 黄色
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(1.0f, -1.0f, -1.0f);
+            glVertex3f(1.0f, -1.0f, 1.0f);
+            glVertex3f(-1.0f, -1.0f, 1.0f);
+
+            // 右面 (X+)
+            glColor3f(1.0f, 0.0f, 1.0f); // 紫色
+            glVertex3f(1.0f, -1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, 1.0f);
+            glVertex3f(1.0f, -1.0f, 1.0f);
+
+            // 左面 (X-)
+            glColor3f(0.0f, 1.0f, 1.0f); // 青色
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(-1.0f, -1.0f, 1.0f);
+            glVertex3f(-1.0f, 1.0f, 1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+        }
+        glEnd();
+    }
+    glPopMatrix(); // 恢复矩阵
+
     // SwapBuffers(wglGetCurrentDC());
-    
+
     // if (!m_Initialized || !m_RenderEnabled)
     //     return;
-    
+
     // // 渲染当前场景
     // if (m_CurrentScene && !IsInTransition())
     // {

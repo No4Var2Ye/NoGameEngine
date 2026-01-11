@@ -60,6 +60,10 @@ private:
     FLOAT m_OrbitPhi;      // 垂直角度
     FLOAT m_OrbitTheta;    // 水平角度
 
+    // 平滑插值
+    FLOAT m_TargetDistance; // 目标距离
+    FLOAT m_TargetFov;      // 目标FOV
+
     // 投影参数
     FLOAT m_Fov;         // 视野角度
     FLOAT m_AspectRatio; // 宽高比
@@ -111,7 +115,7 @@ private:
     static void CalculateLookAtMatrix(const Vector3 &position, const Vector3 &target, const Vector3 &up, Matrix4 &matrix);
 
 public:
-    CCamera(CameraMode mode = CameraMode::FirstPerson);
+    CCamera();
     ~CCamera() = default;
 
     // 禁止拷贝
@@ -152,7 +156,7 @@ public:
      * @param right 左右移动量
      * @param up 上下移动量
      */
-    void Move(FLOAT forward, FLOAT right, FLOAT up = 0.0f);
+    void Move(FLOAT forwardAmount, FLOAT rightAmount, FLOAT upAmount = 0.0f);
 
     /**
      * @brief 旋转摄像机
@@ -214,7 +218,7 @@ public:
      * @param x 鼠标X坐标
      * @param y 鼠标Y坐标
      */
-    void ProcessMouseMovement(INT x, INT y);
+    void ProcessMouseMovement(INT dx, INT dy);
 
     /**
      * @brief 处理鼠标滚轮
@@ -277,6 +281,10 @@ public:
 
     FLOAT GetFOV() const { return m_Fov; }                 // 获取视野角度
     FLOAT GetAspectRatio() const { return m_AspectRatio; } // 获取宽高比
+    FLOAT GetNear() const {return m_NearPlane; } // 获取 近裁切面
+    FLOAT GetFar() const {return m_FarPlane; } // 获取 远裁切面
+
+    BOOL IsMouseLookActive() {return m_MouseLookActive; } // 鼠标视角是否激活
 
     // ======================================================================
     // 矩阵计算

@@ -141,6 +141,9 @@ namespace Math
 
     inline FLOAT Asin(FLOAT value)
     {
+        // 安全裁剪，防止精度误差导致 NaN
+        if (value <= -1.0f) return -HALF_PI; // -PI/2
+        if (value >= 1.0f) return HALF_PI;  // PI/2
         return asinf(value);
     }
 

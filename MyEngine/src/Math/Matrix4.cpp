@@ -22,10 +22,22 @@ Matrix4::Matrix4(float _m00, float _m01, float _m02, float _m03,
                  float _m20, float _m21, float _m22, float _m23,
                  float _m30, float _m31, float _m32, float _m33)
 {
-    m00 = _m00; m01 = _m01; m02 = _m02; m03 = _m03;
-    m10 = _m10; m11 = _m11; m12 = _m12; m13 = _m13;
-    m20 = _m20; m21 = _m21; m22 = _m22; m23 = _m23;
-    m30 = _m30; m31 = _m31; m32 = _m32; m33 = _m33;
+    m00 = _m00;
+    m01 = _m01;
+    m02 = _m02;
+    m03 = _m03;
+    m10 = _m10;
+    m11 = _m11;
+    m12 = _m12;
+    m13 = _m13;
+    m20 = _m20;
+    m21 = _m21;
+    m22 = _m22;
+    m23 = _m23;
+    m30 = _m30;
+    m31 = _m31;
+    m32 = _m32;
+    m33 = _m33;
 }
 
 // 矩阵运算
@@ -292,7 +304,7 @@ Matrix4 Matrix4::RotationY(float angle)
     return Matrix4(
         c, 0.0f, s, 0.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
-       -s, 0.0f, c, 0.0f,
+        -s, 0.0f, c, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
 }
 
@@ -372,6 +384,16 @@ Matrix4 Matrix4::LookAt(const Vector3 &eye, const Vector3 &target, const Vector3
         u.x, u.y, u.z, -Vector3::Dot(u, eye),
         -f.x, -f.y, -f.z, Vector3::Dot(f, eye),
         0.0f, 0.0f, 0.0f, 1.0f);
+
+    // return Matrix4(
+    //     r.x, u.x, -f.x, 0.0f,  // 第一列 (X轴)
+    //     r.y, u.y, -f.y, 0.0f,  // 第二列 (Y轴)
+    //     r.z, u.z, -f.z, 0.0f,  // 第三列 (Z轴)
+    //     -Vector3::Dot(r, eye), // 第四列 (平移X)
+    //     -Vector3::Dot(u, eye), // 第四列 (平移Y)
+    //     Vector3::Dot(f, eye),  // 第四列 (平移Z)
+    //     1.0f                   // 第四列 (W)
+    // );
 }
 
 // 投影矩阵
@@ -403,6 +425,14 @@ Matrix4 Matrix4::Perspective(float fovY, float aspect, float nearClip, float far
         0.0f, f, 0.0f, 0.0f,
         0.0f, 0.0f, (farClip + nearClip) * rangeInv, 2 * farClip * nearClip * rangeInv,
         0.0f, 0.0f, -1.0f, 0.0f);
+
+    // 按照 OpenGL 列优先顺序排列 (Column-Major)
+    // return Matrix4(
+    //     f / aspect, 0.0f, 0.0f, 0.0f,                            // 第一列
+    //     0.0f, f, 0.0f, 0.0f,                                     // 第二列
+    //     0.0f, 0.0f, (farClip + nearClip) * rangeInv, -1.0f,      // 第三列
+    //     0.0f, 0.0f, (2.0f * farClip * nearClip) * rangeInv, 0.0f // 第四列
+    // );
 }
 
 // 分解矩阵
