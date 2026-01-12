@@ -31,9 +31,9 @@
 // ======================================================================
 #include "stdafx.h"
 
-// #ifdef MYDEDUG
-// #undef MYDEDUG
-// #endif
+#ifdef MYDEDUG
+#undef MYDEDUG
+#endif
 
 #include "EngineConfig.h"
 #include "Core/GameEngine.h"

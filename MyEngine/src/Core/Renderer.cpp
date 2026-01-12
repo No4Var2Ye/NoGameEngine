@@ -171,10 +171,11 @@ void CRenderer::Shutdown()
 
 void CRenderer::BeginFrame()
 {
+    // std::cout << "Rendering..." << std::endl;
     if (!m_GLInitialized)
         return;
 
-    // std::cout << "Rendering..." << std::endl;
+    glViewport(0, 0, m_Width, m_Height);
 
     // 1. 确保写入权限开启（防止 Clear 无效）
     // 写入掩码函数, 控制哪些缓冲区可以被写入
@@ -215,23 +216,36 @@ void CRenderer::EndFrame()
 
 void CRenderer::Reset(INT width, INT height)
 {
-    if (!m_GLInitialized)
+    OutputDebugStringA("--- [Debug] CRenderer::Reset 真正开始了 ---\n");
+
+    // 1. 极小值保护
+    if (width <= 0 || height <= 0)
         return;
+
+    if (!m_GLInitialized)
+    {
+        OutputDebugStringA("!!! [Error] Reset 失败：m_GLInitialized 是 FALSE\n");
+        return;
+    }
 
     char buffer[256];
     sprintf_s(buffer, sizeof(buffer),
               "渲染器重置: %dx%d\n", width, height);
     OutputDebugStringA(buffer);
 
+    // 3. 确保上下文在这个线程是激活的 (如果是在主线程回调中)
+    // wglMakeCurrent(m_hDC, m_hGLRC);
+
     m_Width = width;
     m_Height = height;
-    m_AspectRatio = (height > 0) ? static_cast<FLOAT>(width) / static_cast<FLOAT>(height) : 1.0f;
+
+    // m_AspectRatio = (height > 0) ? static_cast<FLOAT>(width) / static_cast<FLOAT>(height) : 1.0f;
 
     // 更新视口
     SetViewport(0, 0, m_Width, m_Height);
 
-    // 更新投影矩阵
-    SetPerspectiveProjection(45.0f, m_AspectRatio, 0.1f, 1000.0f);
+    // // 更新投影矩阵
+    // SetPerspectiveProjection(45.0f, m_AspectRatio, 0.1f, 1000.0f);
 
     // 3. 清除OpenGL错误
     GLenum error = glGetError();
@@ -333,6 +347,11 @@ void CRenderer::SetViewport(INT x, INT y, INT width, INT height)
 {
     glViewport(x, y, width, height);
     CheckGLError("glViewport");
+
+    // 调试打印：确认坐标真的传进去了
+    char buf[128];
+    sprintf_s(buf, "glViewport 已设置为: %d, %d, %d, %d\n", x, y, width, height);
+    OutputDebugStringA(buf);
 }
 
 void CRenderer::SetPerspectiveProjection(FLOAT fovY, FLOAT aspect, FLOAT zNear, FLOAT zFar)

@@ -9,7 +9,7 @@ struct EngineConfig
 {
     INT windowWidth = 800;                 // 窗口宽度
     INT windowHeight = 600;                 // 窗口高度
-    BOOL fullscreen = TRUE;                // 是否全屏
+    BOOL fullscreen = FALSE;                // 是否全屏
     const wchar_t *title = L"MyGameEngine"; // 窗口标题
     // TODO
     INT colorBits = 32;                     // 颜色位数

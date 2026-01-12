@@ -57,14 +57,16 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
         return FALSE;
     }
 
+    // OutputDebugStringA("--- 开始设置回调 ---\n");
+
     m_Window->SetResizeCallback([this](INT w, INT h)
                                 {
+                                    OutputDebugStringA("！！！回调函数内部终于跑到了！！！\n");
+
                                     // 1. 通知渲染器更新视口 (glViewport)
                                     // 当窗口大小改变，通知渲染器更新视口
                                     if (m_Renderer)
-                                    {
                                         m_Renderer->Reset(w, h);
-                                    }
 
                                     // 2. 更新投影矩阵 (核心步骤)
                                     if (m_pMainCamera && h > 0) // 确保高度不为0防止除零异常
@@ -85,6 +87,11 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 
                                     // TODO: UI系统 UI重排
                                 });
+
+    INT startW = m_Window->GetClientWidth();
+    INT startH = m_Window->GetClientHeight();
+
+    m_Renderer->Reset(startW, startH);
 
     // 3. 初始化输入系统
     if (!m_InputManager->Initialize(m_Window->GetHWND(), hInstance))
@@ -122,7 +129,7 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     // 7. 显示窗口
     m_Window->Show();
     // 立即重绘窗口, 不经过消息队列
-    UpdateWindow(m_Window->GetHWND());
+    // UpdateWindow(m_Window->GetHWND());
 
     m_Initialized = TRUE;
     return TRUE;
@@ -446,4 +453,12 @@ void CGameEngine::DisplayDebugInfo()
     //     // m_pFont->DrawText(10, 30, "Cam: %.1f, %.1f, %.1f", pos.x, pos.y, pos.z);
 
     // renderer->PopState();
+}
+
+void CGameEngine::OnWindowResize(INT w, INT h) {
+    if (m_Renderer) m_Renderer->Reset(w, h);
+    if (m_pMainCamera) {
+        FLOAT aspect = (h > 0) ? (FLOAT)w / h : 1.0f;
+        m_pMainCamera->SetProjection(m_pMainCamera->GetFOV(), aspect, 0.1f, 1000.0f);
+    }
 }

@@ -213,7 +213,7 @@ void CWindow::ToggleFullscreen()
         LONG_PTR style = GetWindowLongPtr(m_hWnd, GWL_STYLE);
 
         // 判定逻辑：如果包含 WS_POPUP (0x80000000)，说明是全屏模式
-        bool isFullscreen = (style & WS_POPUP) != 0;
+        BOOL isFullscreen = (style & WS_POPUP) != 0;
 
         if (isFullscreen)
         {
@@ -251,23 +251,24 @@ void CWindow::SetPosition(INT x, INT y, INT width, INT height)
 
 BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
 {
-    OutputDebugStringA("使用无边框窗口模拟全屏\n");
+    // OutputDebugStringA("使用无边框窗口模拟全屏\n");
 
-    char debugBuf[256];
-    sprintf_s(debugBuf, "[Debug] Enter SetFS: Target=%s, CurrentVar=%s, WindowPtr=%p\n",
-              enable ? "TRUE" : "FALSE",
-              m_Fullscreen ? "TRUE" : "FALSE",
-              this);
-    OutputDebugStringA(debugBuf);
+    // char debugBuf[256];
+    // sprintf_s(debugBuf, "[Debug] Enter SetFS: Target=%s, CurrentVar=%s, WindowPtr=%p\n",
+    //           enable ? "TRUE" : "FALSE",
+    //           m_Fullscreen ? "TRUE" : "FALSE",
+    //           this);
+    // OutputDebugStringA(debugBuf);
 
     if (!m_hWnd)
         return FALSE;
 
     // 调试 2: 检查实际窗口样式（物理状态检查）
     LONG_PTR currentStyle = GetWindowLongPtr(m_hWnd, GWL_STYLE);
-    sprintf_s(debugBuf, "[Debug] Physical Style: 0x%IX, HasCaption: %s\n",
-              currentStyle, (currentStyle & WS_CAPTION) ? "YES" : "NO");
-    OutputDebugStringA(debugBuf);
+
+    // sprintf_s(debugBuf, "[Debug] Physical Style: 0x%IX, HasCaption: %s\n",
+    //           currentStyle, (currentStyle & WS_CAPTION) ? "YES" : "NO");
+    // OutputDebugStringA(debugBuf);
 
     // 1. 状态一致性检查
     // if (m_Fullscreen == enable && IsWindowVisible(m_hWnd))
@@ -277,7 +278,7 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
 
     if (enable)
     {
-        OutputDebugStringA("切换到无边框全屏模式...\n");
+        // OutputDebugStringA("切换到无边框全屏模式...\n");
 
         // 保存窗口位置和样式
         if (!m_Fullscreen)
@@ -303,11 +304,11 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
         m_Fullscreen = TRUE;
-        OutputDebugStringA("无边框全屏设置完成\n");
+        // OutputDebugStringA("无边框全屏设置完成\n");
     }
     else
     {
-        OutputDebugStringA("切换到窗口模式...\n");
+        // OutputDebugStringA("切换到窗口模式...\n");
 
         DWORD standardStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
         DWORD standardExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
@@ -333,146 +334,15 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
         m_Fullscreen = FALSE;
-        OutputDebugStringA("窗口模式恢复完成\n");
+        // OutputDebugStringA("窗口模式恢复完成\n");
     }
     // 调试 3: 打印退出前的最终状态
-    sprintf_s(debugBuf, "[Debug] Exit SetFS: Var now is %s\n", m_Fullscreen ? "TRUE" : "FALSE");
-    OutputDebugStringA(debugBuf);
+    // sprintf_s(debugBuf, "[Debug] Exit SetFS: Var now is %s\n", m_Fullscreen ? "TRUE" : "FALSE");
+    // OutputDebugStringA(debugBuf);
 
     if (m_ResizeCallback)
     {
         m_ResizeCallback(GetClientWidth(), GetClientHeight());
-    }
-
-    return TRUE;
-}
-
-BOOL CWindow::SetFullscreen(BOOL enable)
-{
-    char buffer[256];
-    sprintf_s(buffer, sizeof(buffer),
-              "SetFullscreen(%s) 调用\n", enable ? "TRUE" : "FALSE");
-    OutputDebugStringA(buffer);
-
-    if (!m_hWnd)
-    {
-        OutputDebugStringA("错误: 窗口句柄为空\n");
-        return FALSE;
-    }
-
-    if (!m_hWnd || m_Fullscreen == enable)
-    {
-        sprintf_s(buffer, sizeof(buffer), "已经是%s模式，无需切换\n", enable ? "全屏" : "窗口");
-        OutputDebugStringA(buffer);
-        return TRUE;
-    }
-
-    if (enable)
-    {
-        OutputDebugStringA("切换到全屏模式...\n");
-        // 切换到全屏模式
-
-        // 1. 保存当前窗口位置和大小
-        GetWindowRect(m_hWnd, &m_WindowRect); // 备份位置
-        sprintf_s(buffer, sizeof(buffer),
-                  "保存窗口矩形: (%d,%d)-(%d,%d)\n",
-                  m_WindowRect.left, m_WindowRect.top,
-                  m_WindowRect.right, m_WindowRect.bottom);
-        OutputDebugStringA(buffer);
-
-        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-        m_Config.windowWidth = screenWidth;
-        m_Config.windowHeight = screenHeight;
-
-        // 2. 获取当前显示设置
-        DEVMODEW devMode = {};
-        devMode.dmSize = sizeof(DEVMODEW);
-
-        sprintf_s(buffer, sizeof(buffer),
-                  "请求分辨率: %dx%dx%dbpp\n",
-                  m_Config.windowWidth, m_Config.windowHeight, m_Config.colorBits);
-        OutputDebugStringA(buffer);
-
-        if (EnumDisplaySettingsW(NULL, ENUM_CURRENT_SETTINGS, &devMode))
-        {
-            sprintf_s(buffer, sizeof(buffer),
-                      "当前显示设置: %dx%dx%dbpp\n",
-                      devMode.dmPelsWidth, devMode.dmPelsHeight, devMode.dmBitsPerPel);
-            OutputDebugStringA(buffer);
-        }
-
-        // 3. 设置全屏显示模式
-        // FIXME: 多设备支持
-        devMode.dmPelsWidth = m_Config.windowWidth;
-        devMode.dmPelsHeight = m_Config.windowHeight;
-        // devMode.dmPelsWidth = 2560;
-        // devMode.dmPelsHeight = 1600;
-        devMode.dmBitsPerPel = m_Config.colorBits;
-        devMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-
-        LONG result = ChangeDisplaySettingsW(&devMode, CDS_FULLSCREEN);
-
-        sprintf_s(buffer, sizeof(buffer),
-                  "ChangeDisplaySettings 返回: %d\n", result);
-        OutputDebugStringA(buffer);
-
-        if (result != DISP_CHANGE_SUCCESSFUL)
-        {
-            // 全屏模式失败
-            OutputDebugStringA("全屏模式设置失败!\n");
-            return FALSE;
-        }
-
-        // 4. 设置窗口为全屏样式
-        SetWindowLongW(m_hWnd, GWL_STYLE, WS_POPUP);
-        SetWindowLongW(m_hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_TOPMOST);
-
-        // 5. 设置窗口位置和大小
-        SetWindowPos(m_hWnd, HWND_TOP, 0, 0,
-                     m_Config.windowWidth, m_Config.windowHeight,
-                     SWP_SHOWWINDOW | SWP_FRAMECHANGED);
-
-        // 6. 隐藏光标
-        ShowMouseCursor(FALSE);
-
-        m_Fullscreen = TRUE;
-        OutputDebugStringA("切换到全屏模式成功\n");
-    }
-    else
-    {
-        // 切换回窗口模式
-        OutputDebugStringA("切换到窗口模式...\n");
-
-        // 1. 恢复显示设置
-        ChangeDisplaySettingsW(NULL, 0);
-        OutputDebugStringA("显示设置已恢复\n");
-
-        // 2. 恢复窗口样式
-        SetWindowLongW(m_hWnd, GWL_STYLE, m_WindowStyle);
-        SetWindowLongW(m_hWnd, GWL_EXSTYLE, m_WindowExStyle);
-        OutputDebugStringA("窗口样式已恢复\n");
-
-        // 3. 恢复窗口位置和大小
-        INT width = m_WindowRect.right - m_WindowRect.left;
-        INT height = m_WindowRect.bottom - m_WindowRect.top;
-
-        sprintf_s(buffer, sizeof(buffer),
-                  "恢复窗口位置: (%d,%d) 大小: %dx%d\n",
-                  m_WindowRect.left, m_WindowRect.top, width, height);
-        OutputDebugStringA(buffer);
-
-        SetWindowPos(m_hWnd, HWND_TOP,
-                     m_WindowRect.left, m_WindowRect.top,
-                     width, height,
-                     SWP_SHOWWINDOW | SWP_FRAMECHANGED);
-
-        // 4. 显示光标
-        ShowMouseCursor(TRUE);
-
-        m_Fullscreen = FALSE;
-        OutputDebugStringA("切换到窗口模式成功\n");
     }
 
     return TRUE;
@@ -597,6 +467,10 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             int newWidth = LOWORD(lParam);
             int newHeight = HIWORD(lParam);
 
+            // char buf[128];
+            // sprintf_s(buf, ">>> [Win32] WM_SIZE 接收: %dx%d, 回调指针: %p\n", newWidth, newHeight, &m_ResizeCallback);
+            // OutputDebugStringA(buf);
+
             // 2. 只有在非最小化且尺寸有效时才通知渲染器
             // 通知渲染器窗口大小改变
             if (!m_Minimized && newWidth > 0 && newHeight > 0)
@@ -611,6 +485,11 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
                     {
                         OutputDebugStringA("Critical: Resize callback failed!\n");
                     }
+                }
+                else
+                {
+                    // 如果回调由于某种原因丢失，使用单例兜底
+                    CGameEngine::GetInstance().OnWindowResize(newWidth, newHeight);
                 }
             }
         }

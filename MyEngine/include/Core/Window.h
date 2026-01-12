@@ -1,10 +1,14 @@
-﻿#ifndef __WINDOW_H__
+﻿// ======================================================================
+#ifndef __WINDOW_H__
 #define __WINDOW_H__
+// ======================================================================
 
 #include <Windows.h>
-#include "EngineConfig.h" // 包含配置结构
 #include <functional>     // 引入回调函数
+#include "EngineConfig.h" // 包含配置结构
+// ======================================================================
 
+// ======================================================================
 /**
  * @brief 窗口类，负责创建和管理Windows窗口
  * @details 封装了窗口创建、消息处理和显示功能
@@ -12,13 +16,13 @@
 class CWindow
 {
 private:
-    HWND m_hWnd;                // 窗口句柄
-    HINSTANCE m_hInstance;      // 应用程序实例句柄
+    HWND m_hWnd;           // 窗口句柄
+    HINSTANCE m_hInstance; // 应用程序实例句柄
 
     // FIXME: 内存对齐
     char padding1[16];
     std::function<void(int, int)> m_ResizeCallback; // 接收(width, height)的回调函数
-    // char padding2[16];
+    char padding2[16];
 
     BOOL m_Fullscreen;          // 是否全屏模式
     BOOL m_IsSwitching = FALSE; // 是否正在切换全屏
@@ -32,7 +36,7 @@ private:
     DWORD m_OriginalExStyle;   // 保存原始扩展样式
     DWORD m_CurrentStyle;      // 当前窗口样式
     DWORD m_CurrentExStyle;    // 当前扩展样式
-    BOOL m_InSizing = FALSE; // 重入锁
+    BOOL m_InSizing = FALSE;   // 重入锁
 
     EngineConfig m_Config; // 引擎配置
 
@@ -61,6 +65,8 @@ private:
     BOOL SetFullscreen(BOOL enable);           // 切换全屏模式
     BOOL SetBorderlessFullscreen(BOOL enable); // 切换全屏模式 无边框模拟
 
+    ResizeData m_ResizeEvent; // 重置窗口大小事件
+
 public:
     CWindow();
     ~CWindow();
@@ -68,6 +74,18 @@ public:
     // 删除拷贝构造和赋值
     CWindow(const CWindow &) = delete;
     CWindow &operator=(const CWindow &) = delete;
+
+    struct ResizeData
+    {
+        BOOL pending = false;
+        INT width = 0;
+        INT height = 0;
+    };
+    ResizeData ConsumeResizeEvent() {
+        ResizeData data = m_ResizeEvent;
+        m_ResizeEvent.pending = false; // 消费后重置
+        return data;
+    } // 获取并重置状态
 
     /**
      * @brief 创建窗口
@@ -112,7 +130,8 @@ public:
     static BOOL ProcessMessages();
 
     // 提供一个接口来绑定渲染器的 Reset 函数
-    void SetResizeCallback(std::function<void(int, int)> callback) { m_ResizeCallback = callback; }
+    // cb = callback
+    void SetResizeCallback(std::function<void(INT, INT)> cb) { this->m_ResizeCallback = cb; }
 };
 
 #endif // __WINDOW_H__

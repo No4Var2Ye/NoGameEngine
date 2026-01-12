@@ -86,6 +86,8 @@ void CCamera::Initialize(const Vector3 &position, const Vector3 &target, const V
 
 void CCamera::SetProjection(FLOAT fov, FLOAT aspectRatio, FLOAT nearPlane, FLOAT farPlane)
 {
+    if (aspectRatio <= 0.0f) aspectRatio = 1.0f;
+
     m_Fov = fov;
     m_AspectRatio = aspectRatio;
     m_NearPlane = nearPlane;

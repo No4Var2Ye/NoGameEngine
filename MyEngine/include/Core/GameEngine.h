@@ -84,6 +84,7 @@ public:
     CInputManager *GetInputManager() const { return m_InputManager.get(); }
     CCamera *GetMainCamera() const { return m_pMainCamera.get(); }
 
+    void OnWindowResize(INT w, INT h);
 
 }; // class GameEngine
 
