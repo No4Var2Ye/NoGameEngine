@@ -6,6 +6,9 @@
 #include <Windows.h>
 #include <functional>     // 引入回调函数
 #include "EngineConfig.h" // 包含配置结构
+
+#include <imm.h>
+#pragma comment(lib, "imm32.lib")
 // ======================================================================
 
 // ======================================================================
@@ -82,9 +85,26 @@ public:
     // cb = callback
     void SetResizeCallback(std::function<void(INT, INT)> cb) { this->m_ResizeCallback = cb; }
 
+    // ======================================================================
+    // 禁用输入法相关方法
+    void DisableIME();
+    void EnableIME();
+    void ForceEnglishKeyboardLayout();
+    
+    // 处理输入法相关消息
+    void OnActivate(BOOL active);
+    void OnSetFocus();
+    void OnKillFocus();
+    void OnInputLangChange();
+    
+    // 检查是否中文输入法
+    BOOL IsChineseInputMethodActive() const;
+
 private:
     HWND m_hWnd;           // 窗口句柄
     HINSTANCE m_hInstance; // 应用程序实例句柄
+
+    HIMC m_hImc;                // 输入法上下文
 
     // FIXME: 内存对齐
     char padding1[16];

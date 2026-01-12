@@ -51,42 +51,15 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
         return FALSE;
     }
 
+    // 窗口创建后立即禁用输入法
+    m_Window->DisableIME();
+    m_Window->ForceEnglishKeyboardLayout();
+
     // 2. 初始化渲染器
     if (!m_Renderer->Initialize(m_Window->GetHWND()))
     {
         return FALSE;
     }
-
-    // OutputDebugStringA("--- 开始设置回调 ---\n");
-
-    // m_Window->SetResizeCallback([this](INT w, INT h)
-    //                             {
-    //                                 OutputDebugStringA("！！！回调函数内部终于跑到了！！！\n");
-
-    //                                 // 1. 通知渲染器更新视口 (glViewport)
-    //                                 // 当窗口大小改变，通知渲染器更新视口
-    //                                 if (m_Renderer)
-    //                                     m_Renderer->Reset(w, h);
-
-    //                                 // 2. 更新投影矩阵 (核心步骤)
-    //                                 if (m_pMainCamera && h > 0) // 确保高度不为0防止除零异常
-    //                                 {
-    //                                     // 动态计算当前的 Aspect Ratio
-    //                                     FLOAT aspect = (FLOAT)w / (FLOAT)h;
-
-    //                                     // 更新相机内部的投影矩阵参数
-    //                                     // 建议从 config 或相机现有值中获取 FOV, Near, Far
-    //                                     FLOAT fov = m_pMainCamera->GetFOV();
-    //                                     FLOAT nearP = m_pMainCamera->GetNear();
-    //                                     FLOAT farP = m_pMainCamera->GetFar();
-
-    //                                     m_pMainCamera->SetProjection(fov, aspect, nearP, farP);
-
-    //                                     std::cout << "[Resize] 投影矩阵已更新, Aspect: " << aspect << std::endl;
-    //                                 }
-
-    //                                 // TODO: UI系统 UI重排
-    //                             });
 
     INT startW = m_Window->GetClientWidth();
     INT startH = m_Window->GetClientHeight();
@@ -128,8 +101,6 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 
     // 7. 显示窗口
     m_Window->Show();
-    // 立即重绘窗口, 不经过消息队列
-    // UpdateWindow(m_Window->GetHWND());
 
     m_Initialized = TRUE;
     return TRUE;
@@ -167,12 +138,12 @@ INT CGameEngine::Run()
     INT lastWindowHeight = m_Window->GetClientHeight();
 
     // 调试计数器
-    static int debugFrame = 0;
+    // static INT debugFrame = 0;
 
     // 主游戏循环
     while (m_Running)
     {
-        debugFrame++;
+        // debugFrame++;
 
         // 1. 处理Windows消息
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -197,19 +168,19 @@ INT CGameEngine::Run()
             INT safeW = (currentWidth < 1) ? 1 : currentWidth;
             INT safeH = (currentHeight < 1) ? 1 : currentHeight;
 
-            char debugMsg[256];
-            sprintf_s(debugMsg,
-                      "[Frame %d] 窗口大小变化: %dx%d -> %dx%d\n",
-                      debugFrame, lastWindowWidth, lastWindowHeight, safeW, safeH);
-            OutputDebugStringA(debugMsg);
+            //char debugMsg[256];
+            // sprintf_s(debugMsg,
+            //           "[Frame %d] 窗口大小变化: %dx%d -> %dx%d\n",
+            //           debugFrame, lastWindowWidth, lastWindowHeight, safeW, safeH);
+            // OutputDebugStringA(debugMsg);
 
             // 更新渲染器视口
             if (m_Renderer)
             {
                 m_Renderer->Reset(safeW, safeH);
 
-                sprintf_s(debugMsg, "渲染器视口已重置\n");
-                OutputDebugStringA(debugMsg);
+                // sprintf_s(debugMsg, "渲染器视口已重置\n");
+                // OutputDebugStringA(debugMsg);
             }
 
             // 更新相机投影矩阵
@@ -229,17 +200,17 @@ INT CGameEngine::Run()
                 m_pMainCamera->ApplyProjectionMatrix();
 
                 // 打印调试信息
-                sprintf_s(debugMsg,
-                          "相机投影矩阵更新: 宽高比=%.4f, FOV=%.1f\n",
-                          newAspect, m_pMainCamera->GetFOV());
-                OutputDebugStringA(debugMsg);
+                // sprintf_s(debugMsg,
+                //           "相机投影矩阵更新: 宽高比=%.4f, FOV=%.1f\n",
+                //           newAspect, m_pMainCamera->GetFOV());
+                // OutputDebugStringA(debugMsg);
             }
 
             // 更新最后记录的尺寸
             lastWindowWidth = safeW;
             lastWindowHeight = safeH;
 
-            OutputDebugStringA(">>> 窗口大小更新完成\n");
+            // OutputDebugStringA(">>> 窗口大小更新完成\n");
         }
 
         // 2. 获取高精度 DeltaTime
@@ -257,18 +228,18 @@ INT CGameEngine::Run()
         this->ProcessInput(deltaTime);
 
         // 调试：每60帧输出一次相机和窗口信息
-        if (debugFrame % 60 == 0)
-        {
-            char info[256];
-            sprintf_s(info,
-                      "[Info] 窗口: %dx%d, 相机位置: (%.2f, %.2f, %.2f), Aspect: %.4f\n",
-                      currentWidth, currentHeight,
-                      m_pMainCamera->GetPosition().x,
-                      m_pMainCamera->GetPosition().y,
-                      m_pMainCamera->GetPosition().z,
-                      m_pMainCamera->GetAspectRatio());
-            OutputDebugStringA(info);
-        }
+        // if (debugFrame % 60 == 0)
+        // {
+        //     char info[256];
+        //     sprintf_s(info,
+        //               "[Info] 窗口: %dx%d, 相机位置: (%.2f, %.2f, %.2f), Aspect: %.4f\n",
+        //               currentWidth, currentHeight,
+        //               m_pMainCamera->GetPosition().x,
+        //               m_pMainCamera->GetPosition().y,
+        //               m_pMainCamera->GetPosition().z,
+        //               m_pMainCamera->GetAspectRatio());
+        //     OutputDebugStringA(info);
+        // }
 
         // 6. 更新游戏逻辑
         m_pMainCamera->Update(deltaTime);
@@ -296,10 +267,10 @@ INT CGameEngine::Run()
             // 9. TODO: 显示调试信息 UI
             // DisplayDebugInfo();
 
-            if (debugFrame < 120) // 前2秒绘制测试
-            {
-                RenderDebugOverlay();
-            }
+            // if (debugFrame < 120) // 前2秒绘制测试
+            // {
+            //     RenderDebugOverlay();
+            // }
 
             // ================================================
             m_Renderer->EndFrame();
@@ -320,6 +291,12 @@ INT CGameEngine::Run()
 void CGameEngine::Shutdown()
 {
     m_Running = FALSE;
+
+    // 恢复输入法状态
+    if (m_Window)
+    {
+        m_Window->EnableIME();
+    }
 
     // 逆序关闭子系统
     m_SceneManager->Shutdown();
@@ -376,7 +353,13 @@ void CGameEngine::ProcessInput(FLOAT delatTime)
         GetMainCamera()->StartShake(0.2f, 0.1f);
     }
 
-    // 4. 分发输入给子系统
+    // 4. ESC键退出时恢复输入法
+    if (m_InputManager->IsKeyPressed(VK_ESCAPE))
+    {
+        m_Window->EnableIME(); // 退出前恢复输入法
+    }
+
+    // 5. 分发输入给子系统
     ProcessCameraInput(delatTime);
     // ProcessUIInput(deltaTime);
 }
@@ -384,12 +367,13 @@ void CGameEngine::ProcessInput(FLOAT delatTime)
 void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 {
     // 调试输出
-    static int cameraInputCount = 0;
-    cameraInputCount++;
+    // static int cameraInputCount = 0;
+    // cameraInputCount++;
 
     // 0. 基础重置
-    if (m_InputManager->IsKeyPressed('0') || m_InputManager->IsKeyPressed(VK_NUMPAD0))
+    if (m_InputManager->IsKeyPressed('0') || m_InputManager->IsKeyDown(VK_NUMPAD0))
     {
+        // OutputDebugStringA("DEBUG: Reset Key Pressed!\n");
         m_pMainCamera->Reset();
     }
 
@@ -545,7 +529,7 @@ void CGameEngine::OnWindowResize(INT w, INT h)
     w = (w < 1) ? 1 : w;
     h = (h < 1) ? 1 : h;
 
-    OutputDebugStringA("=== OnWindowResize 被调用 ===\n");
+    // OutputDebugStringA("=== OnWindowResize 被调用 ===\n");
 
     if (m_Renderer)
     {
@@ -559,13 +543,12 @@ void CGameEngine::OnWindowResize(INT w, INT h)
         m_pMainCamera->SetProjection(m_pMainCamera->GetFOV(), aspect,
                                      m_pMainCamera->GetNear(), m_pMainCamera->GetFar());
 
-        char buf[128];
-        sprintf_s(buf, "投影矩阵更新: 宽=%d, 高=%d, 宽高比=%.4f\n", w, h, aspect);
-        OutputDebugStringA(buf);
+        // char buf[128];
+        // sprintf_s(buf, "投影矩阵更新: 宽=%d, 高=%d, 宽高比=%.4f\n", w, h, aspect);
+        // OutputDebugStringA(buf);
     }
 }
 
-// 添加调试渲染函数
 void CGameEngine::RenderDebugOverlay()
 {
     // 切换到2D正交投影
@@ -573,33 +556,33 @@ void CGameEngine::RenderDebugOverlay()
     glPushMatrix();
     glLoadIdentity();
     glOrtho(0, m_Window->GetClientWidth(), 0, m_Window->GetClientHeight(), -1, 1);
-    
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    
+
     // 禁用深度测试
     glDisable(GL_DEPTH_TEST);
-    
+
     // 绘制一个全屏的彩色矩形，测试视口是否正确
     glBegin(GL_QUADS);
     // 左上角 - 红色
     glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex2f(0, m_Window->GetClientHeight());
-    
+    glVertex2f(0.0f, (GLfloat)m_Window->GetClientHeight());
+
     // 右上角 - 绿色
     glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex2f(m_Window->GetClientWidth(), m_Window->GetClientHeight());
-    
+	glVertex2f((GLfloat)m_Window->GetClientWidth(), (GLfloat)m_Window->GetClientHeight());
+
     // 右下角 - 蓝色
     glColor3f(0.0f, 0.0f, 1.0f);
-    glVertex2f(m_Window->GetClientWidth(), 0);
-    
+	glVertex2f((GLfloat)m_Window->GetClientWidth(), 0.0f);
+
     // 左下角 - 白色
     glColor3f(1.0f, 1.0f, 1.0f);
     glVertex2f(0, 0);
     glEnd();
-    
+
     // 恢复状态
     glEnable(GL_DEPTH_TEST);
     glMatrixMode(GL_PROJECTION);

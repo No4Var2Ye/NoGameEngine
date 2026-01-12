@@ -112,13 +112,27 @@ void CInputManager::Update()
         return;
 
     // 重置按键状态
-    m_KeyPressed.fill(FALSE);
-    m_KeyReleased.fill(FALSE);
+    // m_KeyPressed.fill(FALSE);
+    // m_KeyReleased.fill(FALSE);
     m_MouseButtonPressed.fill(FALSE);
     m_MouseButtonReleased.fill(FALSE);
 
     // 更新键盘状态
     UpdateKeyboard();
+
+    // 计算键盘的 Pressed 和 Released 状态
+    for (INT i = 0; i < KEY_COUNT; ++i)
+    {
+        // 判断当前和上一帧是否按下 (最高位 0x80 表示按下)
+        BOOL currentDown = (m_CurrentKeyState[i] & 0x80) != 0;
+        BOOL previousDown = (m_PreviousKeyState[i] & 0x80) != 0;
+
+        // 只有这一帧是按下的，且上一帧不是按下的，才算“触发”
+        m_KeyPressed[i] = (currentDown && !previousDown);
+
+        // 只有这一帧松开了，且上一帧是按下的，才算“释放”
+        m_KeyReleased[i] = (!currentDown && previousDown);
+    }
 
     // 更新鼠标状态
     for (int i = 0; i < MOUSE_BUTTON_COUNT; ++i)
@@ -165,7 +179,7 @@ LRESULT CALLBACK CInputManager::InputWindowProc(HWND hWnd, UINT msg, WPARAM wPar
 void CInputManager::UpdateKeyboard()
 {
     // 1. 保存上一帧状态
-    m_PreviousKeyState = m_CurrentKeyState;
+    // m_PreviousKeyState = m_CurrentKeyState;
 
     // 2. 获取当前键盘状态
     HRESULT hr = ::GetKeyboardState(m_CurrentKeyState.data());
@@ -177,14 +191,14 @@ void CInputManager::UpdateKeyboard()
     }
 
     // 计算按键按下和释放状态
-    for (INT i = 0; i < KEY_COUNT; ++i)
-    {
-        BYTE currentState = m_CurrentKeyState[i];
-        BYTE previousState = m_PreviousKeyState[i];
+    // for (INT i = 0; i < KEY_COUNT; ++i)
+    // {
+    //     BYTE currentState = m_CurrentKeyState[i];
+    //     BYTE previousState = m_PreviousKeyState[i];
 
-        m_KeyPressed[i] = ((currentState & 0x80) && !(previousState & 0x80));
-        m_KeyReleased[i] = (!(currentState & 0x80) && (previousState & 0x80));
-    }
+    //     m_KeyPressed[i] = ((currentState & 0x80) && !(previousState & 0x80));
+    //     m_KeyReleased[i] = (!(currentState & 0x80) && (previousState & 0x80));
+    // }
 }
 
 void CInputManager::UpdateMouse()
@@ -372,6 +386,7 @@ BOOL CInputManager::IsKeyDown(UINT vk) const
 
 BOOL CInputManager::IsKeyPressed(UINT vk) const
 {
+
     INT index = GetKeyIndex(vk);
     if (index >= 0 && index < KEY_COUNT)
     {

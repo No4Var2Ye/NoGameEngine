@@ -717,6 +717,7 @@ void CCamera::Reset()
 {
     this->SetMode(CameraMode::FreeLook);
 
+    // 基础坐标重置
     m_Position = Vector3(0.0f, 0.0f, 10.0f);
     m_Target = Vector3(0.0f, 0.0f, 0.0f);
     m_Up = Vector3(0.0f, 1.0f, 0.0f);
@@ -725,9 +726,12 @@ void CCamera::Reset()
     m_Forward = Vector3(0.0f, 0.0f, -1.0f);
     m_Right = Vector3(1.0f, 0.0f, 0.0f);
 
+    // 重置欧拉角
     m_Yaw = -90.0f;
     m_Pitch = 0.0f;
     m_Roll = 0.0f;
+
+    UpdateCameraVectors();
 
     // m_MoveSpeed = 1.0f;
     // m_RotationSpeed = 1.0f;
@@ -748,10 +752,10 @@ void CCamera::Reset()
     // m_NearPlane = 0.1f;
     // m_FarPlane = 1000.0f;
 
-    m_EnableMouseLook = FALSE;
+    // m_EnableMouseLook = FALSE;
     m_LastMousePos = {0, 0};
     m_MouseLookActive = FALSE;
-    m_MouseSensitivity = 0.1f;
+    // m_MouseSensitivity = 0.1f;
 
     m_ClampPitch = TRUE;
     m_MinPitch = -89.0f;
@@ -761,6 +765,7 @@ void CCamera::Reset()
     m_MinDistance = 1.0f;
     m_MaxDistance = 50.0f;
 
+    // 重置状态位
     m_ViewDirty = TRUE;
     m_ProjDirty = TRUE;
 

@@ -8,7 +8,6 @@
 #include "Core/Window.h"
 #include "Core/GameEngine.h"
 #include "Core/InputManager.h"
-
 // ======================================================================
 
 // ======================================================================
@@ -17,6 +16,7 @@
 CWindow::CWindow()
     : m_hWnd(nullptr),      // 窗口句柄
       m_hInstance(nullptr), // 应用程序实例句柄
+      m_hImc(nullptr),      // 输入法上下文
       m_Fullscreen(FALSE),  // 是否全屏模式
       m_Minimized(FALSE),   // 窗口是否最小化
       m_Maximized(FALSE)    // 窗口是否最大化
@@ -104,7 +104,11 @@ BOOL CWindow::Create(HINSTANCE hInstance, const EngineConfig &config)
     m_WindowRect.right = posX + windowWidth;
     m_WindowRect.bottom = posY + windowHeight;
 
-    // 7. 全屏模式设置
+    // 7. 立即禁用输入法
+    DisableIME();
+    ForceEnglishKeyboardLayout();
+
+    // 8. 全屏模式设置
     if (config.fullscreen)
     {
 
@@ -184,6 +188,10 @@ void CWindow::Show()
 
         // 将输入焦点设到窗口
         SetFocus(m_hWnd);
+
+        // 确保窗口获得焦点后输入法是英文状态
+        DisableIME();
+        ForceEnglishKeyboardLayout();
 
         std::cout << "窗口已显示并设置焦点" << std::endl;
     }
@@ -417,6 +425,135 @@ BOOL CWindow::ProcessMessages()
     return TRUE; // 继续运行
 }
 
+void CWindow::EnableIME()
+{
+    if (!m_hWnd) return;
+    
+    // 方法1: 恢复IME关联
+    ImmAssociateContextEx(m_hWnd, nullptr, 0);
+    
+    // 方法2: 恢复IME输入状态
+    m_hImc = ImmGetContext(m_hWnd);
+    if (m_hImc)
+    {
+        // 如果需要，可以恢复IME打开状态
+        // ImmSetOpenStatus(m_hImc, TRUE);
+        ImmReleaseContext(m_hWnd, m_hImc);
+        m_hImc = nullptr;
+    }
+    
+    // 注意：我们不强制切换回原来的键盘布局
+    // 让用户自行选择输入法
+}
+
+void CWindow::DisableIME()
+{
+    if (!m_hWnd)
+        return;
+
+    // 方法1: 移除IME关联
+    // 这会告诉Windows我们的窗口不需要输入法支持
+    ImmAssociateContextEx(m_hWnd, nullptr, IACE_DEFAULT);
+
+    // 方法2: 关闭IME输入状态
+    m_hImc = ImmGetContext(m_hWnd);
+    if (m_hImc)
+    {
+        ImmSetOpenStatus(m_hImc, FALSE);      // 关闭IME
+        ImmSetConversionStatus(m_hImc, 0, 0); // 设置转换状态为英文
+        ImmReleaseContext(m_hWnd, m_hImc);
+        m_hImc = nullptr;
+    }
+
+    // 方法3: 防止窗口自动激活IME
+    PostMessage(m_hWnd, WM_INPUTLANGCHANGEREQUEST, 0,
+                (LPARAM)LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE));
+}
+
+void CWindow::ForceEnglishKeyboardLayout()
+{
+    if (!m_hWnd)
+        return;
+
+    // 获取当前键盘布局
+    HKL currentLayout = GetKeyboardLayout(0);
+    DWORD langID = LOWORD(currentLayout);
+
+    // 如果不是英文(美国)布局，则切换到英文
+    if (langID != 0x0409) // 0x0409 是英文(美国)
+    {
+        // 加载英文键盘布局
+        HKL englishLayout = LoadKeyboardLayoutW(
+            L"00000409",
+            KLF_ACTIVATE | KLF_SETFORPROCESS | KLF_REORDER);
+
+        if (englishLayout)
+        {
+            // 激活英文布局
+            ActivateKeyboardLayout(englishLayout, KLF_SETFORPROCESS);
+
+            // 发送输入法改变请求消息
+            PostMessage(m_hWnd, WM_INPUTLANGCHANGEREQUEST, 0, (LPARAM)englishLayout);
+        }
+    }
+}
+
+void CWindow::OnActivate(BOOL active)
+{
+    if (active)
+    {
+        // 窗口激活时，确保输入法是英文状态
+        DisableIME();
+        ForceEnglishKeyboardLayout();
+    }
+}
+
+void CWindow::OnSetFocus()
+{
+    // 窗口获得焦点时，确保禁用输入法
+    DisableIME();
+    ForceEnglishKeyboardLayout();
+}
+
+// 新增：处理失去焦点
+void CWindow::OnKillFocus()
+{
+    // 窗口失去焦点时，可以恢复输入法，以便其他程序使用
+    // 这里可以选择不恢复，或者在游戏引擎中控制
+}
+
+void CWindow::OnInputLangChange()
+{
+    // 当输入法改变时，强制切换回英文
+    HKL currentLayout = GetKeyboardLayout(0);
+    DWORD langID = LOWORD(currentLayout);
+
+    // 检查是否是中文输入法
+    if (langID == 0x0804 || langID == 0x0404 || langID == 0x0c04) // 简体中文、繁体中文
+    {
+        // 强制切换回英文
+        ForceEnglishKeyboardLayout();
+
+        // 再次发送消息，确保切换生效
+        PostMessage(m_hWnd, WM_INPUTLANGCHANGEREQUEST, 0,
+                    (LPARAM)LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE));
+    }
+}
+
+BOOL CWindow::IsChineseInputMethodActive() const
+{
+    if (!m_hWnd)
+        return FALSE;
+
+    HKL currentLayout = GetKeyboardLayout(0);
+    DWORD langID = LOWORD(currentLayout);
+
+    // 检查是否是中文语言ID
+    return (langID == 0x0804 || // 简体中文
+            langID == 0x0404 || // 繁体中文(台湾)
+            langID == 0x0c04);  // 繁体中文(香港)
+}
+
 // ======================================================================
 // ====================== 私有方法 =======================================
 
@@ -524,24 +661,37 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     case WM_ACTIVATE:
     {
         // 窗口激活状态改变
-        if (LOWORD(wParam) == WA_INACTIVE)
+        WORD action = LOWORD(wParam);
+        BOOL minimized = (BOOL)HIWORD(wParam);
+
+        if (action == WA_INACTIVE)
         {
             // 窗口失去焦点
+            m_Minimized = minimized;
+            OnKillFocus();
         }
         else
         {
             // 窗口获得焦点
+            m_Minimized = FALSE;
+            OnSetFocus();
         }
         return 0;
     }
 
     case WM_SETFOCUS:
         // 窗口获得焦点
+        OnSetFocus();
         return 0;
 
     case WM_KILLFOCUS:
         // 窗口失去焦点
+        OnKillFocus();
         return 0;
+
+    case WM_INPUTLANGCHANGE:
+        OnInputLangChange();
+        return DefWindowProcW(hWnd, msg, wParam, lParam); // 仍需传递默认处理
 
     case WM_GETMINMAXINFO:
         // 设置窗口最小最大尺寸

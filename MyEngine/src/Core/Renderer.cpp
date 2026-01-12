@@ -228,10 +228,10 @@ void CRenderer::Reset(INT width, INT height)
         return;
     }
 
-    char buffer[256];
-    sprintf_s(buffer, sizeof(buffer),
-              "渲染器重置: %dx%d\n", width, height);
-    OutputDebugStringA(buffer);
+    // char buffer[256];
+    // sprintf_s(buffer, sizeof(buffer),
+    //           "渲染器重置: %dx%d\n", width, height);
+    // OutputDebugStringA(buffer);
 
     // 3. 确保上下文在这个线程是激活的 (如果是在主线程回调中)
     // wglMakeCurrent(m_hDC, m_hGLRC);
@@ -250,12 +250,12 @@ void CRenderer::Reset(INT width, INT height)
 
     // 3. 清除OpenGL错误
     GLenum error = glGetError();
-    if (error != GL_NO_ERROR)
-    {
-        sprintf_s(buffer, sizeof(buffer),
-                  "OpenGL错误在Reset后: 0x%X\n", error);
-        OutputDebugStringA(buffer);
-    }
+    // if (error != GL_NO_ERROR)
+    // {
+    //     sprintf_s(buffer, sizeof(buffer),
+    //               "OpenGL错误在Reset后: 0x%X\n", error);
+    //     OutputDebugStringA(buffer);
+    // }
 }
 
 void CRenderer::SetClearColor(FLOAT r, FLOAT g, FLOAT b, FLOAT a)
@@ -350,9 +350,9 @@ void CRenderer::SetViewport(INT x, INT y, INT width, INT height)
     CheckGLError("glViewport");
 
     // 调试打印：确认坐标真的传进去了
-    char buf[128];
-    sprintf_s(buf, "glViewport 已设置为: %d, %d, %d, %d\n", x, y, width, height);
-    OutputDebugStringA(buf);
+    // char buf[128];
+    // sprintf_s(buf, "glViewport 已设置为: %d, %d, %d, %d\n", x, y, width, height);
+    // OutputDebugStringA(buf);
 }
 
 void CRenderer::SetPerspectiveProjection(FLOAT fovY, FLOAT aspect, FLOAT zNear, FLOAT zFar)
