@@ -15,6 +15,73 @@
  */
 class CWindow
 {
+public:
+    CWindow();
+    ~CWindow();
+
+    // 删除拷贝构造和赋值
+    CWindow(const CWindow &) = delete;
+    CWindow &operator=(const CWindow &) = delete;
+
+    struct ResizeData
+    {
+        BOOL pending = false;
+        INT width = 0;
+        INT height = 0;
+    };
+    ResizeData ConsumeResizeEvent()
+    {
+        ResizeData data = m_ResizeEvent;
+        m_ResizeEvent.pending = false; // 消费后重置
+        return data;
+    } // 获取并重置状态
+
+    /**
+     * @brief 创建窗口
+     * @param hInstance 应用程序实例句柄
+     * @param config 引擎配置
+     * @return 创建成功返回TRUE，失败返回FALSE
+     */
+    BOOL Create(HINSTANCE hInstance, const EngineConfig &config);
+
+    void SetTitle(const wchar_t *title);         // 设置窗口标题
+    void Destroy();                              // 销毁窗口
+    void Show();                                 // 显示窗口
+    void Hide();                                 // 隐藏窗口
+    void ToggleVisibility();                     // 切换显示/隐藏窗口
+    void ToggleFullscreen();                     // 切换全屏/窗口模式
+    BOOL IsSwitching() { return m_IsSwitching; } // 获取切换状态
+
+    /**
+     * @brief 设置窗口位置和大小
+     * @param x 左上角X坐标
+     * @param y 左上角Y坐标
+     * @param width 宽度
+     * @param height 高度
+     */
+    void SetPosition(INT x, INT y, INT width, INT height);
+
+    HWND GetHWND() const { return m_hWnd; }               // 获取窗口句柄
+    HINSTANCE GetInstance() const { return m_hInstance; } // 获取应用程序实例句柄
+
+    BOOL IsFullscreen() const { return m_Fullscreen; } // 判断是否全屏
+    BOOL IsActive() const;                             // 判断窗口是否激活
+    BOOL IsMinimized() const { return m_Minimized; }   // 判断窗口是否最小化
+    BOOL IsMaximized() const { return m_Maximized; }   // 判断窗口是否最大化
+    INT GetClientWidth() const;                        // 获取窗口客户区宽度
+    INT GetClientHeight() const;                       // 获取窗口客户区高度
+
+    void ShowMouseCursor(BOOL show); // 安全的光标机制
+    /**
+     * @brief 处理窗口消息循环
+     * @return 如果有WM_QUIT消息返回FALSE，否则返回TRUE
+     */
+    static BOOL ProcessMessages();
+
+    // 提供一个接口来绑定渲染器的 Reset 函数
+    // cb = callback
+    void SetResizeCallback(std::function<void(INT, INT)> cb) { this->m_ResizeCallback = cb; }
+
 private:
     HWND m_hWnd;           // 窗口句柄
     HINSTANCE m_hInstance; // 应用程序实例句柄
@@ -66,72 +133,6 @@ private:
     BOOL SetBorderlessFullscreen(BOOL enable); // 切换全屏模式 无边框模拟
 
     ResizeData m_ResizeEvent; // 重置窗口大小事件
-
-public:
-    CWindow();
-    ~CWindow();
-
-    // 删除拷贝构造和赋值
-    CWindow(const CWindow &) = delete;
-    CWindow &operator=(const CWindow &) = delete;
-
-    struct ResizeData
-    {
-        BOOL pending = false;
-        INT width = 0;
-        INT height = 0;
-    };
-    ResizeData ConsumeResizeEvent() {
-        ResizeData data = m_ResizeEvent;
-        m_ResizeEvent.pending = false; // 消费后重置
-        return data;
-    } // 获取并重置状态
-
-    /**
-     * @brief 创建窗口
-     * @param hInstance 应用程序实例句柄
-     * @param config 引擎配置
-     * @return 创建成功返回TRUE，失败返回FALSE
-     */
-    BOOL Create(HINSTANCE hInstance, const EngineConfig &config);
-
-    void SetTitle(const wchar_t *title);         // 设置窗口标题
-    void Destroy();                              // 销毁窗口
-    void Show();                                 // 显示窗口
-    void Hide();                                 // 隐藏窗口
-    void ToggleVisibility();                     // 切换显示/隐藏窗口
-    void ToggleFullscreen();                     // 切换全屏/窗口模式
-    BOOL IsSwitching() { return m_IsSwitching; } // 获取切换状态
-
-    /**
-     * @brief 设置窗口位置和大小
-     * @param x 左上角X坐标
-     * @param y 左上角Y坐标
-     * @param width 宽度
-     * @param height 高度
-     */
-    void SetPosition(INT x, INT y, INT width, INT height);
-
-    HWND GetHWND() const { return m_hWnd; }               // 获取窗口句柄
-    HINSTANCE GetInstance() const { return m_hInstance; } // 获取应用程序实例句柄
-
-    BOOL IsFullscreen() const { return m_Fullscreen; } // 判断是否全屏
-    BOOL IsActive() const;                             // 判断窗口是否激活
-    BOOL IsMinimized() const { return m_Minimized; }   // 判断窗口是否最小化
-    BOOL IsMaximized() const { return m_Maximized; }   // 判断窗口是否最大化
-    INT GetClientWidth() const;                        // 获取窗口客户区宽度
-    INT GetClientHeight() const;                       // 获取窗口客户区高度
-
-    void ShowMouseCursor(BOOL show); // 安全的光标机制
-    /**
-     * @brief 处理窗口消息循环
-     * @return 如果有WM_QUIT消息返回FALSE，否则返回TRUE
-     */
-    static BOOL ProcessMessages();
-
-    // 提供一个接口来绑定渲染器的 Reset 函数
-    // cb = callback
-    void SetResizeCallback(std::function<void(INT, INT)> cb) { this->m_ResizeCallback = cb; }
 };
 
 #endif // __WINDOW_H__

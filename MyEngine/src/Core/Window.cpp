@@ -340,10 +340,15 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
     // sprintf_s(debugBuf, "[Debug] Exit SetFS: Var now is %s\n", m_Fullscreen ? "TRUE" : "FALSE");
     // OutputDebugStringA(debugBuf);
 
-    if (m_ResizeCallback)
-    {
-        m_ResizeCallback(GetClientWidth(), GetClientHeight());
-    }
+    // if (m_ResizeCallback)
+    // {
+    //     m_ResizeCallback(GetClientWidth(), GetClientHeight());
+    // }
+
+    // 【替换为】手动触发一次异步事件
+    m_ResizeEvent.width = GetClientWidth();
+    m_ResizeEvent.height = GetClientHeight();
+    m_ResizeEvent.pending = TRUE;
 
     return TRUE;
 }
@@ -459,38 +464,42 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
     case WM_SIZE:
         // 窗口大小改变
+        // {
+        //     m_Minimized = (wParam == SIZE_MINIMIZED);
+        //     m_Maximized = (wParam == SIZE_MAXIMIZED);
+
+        //     // 1. 获取新的客户区尺寸
+        //     int newWidth = LOWORD(lParam);
+        //     int newHeight = HIWORD(lParam);
+
+        //     // 2. 只有在非最小化且尺寸有效时才通知渲染器
+        //     // 通知渲染器窗口大小改变
+        //     if (!m_Minimized && newWidth > 0 && newHeight > 0)
+        //     {
+        //         if (m_ResizeCallback)
+        //         {
+        //             try
+        //             {
+        //                 m_ResizeCallback(newWidth, newHeight);
+        //             }
+        //             catch (...)
+        //             {
+        //                 OutputDebugStringA("Critical: Resize callback failed!\n");
+        //             }
+        //         }
+        //         else
+        //         {
+        //             // 如果回调由于某种原因丢失，使用单例兜底
+        //             CGameEngine::GetInstance().OnWindowResize(newWidth, newHeight);
+        //         }
+        //     }
+        // }
         {
-            m_Minimized = (wParam == SIZE_MINIMIZED);
-            m_Maximized = (wParam == SIZE_MAXIMIZED);
-
-            // 1. 获取新的客户区尺寸
-            int newWidth = LOWORD(lParam);
-            int newHeight = HIWORD(lParam);
-
-            // char buf[128];
-            // sprintf_s(buf, ">>> [Win32] WM_SIZE 接收: %dx%d, 回调指针: %p\n", newWidth, newHeight, &m_ResizeCallback);
-            // OutputDebugStringA(buf);
-
-            // 2. 只有在非最小化且尺寸有效时才通知渲染器
-            // 通知渲染器窗口大小改变
-            if (!m_Minimized && newWidth > 0 && newHeight > 0)
+            if (wParam != SIZE_MINIMIZED) // 忽略最小化，避免宽高温标为0
             {
-                if (m_ResizeCallback)
-                {
-                    try
-                    {
-                        m_ResizeCallback(newWidth, newHeight);
-                    }
-                    catch (...)
-                    {
-                        OutputDebugStringA("Critical: Resize callback failed!\n");
-                    }
-                }
-                else
-                {
-                    // 如果回调由于某种原因丢失，使用单例兜底
-                    CGameEngine::GetInstance().OnWindowResize(newWidth, newHeight);
-                }
+                m_ResizeEvent.width = LOWORD(lParam);
+                m_ResizeEvent.height = HIWORD(lParam);
+                m_ResizeEvent.pending = true;
             }
         }
         return 0;
@@ -498,16 +507,22 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     case WM_EXITSIZEMOVE:
     {
         // 用户松开鼠标边缘时，最后确认一次尺寸同步
+        // RECT rect;
+        // GetClientRect(hWnd, &rect);
+        // if (m_ResizeCallback)
+        // {
+        //     m_ResizeCallback(rect.right - rect.left, rect.bottom - rect.top);
+        // }
         RECT rect;
         GetClientRect(hWnd, &rect);
-        if (m_ResizeCallback)
-        {
-            m_ResizeCallback(rect.right - rect.left, rect.bottom - rect.top);
-        }
+        m_ResizeEvent.width = rect.right - rect.left;
+        m_ResizeEvent.height = rect.bottom - rect.top;
+        m_ResizeEvent.pending = true;
     }
         return 0;
 
     case WM_ACTIVATE:
+    {
         // 窗口激活状态改变
         if (LOWORD(wParam) == WA_INACTIVE)
         {
@@ -518,6 +533,7 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             // 窗口获得焦点
         }
         return 0;
+    }
 
     case WM_SETFOCUS:
         // 窗口获得焦点

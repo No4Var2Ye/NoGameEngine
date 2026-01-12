@@ -216,7 +216,7 @@ void CRenderer::EndFrame()
 
 void CRenderer::Reset(INT width, INT height)
 {
-    OutputDebugStringA("--- [Debug] CRenderer::Reset 真正开始了 ---\n");
+    // OutputDebugStringA("--- [Debug] CRenderer::Reset 真正开始了 ---\n");
 
     // 1. 极小值保护
     if (width <= 0 || height <= 0)
@@ -238,6 +238,7 @@ void CRenderer::Reset(INT width, INT height)
 
     m_Width = width;
     m_Height = height;
+    m_AspectRatio = (FLOAT)width / (FLOAT)height;
 
     // m_AspectRatio = (height > 0) ? static_cast<FLOAT>(width) / static_cast<FLOAT>(height) : 1.0f;
 

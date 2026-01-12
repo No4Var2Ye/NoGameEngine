@@ -69,6 +69,7 @@ private:
     // TODO: 显示调试信息
     BOOL m_ShowDebugInfo;
     void DisplayDebugInfo();
+    void RenderDebugOverlay();
 
 public:
     static CGameEngine &GetInstance(); // 获取单例实例
