@@ -17,9 +17,9 @@
 CWindow::CWindow()
     : m_hWnd(nullptr),      // 窗口句柄
       m_hInstance(nullptr), // 应用程序实例句柄
-      m_Fullscreen(false),  // 是否全屏模式
-      m_Minimized(false),   // 窗口是否最小化
-      m_Maximized(false)    // 窗口是否最大化
+      m_Fullscreen(FALSE),  // 是否全屏模式
+      m_Minimized(FALSE),   // 窗口是否最小化
+      m_Maximized(FALSE)    // 窗口是否最大化
 {
     ZeroMemory(&m_WindowRect, sizeof(RECT));
 }
@@ -35,7 +35,7 @@ BOOL CWindow::Create(HINSTANCE hInstance, const EngineConfig &config)
 
     m_hInstance = hInstance;
     m_Config = config;
-    m_Fullscreen = config.fullscreen;
+    m_Fullscreen = FALSE;
 
     // 1. 注册窗口类
     if (!RegisterWindowClass())
@@ -45,30 +45,27 @@ BOOL CWindow::Create(HINSTANCE hInstance, const EngineConfig &config)
     }
 
     // 2. 准备窗口样式
-    DWORD style = WS_OVERLAPPEDWINDOW; // 默认窗口样式
-    DWORD exStyle = WS_EX_APPWINDOW;   // 默认扩展样式
+    // 永久保存窗口模式的样式备份
+    m_WindowStyle = WS_OVERLAPPEDWINDOW;
+    m_WindowExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 
-    if (m_Fullscreen)
+    DWORD currentStyle, currentExStyle;
+    if (config.fullscreen)
     {
-        // 全屏模式
-        style = WS_POPUP; // 无边框窗口
-        exStyle = WS_EX_APPWINDOW | WS_EX_TOPMOST;
+        currentStyle = WS_POPUP;
+        currentExStyle = WS_EX_APPWINDOW | WS_EX_TOPMOST;
     }
     else
     {
-        // 窗口模式
-        style = WS_OVERLAPPEDWINDOW;
-        exStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+        currentStyle = m_WindowStyle;
+        currentExStyle = m_WindowExStyle;
     }
 
-    m_WindowStyle = style;
-    m_WindowExStyle = exStyle;
-
     // 3. 计算窗口大小（包含边框）
-    RECT windowRect = {0, 0, config.windowWidth, config.windowHeight};
+    RECT windowRect = {0, 0, (LONG)config.windowWidth, (LONG)config.windowHeight};
 
     // 调整窗口矩形，使其包含边框和标题栏
-    AdjustWindowRectEx(&windowRect, style, FALSE, exStyle);
+    AdjustWindowRectEx(&windowRect, m_WindowStyle, FALSE, m_WindowExStyle);
 
     INT windowWidth = windowRect.right - windowRect.left;
     INT windowHeight = windowRect.bottom - windowRect.top;
@@ -81,10 +78,10 @@ BOOL CWindow::Create(HINSTANCE hInstance, const EngineConfig &config)
 
     // 5. 创建窗口
     m_hWnd = CreateWindowExW(
-        exStyle,               // 扩展窗口样式
+        currentExStyle,        // 扩展窗口样式
         L"MyGameEngineWindow", // 窗口类名
         config.title,          // 窗口标题
-        style,                 // 窗口样式
+        currentStyle,          // 窗口样式
         posX,                  // 窗口X位置
         posY,                  // 窗口Y位置
         windowWidth,           // 窗口宽度
@@ -102,17 +99,25 @@ BOOL CWindow::Create(HINSTANCE hInstance, const EngineConfig &config)
     }
 
     // 6. 保存窗口矩形（用于全屏切换）
-    GetWindowRect(m_hWnd, &m_WindowRect);
+    m_WindowRect.left = posX;
+    m_WindowRect.top = posY;
+    m_WindowRect.right = posX + windowWidth;
+    m_WindowRect.bottom = posY + windowHeight;
 
     // 7. 全屏模式设置
-    if (m_Fullscreen)
+    if (config.fullscreen)
     {
-        if (!SetFullscreen(TRUE))
+
+        if (!SetBorderlessFullscreen(TRUE))
         {
             // 全屏失败，切换到窗口模式
-            m_Fullscreen = false;
+            m_Fullscreen = FALSE;
             MessageBoxW(NULL, L"全屏模式设置失败，将使用窗口模式。", L"警告", MB_OK | MB_ICONWARNING);
         }
+    }
+    else
+    {
+        m_Fullscreen = FALSE;
     }
 
     return TRUE;
@@ -203,18 +208,21 @@ void CWindow::ToggleVisibility()
 
 void CWindow::ToggleFullscreen()
 {
-    // std::cout << "ToggleFullscreen() 被调用" << std::endl;
-    // std::cout << "当前全屏状态: " << (m_Fullscreen ? "是" : "否") << std::endl;
-
     if (m_hWnd)
     {
-        // INFO: 模拟全屏
-        // SetFullscreen(!m_Fullscreen);
-        SetBorderlessFullscreen(!m_Fullscreen);
-    }
-    else
-    {
-        std::cout << "错误: 窗口句柄无效!" << std::endl;
+        LONG_PTR style = GetWindowLongPtr(m_hWnd, GWL_STYLE);
+
+        // 判定逻辑：如果包含 WS_POPUP (0x80000000)，说明是全屏模式
+        bool isFullscreen = (style & WS_POPUP) != 0;
+
+        if (isFullscreen)
+        {
+            SetBorderlessFullscreen(FALSE); // 如果是全屏，则恢复窗口
+        }
+        else
+        {
+            SetBorderlessFullscreen(TRUE); // 如果是窗口，则进入全屏
+        }
     }
 }
 
@@ -245,33 +253,48 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
 {
     OutputDebugStringA("使用无边框窗口模拟全屏\n");
 
+    char debugBuf[256];
+    sprintf_s(debugBuf, "[Debug] Enter SetFS: Target=%s, CurrentVar=%s, WindowPtr=%p\n",
+              enable ? "TRUE" : "FALSE",
+              m_Fullscreen ? "TRUE" : "FALSE",
+              this);
+    OutputDebugStringA(debugBuf);
+
     if (!m_hWnd)
         return FALSE;
-    if (m_Fullscreen == enable)
-        return TRUE;
+
+    // 调试 2: 检查实际窗口样式（物理状态检查）
+    LONG_PTR currentStyle = GetWindowLongPtr(m_hWnd, GWL_STYLE);
+    sprintf_s(debugBuf, "[Debug] Physical Style: 0x%IX, HasCaption: %s\n",
+              currentStyle, (currentStyle & WS_CAPTION) ? "YES" : "NO");
+    OutputDebugStringA(debugBuf);
+
+    // 1. 状态一致性检查
+    // if (m_Fullscreen == enable && IsWindowVisible(m_hWnd))
+    // {
+    //     return TRUE;
+    // }
 
     if (enable)
     {
         OutputDebugStringA("切换到无边框全屏模式...\n");
 
         // 保存窗口位置和样式
-        GetWindowRect(m_hWnd, &m_WindowRect);
+        if (!m_Fullscreen)
+        {
+            GetWindowRect(m_hWnd, &m_WindowRect);
+        }
 
-        // 2. 获取当前窗口所在的显示器信息 (处理多显示器全屏的关键)
+        // 2. 获取当前窗口所在的显示器信息
         HMONITOR hMonitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
         MONITORINFO mi = {sizeof(mi)};
         GetMonitorInfo(hMonitor, &mi);
 
-        int screenWidth = mi.rcMonitor.right - mi.rcMonitor.left;
-        int screenHeight = mi.rcMonitor.bottom - mi.rcMonitor.top;
- 
-
         // 3. 修改样式：移除标题栏、边框等
-        // 注意：不建议直接硬编码样式，最好在 m_WindowStyle 中预存
         SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
         SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
 
-        // 4. 设置位置：使用显示器的 rcMonitor 覆盖整个屏幕（包含任务栏）
+        // 4. 设置位置：覆盖整个屏幕
         SetWindowPos(m_hWnd, HWND_TOP,
                      mi.rcMonitor.left,
                      mi.rcMonitor.top,
@@ -279,54 +302,46 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
                      mi.rcMonitor.bottom - mi.rcMonitor.top,
                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
-        // 5. 立即更新窗口
-        UpdateWindow(m_hWnd);
-
-        // 6. 重要：调用回调函数，通知渲染器尺寸改变
-        if (m_ResizeCallback)
-        {
-            m_ResizeCallback(screenWidth, screenHeight);
-        }
-
-        // 7. 隐藏光标
-        this->ShowMouseCursor(FALSE);
-
         m_Fullscreen = TRUE;
         OutputDebugStringA("无边框全屏设置完成\n");
     }
     else
     {
-        // 1. 恢复显示设置
-        ChangeDisplaySettingsW(NULL, 0);
+        OutputDebugStringA("切换到窗口模式...\n");
+
+        DWORD standardStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+        DWORD standardExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 
         // 恢复窗口样式
-        SetWindowLong(m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
-        SetWindowLong(m_hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_WINDOWEDGE);
+        SetWindowLong(m_hWnd, GWL_STYLE, standardStyle);
+        SetWindowLong(m_hWnd, GWL_EXSTYLE, standardExStyle);
 
-        // 恢复位置
-        SetWindowPos(m_hWnd, HWND_TOP,
-                     m_WindowRect.left,
-                     m_WindowRect.top,
-                     m_WindowRect.right - m_WindowRect.left,
-                     m_WindowRect.bottom - m_WindowRect.top,
-                     SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-
-        // 重要：恢复时也要调用回调
-        int width = m_WindowRect.right - m_WindowRect.left;
-        int height = m_WindowRect.bottom - m_WindowRect.top;
-        
-        UpdateWindow(m_hWnd);
-
-        if (m_ResizeCallback)
+        // 确保矩形有效（防止 m_WindowRect 也是空的）
+        if (m_WindowRect.right == 0)
         {
-            m_ResizeCallback(width, height);
+            m_WindowRect = {100, 100, 1280, 800};
         }
 
-        // 显示光标
-        this->ShowMouseCursor(TRUE);
-        m_Fullscreen = FALSE;
+        // 计算备份矩形的宽高
+        INT width = m_WindowRect.right - m_WindowRect.left;
+        INT height = m_WindowRect.bottom - m_WindowRect.top;
 
+        // 恢复位置
+        SetWindowPos(m_hWnd, HWND_NOTOPMOST,
+                     m_WindowRect.left, m_WindowRect.top,
+                     width, height,
+                     SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+        m_Fullscreen = FALSE;
         OutputDebugStringA("窗口模式恢复完成\n");
+    }
+    // 调试 3: 打印退出前的最终状态
+    sprintf_s(debugBuf, "[Debug] Exit SetFS: Var now is %s\n", m_Fullscreen ? "TRUE" : "FALSE");
+    OutputDebugStringA(debugBuf);
+
+    if (m_ResizeCallback)
+    {
+        m_ResizeCallback(GetClientWidth(), GetClientHeight());
     }
 
     return TRUE;
@@ -588,7 +603,14 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             {
                 if (m_ResizeCallback)
                 {
-                    m_ResizeCallback(newWidth, newHeight);
+                    try
+                    {
+                        m_ResizeCallback(newWidth, newHeight);
+                    }
+                    catch (...)
+                    {
+                        OutputDebugStringA("Critical: Resize callback failed!\n");
+                    }
                 }
             }
         }

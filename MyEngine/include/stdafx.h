@@ -24,10 +24,10 @@
 #include <vector>
 
 // GL前缀的头文件
-#include "GL\gl.h"  // Header File For The OpenGL32 Library
-#include "GL\glu.h" // Header File For The GLu32 Library
-#include "GL\glaux.h"
-#include "GL\glext.h"
+#include "GL/gl.h"  // Header File For The OpenGL32 Library
+#include "GL/glu.h" // Header File For The GLu32 Library
+#include "GL/glaux.h"
+#include "GL/glext.h"
 
 // 数学库
 #include "Math/MathUtils.h"

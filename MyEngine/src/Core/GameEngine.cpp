@@ -151,6 +151,7 @@ INT CGameEngine::Run()
 
     // m_InputManager->LockMouse();
     // m_InputManager->HideCursor();
+
     m_pMainCamera->EnableMouseLook(TRUE);
     m_pMainCamera->SetMoveSpeed(2.0f);
 
@@ -212,6 +213,7 @@ INT CGameEngine::Run()
             // ================================================
             m_Renderer->EndFrame();
             m_InputManager->ResetMouseWheel();
+            m_InputManager->ClearDelta();
             // ================================================
         }
         else
@@ -253,19 +255,19 @@ void CGameEngine::ProcessInput(FLOAT delatTime)
         m_ShowDebugInfo = !m_ShowDebugInfo;
     }
 
-    Vector3 pos = m_pMainCamera->GetPosition();
-    Vector3 tar = m_pMainCamera->GetTarget();
-    Vector3 fwd = m_pMainCamera->GetForward();
+    // Vector3 pos = m_pMainCamera->GetPosition();
+    // Vector3 tar = m_pMainCamera->GetTarget();
+    // Vector3 fwd = m_pMainCamera->GetForward();
 
     // 获取摄像机的位置
-    if (m_InputManager->IsMouseButtonDown(MouseButton::Right))
-    {
-        printf("\n--------- Camera Debug Info ---------\n");
-        printf("Pos   : [%8.2f, %8.2f, %8.2f]\n", pos.x, pos.y, pos.z);
-        printf("Target: [%8.2f, %8.2f, %8.2f]\n", tar.x, tar.y, tar.z);
-        printf("Dir(F): [%8.2f, %8.2f, %8.2f]\n", fwd.x, fwd.y, fwd.z);
-        printf("---------------------------------------\n");
-    }
+    // if (m_InputManager->IsMouseButtonDown(MouseButton::Right))
+    // {
+    //     printf("\n--------- Camera Debug Info ---------\n");
+    //     printf("Pos   : [%8.2f, %8.2f, %8.2f]\n", pos.x, pos.y, pos.z);
+    //     printf("Target: [%8.2f, %8.2f, %8.2f]\n", tar.x, tar.y, tar.z);
+    //     printf("Dir(F): [%8.2f, %8.2f, %8.2f]\n", fwd.x, fwd.y, fwd.z);
+    //     printf("---------------------------------------\n");
+    // }
 
     // 2. 相机模式快速切换 (用于测试)
     if (m_InputManager->IsKeyPressed('1'))
@@ -290,18 +292,24 @@ void CGameEngine::ProcessInput(FLOAT delatTime)
 
 void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 {
+    // 调试输出
+    static int cameraInputCount = 0;
+    cameraInputCount++;
+
     // 0. 基础重置
     if (m_InputManager->IsKeyPressed('0') || m_InputManager->IsKeyPressed(VK_NUMPAD0))
     {
         m_pMainCamera->Reset();
     }
 
+    CameraMode mode = m_pMainCamera->GetMode();
+
     // 1. 鼠标状态切换
     if (m_InputManager->IsMouseButtonPressed(MouseButton::Left))
     {
         m_pMainCamera->StartMouseLook();
         m_InputManager->HideCursor();
-        m_InputManager->LockMouse(); // 限制光标在窗口内 
+        m_InputManager->LockMouse(); // 限制光标在窗口内
     }
 
     if (m_InputManager->IsMouseButtonReleased(MouseButton::Left))
@@ -319,10 +327,17 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
     if (m_pMainCamera->IsMouseLookActive())
     {
-        if (dx != 0 || dy != 0)
+        POINT delta = m_InputManager->GetMouseDelta();
+
+        if (delta.x != 0 || delta.y != 0)
         {
-            // 直接传递相对值。注意：dy 通常需要取反以符合“向上推是抬头”的习惯
-            m_pMainCamera->ProcessMouseMovement((FLOAT)dx, (FLOAT)-dy);
+            // char buffer[256];
+            // sprintf_s(buffer, "[ProcessCameraInput] Processing mouse: dx=%d, dy=%d\n",
+            //           delta.x, delta.y);
+            // OutputDebugStringA(buffer);
+
+            // 注意：dy 取反，因为鼠标向上移动应该是抬头
+            m_pMainCamera->ProcessMouseMovement(delta.x, -delta.y);
         }
     }
 
@@ -346,18 +361,23 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
     // 4. 移动处理 (键盘)
     // 获取相机当前模式，决定 WASD 是移动相机还是移动目标
-    CameraMode mode = m_pMainCamera->GetMode();
 
     if (mode == CameraMode::FirstPerson || mode == CameraMode::FreeLook)
     {
         FLOAT fwd = 0.0f, right = 0.0f, up = 0.0f;
 
-        if (m_InputManager->IsKeyDown('W')) fwd += 1.0f;
-        if (m_InputManager->IsKeyDown('S')) fwd -= 1.0f;
-        if (m_InputManager->IsKeyDown('D')) right += 1.0f;
-        if (m_InputManager->IsKeyDown('A')) right -= 1.0f;
-        if (m_InputManager->IsKeyDown('E')) up += 1.0f; // 上升
-        if (m_InputManager->IsKeyDown('Q')) up -= 1.0f; // 下降
+        if (m_InputManager->IsKeyDown('W'))
+            fwd += 1.0f;
+        if (m_InputManager->IsKeyDown('S'))
+            fwd -= 1.0f;
+        if (m_InputManager->IsKeyDown('D'))
+            right += 1.0f;
+        if (m_InputManager->IsKeyDown('A'))
+            right -= 1.0f;
+        if (m_InputManager->IsKeyDown('E') || m_InputManager->IsKeyDown(VK_SPACE))
+            up += 1.0f; // 上升
+        if (m_InputManager->IsKeyDown('Q'))
+            up -= 1.0f; // 下降
 
         // 应用移动 (乘以 deltaTime 保证速度恒定)
         if (fwd != 0 || right != 0 || up != 0)
@@ -373,7 +393,7 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
             // std::cout << deltaTime << std::endl;
             // std::cout << "移动向量: fwd=" << fwd << ", right=" << right << ", up=" << up << std::endl;
-            
+
             m_pMainCamera->Move(fwd * deltaTime, right * deltaTime, up * deltaTime);
         }
     }

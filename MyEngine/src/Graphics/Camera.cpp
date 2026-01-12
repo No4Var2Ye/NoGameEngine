@@ -379,7 +379,6 @@ void CCamera::StartMouseLook()
     if (m_EnableMouseLook)
     {
         m_MouseLookActive = TRUE;
-        // GetCursorPos(&m_LastMousePos);
     }
 }
 
@@ -392,6 +391,15 @@ void CCamera::ProcessMouseMovement(INT dx, INT dy)
 {
     if (!m_MouseLookActive)
         return;
+
+    // // 添加调试输出
+    // static int callCount = 0;
+    // callCount++;
+
+    // char buffer[256];
+    // sprintf_s(buffer, "[Camera] ProcessMouseMovement #%d: dx=%ld, dy=%ld\n",
+    //           callCount, dx, dy);
+    // OutputDebugStringA(buffer);
 
     FLOAT xOffset = dx * m_MouseSensitivity;
     FLOAT yOffset = dy * m_MouseSensitivity;
@@ -611,6 +619,13 @@ void CCamera::GetViewProjectionMatrix(Matrix4 &matrix) const
 
 void CCamera::Update(FLOAT deltaTime)
 {
+    // static int updateCount = 0;
+    // updateCount++;
+
+    // char buffer[256];
+    // sprintf_s(buffer, "[Camera] Update #%d: deltaTime=%.4f, Mode=%d, MouseLook=%d\n",
+    //           updateCount, deltaTime, static_cast<int>(m_Mode), m_EnableMouseLook);
+    // OutputDebugStringA(buffer);
 
     // 1. 根据模式更新摄像机位置
     if (m_Mode == CameraMode::FreeLook || m_Mode == CameraMode::FirstPerson)

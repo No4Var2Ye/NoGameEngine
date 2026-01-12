@@ -3,7 +3,7 @@
 
 #include <Windows.h>
 #include "EngineConfig.h" // 包含配置结构
-#include <functional> // 引入回调函数
+#include <functional>     // 引入回调函数
 
 /**
  * @brief 窗口类，负责创建和管理Windows窗口
@@ -11,16 +11,28 @@
  */
 class CWindow
 {
-private:    
-    HWND m_hWnd;           // 窗口句柄
-    HINSTANCE m_hInstance; // 应用程序实例句柄
-    BOOL m_Fullscreen;     // 是否全屏模式
-    BOOL m_Minimized;      // 窗口是否最小化
-    BOOL m_Maximized;      // 窗口是否最大化
+private:
+    HWND m_hWnd;                // 窗口句柄
+    HINSTANCE m_hInstance;      // 应用程序实例句柄
+
+    // FIXME: 内存对齐
+    char padding1[16];
+    std::function<void(int, int)> m_ResizeCallback; // 接收(width, height)的回调函数
+    // char padding2[16];
+
+    BOOL m_Fullscreen;          // 是否全屏模式
+    BOOL m_IsSwitching = FALSE; // 是否正在切换全屏
+    BOOL m_Minimized;           // 窗口是否最小化
+    BOOL m_Maximized;           // 窗口是否最大化
 
     RECT m_WindowRect;         // 保存窗口位置和大小（用于全屏切换）
     DWORD m_WindowStyle = 0;   // 窗口样式
     DWORD m_WindowExStyle = 0; // 窗口扩展样式
+    DWORD m_OriginalStyle;     // 保存原始窗口样式
+    DWORD m_OriginalExStyle;   // 保存原始扩展样式
+    DWORD m_CurrentStyle;      // 当前窗口样式
+    DWORD m_CurrentExStyle;    // 当前扩展样式
+    BOOL m_InSizing = FALSE; // 重入锁
 
     EngineConfig m_Config; // 引擎配置
 
@@ -49,8 +61,6 @@ private:
     BOOL SetFullscreen(BOOL enable);           // 切换全屏模式
     BOOL SetBorderlessFullscreen(BOOL enable); // 切换全屏模式 无边框模拟
 
-    std::function<void(int, int)> m_ResizeCallback; // 接收(width, height)的回调函数
-
 public:
     CWindow();
     ~CWindow();
@@ -67,12 +77,13 @@ public:
      */
     BOOL Create(HINSTANCE hInstance, const EngineConfig &config);
 
-    void SetTitle(const wchar_t *title); // 设置窗口标题
-    void Destroy();          // 销毁窗口
-    void Show();             // 显示窗口
-    void Hide();             // 隐藏窗口
-    void ToggleVisibility(); // 切换显示/隐藏窗口
-    void ToggleFullscreen(); // 切换全屏/窗口模式
+    void SetTitle(const wchar_t *title);         // 设置窗口标题
+    void Destroy();                              // 销毁窗口
+    void Show();                                 // 显示窗口
+    void Hide();                                 // 隐藏窗口
+    void ToggleVisibility();                     // 切换显示/隐藏窗口
+    void ToggleFullscreen();                     // 切换全屏/窗口模式
+    BOOL IsSwitching() { return m_IsSwitching; } // 获取切换状态
 
     /**
      * @brief 设置窗口位置和大小
@@ -101,7 +112,7 @@ public:
     static BOOL ProcessMessages();
 
     // 提供一个接口来绑定渲染器的 Reset 函数
-    void SetResizeCallback(std::function<void(int, int)> callback) {m_ResizeCallback = callback;}
+    void SetResizeCallback(std::function<void(int, int)> callback) { m_ResizeCallback = callback; }
 };
 
 #endif // __WINDOW_H__

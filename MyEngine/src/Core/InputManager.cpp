@@ -1,4 +1,4 @@
-﻿
+﻿﻿
 // ======================================================================
 #include "stdafx.h"
 
@@ -119,14 +119,14 @@ void CInputManager::Update()
 
     // 更新键盘状态
     UpdateKeyboard();
-    
+
     // 更新鼠标状态
     for (int i = 0; i < MOUSE_BUTTON_COUNT; ++i)
     {
         m_MouseButtonPressed[i] = m_CurrentMouseButtons[i] && !m_PreviousMouseButtons[i];
         m_MouseButtonReleased[i] = !m_CurrentMouseButtons[i] && m_PreviousMouseButtons[i];
     }
-    
+
     // 保存上一帧状态
     m_PreviousKeyState = m_CurrentKeyState;
     m_PreviousMouseButtons = m_CurrentMouseButtons;
@@ -318,22 +318,33 @@ LRESULT CInputManager::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
         // INFO: 用于相机旋转
         {
             UINT dataSize = 0;
-            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, nullptr, &dataSize, sizeof(RAWINPUTHEADER));
-
-            if (dataSize > 0)
+            if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dataSize, sizeof(RAWINPUTHEADER)) == (UINT)-1)
             {
-                UINT dwSize = sizeof(RAWINPUT);
-                static BYTE lpb[sizeof(RAWINPUT)];
-                GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-                RAWINPUT *raw = (RAWINPUT *)lpb;
+                break;
+            }
 
-                if (raw->header.dwType == RIM_TYPEMOUSE)
+            // 确保数据大小合理
+            if (dataSize > 0 && dataSize < 4096) // 合理的上限
+            {
+                std::vector<BYTE> buffer(dataSize);
+                UINT result = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, buffer.data(), &dataSize, sizeof(RAWINPUTHEADER));
+
+                if (result != (UINT)-1 && result == dataSize)
                 {
-                    // 处理原始鼠标输入
-                    if (raw->data.mouse.usFlags == MOUSE_MOVE_RELATIVE)
+                    RAWINPUT *raw = reinterpret_cast<RAWINPUT *>(buffer.data());
+
+                    if (raw->header.dwType == RIM_TYPEMOUSE)
                     {
-                        m_MouseDelta.x += raw->data.mouse.lLastX;
-                        m_MouseDelta.y += raw->data.mouse.lLastY;
+                        // 处理原始鼠标输入
+                        if (raw->data.mouse.usFlags == MOUSE_MOVE_RELATIVE)
+                        {
+                            m_MouseDelta.x += raw->data.mouse.lLastX;
+                            m_MouseDelta.y += raw->data.mouse.lLastY;
+                        }
+
+                        // 可选：处理鼠标按钮（如果需要）
+                        USHORT buttonFlags = raw->data.mouse.usButtonFlags;
+                        // 这里可以添加鼠标按钮处理逻辑...
                     }
                 }
             }
