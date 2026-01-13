@@ -10,6 +10,8 @@
 #include <GL/gl.h>
 // ======================================================================
 
+class FontManager;
+
 /**
  * @brief OpenGL渲染器类
  * @details 负责OpenGL初始化、渲染状态管理和帧缓冲交换
@@ -27,6 +29,10 @@ private:
 
     FLOAT m_ClearColor[4]; // 清除颜色
     BOOL m_VSyncEnabled;   // 垂直同步是否启用
+
+    FontManager &m_FontManager;
+    GLuint m_FontTexture;     // 字体纹理
+    GLuint m_FontDisplayList; // 显示列表基
 
     // ======================================================================
     // 渲染统计数据
@@ -110,8 +116,9 @@ public:
      */
     void SetClearColor(const FLOAT color[4]);
 
-    void SetVerticalSync(BOOL enable); // 设置垂直同步
-    void ToggleVerticalSync();         // 切换垂直同步状态
+    void SetVerticalSync(BOOL enable);               // 设置垂直同步
+    void ToggleVerticalSync();                       // 切换垂直同步状态
+    BOOL IsVSyncEnabled() { return m_VSyncEnabled; } // 是否开启垂直同步
 
     void SetWireframeMode(BOOL enable);   // 设置线框模式
     void SetBackfaceCulling(BOOL enable); // 设置背面剔除
@@ -165,9 +172,9 @@ public:
     void Clear(BOOL clearColor = TRUE, BOOL clearDepth = TRUE, BOOL clearStencil = FALSE);
 
     FLOAT GetFPS() const { return m_FPS; } // 获取当前帧率
-    void AddFrameSample(FLOAT dt); // 记录上一帧步长
-    FLOAT GetAverageFrameTime() const; // 获取平均耗时（用于计算平滑 FPS）
-    FLOAT GetSmoothFPS() const;        // 获取平滑帧率
+    void AddFrameSample(FLOAT dt);         // 记录上一帧步长
+    FLOAT GetAverageFrameTime() const;     // 获取平均耗时（用于计算平滑 FPS）
+    FLOAT GetSmoothFPS() const;            // 获取平滑帧率
 
     INT GetWidth() const { return m_Width; }               // 获取渲染区宽度
     INT GetHeight() const { return m_Height; }             // 获取渲染区高度
@@ -193,7 +200,19 @@ public:
     void PopState();   // 恢复保存的OpenGL状态
     void ResetState(); // 重置渲染器到默认状态
 
+    // 添加字体渲染
+    BOOL InitializeFontSystem();
+    void RenderText2D(const std::string &text, INT x, INT y,
+                      const FLOAT color[4] = nullptr, FLOAT scale = 1.0f);
+    void RenderText3D(const std::string &text, const Vector3 &position,
+                      const FLOAT color[4] = nullptr, FLOAT scale = 1.0f);
+
+    FontManager &GetFontManager() { return m_FontManager; }
+
     std::string GetGLInfo() const; // 获取OpenGL信息
+    BOOL CreateSimpleFont();
+    void RenderSimpleText(const std::string &text, INT x, INT y,
+                          FLOAT r = 1.0f, FLOAT g = 1.0f, FLOAT b = 1.0f);
 };
 
 #endif // __RENDERER_H__

@@ -3,16 +3,18 @@
 #include "stdafx.h"
 
 #include "Core/GameEngine.h"
+
+#include "Utils/DebugUtils.h"
 #include "Core/Window.h"
 #include "Core/Renderer.h"
 #include "Core/InputManager.h"
 #include "Graphics/Camera.h"
+#include "Graphics/UIManager.h"
 // #include "Resources/ResourceManager.h"
 #include "Scene/SceneManager.h"
 // ======================================================================
 
-// 初始化静态实例
-CGameEngine *CGameEngine::s_Instance = nullptr;
+CGameEngine *CGameEngine::s_Instance = nullptr; // 初始化静态实例
 
 CGameEngine &CGameEngine::GetInstance()
 {
@@ -34,9 +36,9 @@ CGameEngine::CGameEngine()
     m_pMainCamera = std::make_unique<CCamera>();
     // m_ResourceManager = std::make_unique<CResourceManager>();
     m_SceneManager = std::make_unique<CSceneManager>();
+    m_UIManager = std::make_unique<CUIManager>();
 }
 
-// TODO: 初始化引擎
 BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 {
     std::wcout << L"========= 引擎初始化开始 =========" << std::endl;
@@ -81,10 +83,8 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     m_pMainCamera->Initialize(position, target, up);
 
     // 获取当前窗口宽高比
-    FLOAT aspect = (startH > 0) ? (float)startW / (float)startH : 1.0f;
-    // std::cout << "ASPECT" << aspect << std::endl; // 1.6
+    FLOAT aspect = (startH > 0) ? (FLOAT)startW / (FLOAT)startH : 1.0f;
     m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
-    // m_pMainCamera->EnableMouseLook(TRUE);
 
     // 5. 初始化资源管理器
     // TODO: Shader 纹理 默认字体
@@ -92,6 +92,10 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     // {
     //     return FALSE;
     // }
+    if (!m_Renderer->InitializeFontSystem())
+    {
+        OutputDebugStringW(L"警告: 字体系统初始化失败，将继续运行\n");
+    }
 
     // 6. 初始化场景管理器
     if (!m_SceneManager->Initialize())
@@ -99,7 +103,13 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
         return FALSE;
     }
 
-    // 7. 显示窗口
+    // 7. 初始化UI系统
+    if (!m_UIManager->Initialize(m_Window->GetHWND(), L"Microsoft YaHei", 18))
+    {
+        return FALSE;
+    }
+
+    // 8. 显示窗口
     m_Window->Show();
 
     m_Initialized = TRUE;
@@ -127,18 +137,12 @@ INT CGameEngine::Run()
     //         m_InputManager->HideCursor();
     // }
 
-    // m_InputManager->LockMouse();
-    // m_InputManager->HideCursor();
-
     m_pMainCamera->EnableMouseLook(TRUE);
     m_pMainCamera->SetMoveSpeed(2.0f);
 
     // 跟踪上一次的窗口尺寸，用于检测变化
     INT lastWindowWidth = m_Window->GetClientWidth();
     INT lastWindowHeight = m_Window->GetClientHeight();
-
-    // 调试计数器
-    // static INT debugFrame = 0;
 
     // 主游戏循环
     while (m_Running)
@@ -167,12 +171,6 @@ INT CGameEngine::Run()
             // 确保尺寸有效
             INT safeW = (currentWidth < 1) ? 1 : currentWidth;
             INT safeH = (currentHeight < 1) ? 1 : currentHeight;
-
-            //char debugMsg[256];
-            // sprintf_s(debugMsg,
-            //           "[Frame %d] 窗口大小变化: %dx%d -> %dx%d\n",
-            //           debugFrame, lastWindowWidth, lastWindowHeight, safeW, safeH);
-            // OutputDebugStringA(debugMsg);
 
             // 更新渲染器视口
             if (m_Renderer)
@@ -206,6 +204,8 @@ INT CGameEngine::Run()
                 // OutputDebugStringA(debugMsg);
             }
 
+            // TODO: 更新UI系统
+
             // 更新最后记录的尺寸
             lastWindowWidth = safeW;
             lastWindowHeight = safeH;
@@ -227,20 +227,6 @@ INT CGameEngine::Run()
         // 5. 输入处理
         this->ProcessInput(deltaTime);
 
-        // 调试：每60帧输出一次相机和窗口信息
-        // if (debugFrame % 60 == 0)
-        // {
-        //     char info[256];
-        //     sprintf_s(info,
-        //               "[Info] 窗口: %dx%d, 相机位置: (%.2f, %.2f, %.2f), Aspect: %.4f\n",
-        //               currentWidth, currentHeight,
-        //               m_pMainCamera->GetPosition().x,
-        //               m_pMainCamera->GetPosition().y,
-        //               m_pMainCamera->GetPosition().z,
-        //               m_pMainCamera->GetAspectRatio());
-        //     OutputDebugStringA(info);
-        // }
-
         // 6. 更新游戏逻辑
         m_pMainCamera->Update(deltaTime);
         m_SceneManager->Update(deltaTime);
@@ -258,22 +244,23 @@ INT CGameEngine::Run()
 
             m_SceneManager->Render();
 
+            m_Renderer->PushState();
+
             // 渲染 UI
-            // m_Renderer->PushState();
-            //         m_Renderer->SetOrthoProjection(...); // 切换为 2D 矩阵
-            //         m_UIManager->Render();
-            // m_Renderer->PopState();
 
             // 9. TODO: 显示调试信息 UI
-            // DisplayDebugInfo();
+            if (m_ShowDebugInfo)
+            {
+                DisplayDebugInfo(); // GDI 此时在已经显示出的画面上绘制
+                // DisplayStatistic();
+            }
 
-            // if (debugFrame < 120) // 前2秒绘制测试
-            // {
-            //     RenderDebugOverlay();
-            // }
+            // TestFontRendering();
 
+            m_Renderer->PopState();
             // ================================================
             m_Renderer->EndFrame();
+
             m_InputManager->ResetMouseWheel();
             m_InputManager->ClearDelta();
             // ================================================
@@ -366,10 +353,6 @@ void CGameEngine::ProcessInput(FLOAT delatTime)
 
 void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 {
-    // 调试输出
-    // static int cameraInputCount = 0;
-    // cameraInputCount++;
-
     // 0. 基础重置
     if (m_InputManager->IsKeyPressed('0') || m_InputManager->IsKeyDown(VK_NUMPAD0))
     {
@@ -406,11 +389,6 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
         if (delta.x != 0 || delta.y != 0)
         {
-            // char buffer[256];
-            // sprintf_s(buffer, "[ProcessCameraInput] Processing mouse: dx=%d, dy=%d\n",
-            //           delta.x, delta.y);
-            // OutputDebugStringA(buffer);
-
             // 注意：dy 取反，因为鼠标向上移动应该是抬头
             m_pMainCamera->ProcessMouseMovement(delta.x, -delta.y);
         }
@@ -489,104 +467,115 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
 void CGameEngine::DisplayDebugInfo()
 {
-    // 如果没有文字渲染器，直接返回
+    if (!m_ShowDebugInfo)
+        return;
 
-    // 只在需要时显示
+    // 1. 定义起始位置和行间距
+    INT startX = 10;
+    INT startY = 20;
+    INT lineHeight = 20; // 每一行的高度差
+    INT row = 0;         // 使用行倍数，方便排列
 
-    // 计算程序运行时间
+    // 设置颜色
+    FLOAT green[] = {0.0f, 1.0f, 0.0f, 1.0f};
+    FLOAT yellow[] = {1.0f, 1.0f, 0.0f, 1.0f};
+    FLOAT cyan[] = {0.0f, 1.0f, 1.0f, 1.0f};
+    FLOAT black[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    FLOAT orange[] = {1.0f, 0.5f, 0.0f, 1.0f};
 
-    // 创建调试信息字符串
+    // ======================================================================
+    // 1. 性能与内存模块 (Performance & Memory)
+    // FPS 和 帧时间 (ms)
+    float frameTime = 1000.0f / (m_Renderer->GetFPS() + 0.001f); // 避免除零
+    std::string perfText = "FPS: " + std::to_string(static_cast<INT>(m_Renderer->GetFPS())) +
+                           " (" + std::to_string(frameTime).substr(0, 4) + " ms)";
+    m_Renderer->RenderText2D(perfText, startX, startY + (lineHeight * row++), green, 1.0f);
 
-    // 基本FPS信息
+    size_t usedMem = DebugUtils::GetUsedMemoryMB();
+    std::string memText = "Memory: " + std::to_string(usedMem) + " MB / " +
+                          std::to_string(DebugUtils::GetTotalMemoryMB()) + " MB";
+    m_Renderer->RenderText2D(memText, startX, startY + (lineHeight * row++), green, 1.0f);
 
-    // 帧时间信息
+    // ======================================================================
+    // 2. 引擎状态
+    std::string stateText = "VSync: " + std::string(m_Renderer->IsVSyncEnabled() ? "ON" : "OFF") +
+                            " | Window: " + std::to_string(m_Renderer->GetWidth()) + "x" + std::to_string(m_Renderer->GetHeight());
+    m_Renderer->RenderText2D(stateText, startX, startY + (lineHeight * row++), orange, 1.0f);
 
-    // 运行时间
+    row++;
 
-    // 相机位置和旋转（如果有相机）
+    // ======================================================================
+    // 3. 相机数据
+    Vector3 camPos = m_pMainCamera->GetPosition();
+    std::string camText = "Pos: (" + std::to_string(camPos.x).substr(0, 5) + ", " +
+                          std::to_string(camPos.y).substr(0, 5) + ", " +
+                          std::to_string(camPos.z).substr(0, 5) + ")";
+    m_Renderer->RenderText2D(camText, startX, startY + (lineHeight * row++), cyan, 1.0f);
 
-    // auto* renderer = GetRenderer();
-    // auto* camera = GetMainCamera();
+    Vector3 forward = m_pMainCamera->GetForward();
+    std::string dirText = "Dir: (" + std::to_string(forward.x).substr(0, 5) + ", " +
+                          std::to_string(forward.y).substr(0, 5) + ", " +
+                          std::to_string(forward.z).substr(0, 5) + ")";
+    m_Renderer->RenderText2D(dirText, startX, startY + (lineHeight * row++), cyan, 1.0f);
 
-    // renderer->PushState();
-    //     // 切换到正交投影（UI 模式）
-    //     renderer->SetOrthoProjection(0, renderer->GetWidth(), renderer->GetHeight(), 0, -1, 1);
+    // 相机模式处理
+    CameraMode mode = m_pMainCamera->GetMode();
+    std::string modeStr = "Mode: ";
+    if (mode == CameraMode::FirstPerson)
+        modeStr += "First Person";
+    else if (mode == CameraMode::ThirdPerson)
+        modeStr += "Third Person";
+    else if (mode == CameraMode::FreeLook)
+        modeStr += "Free Look";
+    else
+        modeStr += "Orbital";
+    m_Renderer->RenderText2D(modeStr, startX, startY + (lineHeight * row++), cyan, 1.0f);
 
-    //     // 示例：获取平滑 FPS 和 相机位置
-    //     FLOAT fps = renderer->GetSmoothFPS();
-    //     Vector3 pos = camera->GetPosition();
+    row++;
 
-    //     // 这里调用你的字体渲染函数，例如：
-    //     // m_pFont->DrawText(10, 10, "FPS: %.2f", fps);
-    //     // m_pFont->DrawText(10, 30, "Cam: %.1f, %.1f, %.1f", pos.x, pos.y, pos.z);
+    // ======================================================================
+    // 4. 输入状态模块 (Input Interaction)
+    // 获取实时按键和鼠标位置
+    std::string inputState = "Mouse: (" + std::to_string(m_InputManager->GetMouseX()) + ", " +
+                             std::to_string(m_InputManager->GetMouseY()) + ") | Keys: ";
+    if (m_InputManager->IsKeyDown('W'))
+        inputState += "W ";
+    if (m_InputManager->IsKeyDown('A'))
+        inputState += "A ";
+    if (m_InputManager->IsKeyDown('S'))
+        inputState += "S ";
+    if (m_InputManager->IsKeyDown('D'))
+        inputState += "D ";
+    if (m_InputManager->IsKeyDown('E'))
+        inputState += "E ";
+    if (m_InputManager->IsKeyDown('Q'))
+        inputState += "Q ";
 
-    // renderer->PopState();
+    m_Renderer->RenderText2D(inputState, startX, startY + (lineHeight * row++), black, 0.9f);
+
+    // 4. 操作提示
+    m_Renderer->RenderText2D("Controls: WASD-Move, F1-UI, 0-Reset Camera", startX, startY + (lineHeight * row++), black, 0.8f);
 }
 
-void CGameEngine::OnWindowResize(INT w, INT h)
+void CGameEngine::TestFontRendering()
 {
-    // 确保尺寸有效
-    w = (w < 1) ? 1 : w;
-    h = (h < 1) ? 1 : h;
+    // OutputDebugStringA("开始字体渲染测试...\n");
 
-    // OutputDebugStringA("=== OnWindowResize 被调用 ===\n");
+    FLOAT colors[][4] = {
+        {1.0f, 0.0f, 0.0f, 1.0f}, // 红
+        {0.0f, 1.0f, 0.0f, 1.0f}, // 绿
+        {0.0f, 0.0f, 1.0f, 1.0f}, // 蓝
+    };
 
-    if (m_Renderer)
-    {
-        m_Renderer->Reset(w, h);
-        // 确保渲染器内部正确设置了视口
-    }
+    // 测试1：简单文字
+    m_Renderer->RenderText2D("字体测试 - 红色", 50, 50, colors[0], 1.0f);
+    m_Renderer->RenderText2D("字体测试 - 绿色", 50, 70, colors[1], 1.0f);
+    m_Renderer->RenderText2D("字体测试 - 蓝色", 50, 90, colors[2], 1.0f);
 
-    if (m_pMainCamera)
-    {
-        FLOAT aspect = (FLOAT)w / (FLOAT)h;
-        m_pMainCamera->SetProjection(m_pMainCamera->GetFOV(), aspect,
-                                     m_pMainCamera->GetNear(), m_pMainCamera->GetFar());
+    // 测试2：不同大小
+    m_Renderer->RenderText2D("大号字体", 50, 120, colors[0], 1.5f);
+    m_Renderer->RenderText2D("中号字体", 50, 150, colors[1], 1.0f);
+    m_Renderer->RenderText2D("小号字体", 50, 170, colors[2], 0.7f);
 
-        // char buf[128];
-        // sprintf_s(buf, "投影矩阵更新: 宽=%d, 高=%d, 宽高比=%.4f\n", w, h, aspect);
-        // OutputDebugStringA(buf);
-    }
-}
-
-void CGameEngine::RenderDebugOverlay()
-{
-    // 切换到2D正交投影
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0, m_Window->GetClientWidth(), 0, m_Window->GetClientHeight(), -1, 1);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    // 禁用深度测试
-    glDisable(GL_DEPTH_TEST);
-
-    // 绘制一个全屏的彩色矩形，测试视口是否正确
-    glBegin(GL_QUADS);
-    // 左上角 - 红色
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex2f(0.0f, (GLfloat)m_Window->GetClientHeight());
-
-    // 右上角 - 绿色
-    glColor3f(0.0f, 1.0f, 0.0f);
-	glVertex2f((GLfloat)m_Window->GetClientWidth(), (GLfloat)m_Window->GetClientHeight());
-
-    // 右下角 - 蓝色
-    glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex2f((GLfloat)m_Window->GetClientWidth(), 0.0f);
-
-    // 左下角 - 白色
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glVertex2f(0, 0);
-    glEnd();
-
-    // 恢复状态
-    glEnable(GL_DEPTH_TEST);
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
+    // OutputDebugStringA("字体渲染测试完成\n");
 }

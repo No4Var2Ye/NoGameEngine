@@ -18,6 +18,7 @@ class CInputManager;
 class CCamera;
 class CResourceManager;
 class CSceneManager;
+class CUIManager;
 
 // ======================================================================
 class CGameEngine
@@ -51,13 +52,15 @@ private:
     std::unique_ptr<CCamera> m_pMainCamera;
     // std::unique_ptr<CResourceManager> m_ResourceManager;
     std::unique_ptr<CSceneManager> m_SceneManager;
-
+    
+    // UI系统
+    std::unique_ptr<CUIManager> m_UIManager;
+    
     // ======================================================================
     // TODO: 输入处理
     // ======================================================================
-    // 或者创建专用的输入处理类
+    // 专用的输入处理类
     void ProcessInput(FLOAT delatTime);
-
     // TODO: 相机控制相关
     void ProcessCameraInput(FLOAT deltaTime);
     // TODO: UI控制相关
@@ -69,7 +72,7 @@ private:
     // TODO: 显示调试信息
     BOOL m_ShowDebugInfo;
     void DisplayDebugInfo();
-    void RenderDebugOverlay();
+    void DisplayStatistics();
 
 public:
     static CGameEngine &GetInstance(); // 获取单例实例
@@ -84,9 +87,11 @@ public:
     CRenderer *GetRenderer() const { return m_Renderer.get(); }
     CInputManager *GetInputManager() const { return m_InputManager.get(); }
     CCamera *GetMainCamera() const { return m_pMainCamera.get(); }
-
-    void OnWindowResize(INT w, INT h);
-
+    CUIManager *GetUIManager() const { return m_UIManager.get(); }
+    
+    // ======================================================================
+    // 测试
+    void TestFontRendering();
 }; // class GameEngine
 
 #endif // __GAMEENGINE_H__

@@ -2,33 +2,51 @@
 #ifndef __DEBUG_UTILS_H__
 #define __DEBUG_UTILS_H__
 
-#include <Windows.h>
+#include <windows.h>
+#include <psapi.h>
+#include <string>
 
-// 简单的调试输出宏
-#ifdef MYDEBUG
-    // 格式化输出
-    #define LOG(...) \
-        do { \
-            char buffer[512]; \
-            sprintf_s(buffer, sizeof(buffer), __VA_ARGS__); \
-            OutputDebugStringA(buffer); \
-            OutputDebugStringA("\n"); \
-        } while(0)
-    
-    // 带标签的输出
-    #define LOG_INFO(...) LOG("[INFO] " __VA_ARGS__)
-    #define LOG_WARN(...) LOG("[WARN] " __VA_ARGS__)
-    #define LOG_ERROR(...) LOG("[ERROR] " __VA_ARGS__)
-    
-    // 跟踪输出
-    #define LOG_TRACE() LOG("[TRACE] %s:%d", __FILE__, __LINE__)
-#else
-    // 发布版本为空
-    #define LOG(...)
-    #define LOG_INFO(...)
-    #define LOG_WARN(...)
-    #define LOG_ERROR(...)
-    #define LOG_TRACE()
-#endif
+#pragma comment(lib, "psapi.lib")
+
+namespace DebugUtils {
+
+    /**
+     * 获取当前进程使用的物理内存 (工作集大小)
+     * @return 内存占用 (MB)
+     */
+    inline size_t GetUsedMemoryMB() {
+        PROCESS_MEMORY_COUNTERS_EX pmc;
+        if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+            return pmc.WorkingSetSize / (1024 * 1024);
+        }
+        return 0;
+    }
+
+    /**
+     * 获取系统总物理内存
+     * @return 总内存 (MB)
+     */
+    inline size_t GetTotalMemoryMB() {
+        MEMORYSTATUSEX memInfo;
+        memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+        if (GlobalMemoryStatusEx(&memInfo)) {
+            return (size_t)(memInfo.ullTotalPhys / (1024 * 1024));
+        }
+        return 0;
+    }
+
+    /**
+     * 获取内存使用率
+     * @return 0.0 - 100.0 的百分比
+     */
+    inline float GetMemoryUsagePercent() {
+        size_t used = GetUsedMemoryMB();
+        size_t total = GetTotalMemoryMB();
+        if (total > 0) {
+            return (static_cast<float>(used) / total) * 100.0f;
+        }
+        return 0.0f;
+    }
+}
 
 #endif // __DEBUG_UTILS_H__

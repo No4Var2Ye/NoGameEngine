@@ -5,8 +5,9 @@
 #include <sstream>
 #include <cassert>
 #include <iomanip>
-#include "Core/Renderer.h"
 #include "Math/MathUtils.h"
+#include "Core/Renderer.h"
+#include "Graphics/FontManager.h"
 // ======================================================================
 
 // ======================================================================
@@ -30,7 +31,8 @@ CRenderer::CRenderer()
       m_NextIndex(0),                   // 环形缓冲区索引归零
       m_DeltaTime(0.0f),                // 帧间隔时间
       m_MinDeltaTime(0.0f),             // 最小帧时间
-      m_MaxDeltaTime(0.1f)              // 最大帧时间, 100ms 阈值
+      m_MaxDeltaTime(0.1f),             // 最大帧时间, 100ms 阈值
+      m_FontManager(FontManager::GetInstance())
 {
     // TODO: 初始化清除颜色
     // m_ClearColor[0] = 0.2f; // R
@@ -46,7 +48,7 @@ CRenderer::CRenderer()
 
     // 重点：初始化帧耗时历史记录
     // 填充 0.0166f 可以让程序启动即拥有平滑的平均 FPS 数据
-    for (int i = 0; i < SAMPLE_COUNT; ++i)
+    for (INT i = 0; i < SAMPLE_COUNT; ++i)
     {
         m_FrameTimeHistory[i] = 0.0166f;
     }
@@ -139,6 +141,26 @@ BOOL CRenderer::Initialize(HWND hWnd)
 
     m_GLInitialized = TRUE;
 
+    if (!CreateSimpleFont())
+    {
+        OutputDebugStringA("警告: 简单字体创建失败\n");
+    }
+
+    return TRUE;
+}
+
+BOOL CRenderer::InitializeFontSystem()
+{
+    OutputDebugStringA("正在初始化字体系统...\n");
+
+    if (!m_FontManager.LoadFont("default", "Arial", 16))
+    {
+        OutputDebugStringA("字体系统初始化失败\n");
+        return false;
+    }
+
+    OutputDebugStringA("字体系统初始化成功\n");
+
     return TRUE;
 }
 
@@ -201,7 +223,10 @@ void CRenderer::EndFrame()
 
     // 2. 绘制调试信息 (Debug Overlay)
     // 渲染 FPS 等文字通常放在交换缓冲之前的最后一步
-    // RenderDebugInfo()
+    // if (m_pGameEngine && m_pGameEngine->m_ShowDebugInfo)
+    // {
+    //     m_pGameEngine->RenderDebugUI();
+    // }
 
     // 3. 交换缓冲区
     SwapBuffers(m_hDC);
@@ -436,7 +461,7 @@ void CRenderer::AddFrameSample(FLOAT dt)
 FLOAT CRenderer::GetAverageFrameTime() const
 {
     FLOAT sum = 0;
-    for (int i = 0; i < SAMPLE_COUNT; ++i)
+    for (INT i = 0; i < SAMPLE_COUNT; ++i)
     {
         sum += m_FrameTimeHistory[i];
     }
@@ -496,6 +521,174 @@ void CRenderer::ResetState()
     glPointSize(1.0f);
 
     CheckGLError("ResetState");
+}
+
+void CRenderer::RenderText2D(const std::string &text, INT x, INT y,
+                             const FLOAT color[4], FLOAT scale)
+{
+    if (text.empty() || m_FontDisplayList == 0)
+        return;
+    // 保存当前OpenGL状态
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+    // 设置矩阵模式
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // 设置正交投影
+    glOrtho(0, m_Width, m_Height, 0, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // 设置渲染状态
+    glDisable(GL_DEPTH_TEST); // 禁用深度测试
+    glDisable(GL_LIGHTING);   // 禁用光照
+    glDisable(GL_CULL_FACE);  // 禁用面剔除
+    glEnable(GL_BLEND);       // 启用混合
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_TEXTURE_2D); // 禁用纹理
+
+    // // 绘制背景
+    // glColor4f(0.1f, 0.1f, 0.1f, 0.5f);
+    // glBegin(GL_QUADS);
+    // glVertex2f(x - 3.0f, y - 3.0f);
+    // glVertex2f(x + 150.0f, y - 3.0f);
+    // glVertex2f(x + 150.0f, y + 20.0f);
+    // glVertex2f(x - 3.0f, y + 20.0f);
+    // glEnd();
+
+    // 设置颜色
+    if (color)
+        glColor4f(color[0], color[1], color[2], color[3]);
+    else
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // 定位
+    glRasterPos2i(x, y);
+
+    // 将ANSI字符串转换为宽字符
+    INT len = MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, NULL, 0);
+    if (len <= 0)
+        return;
+
+    std::vector<wchar_t> wstr(len);
+    MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, &wstr[0], len);
+
+    glPushAttrib(GL_LIST_BIT);
+    glListBase(m_FontDisplayList);
+
+    glCallLists(len - 1, GL_UNSIGNED_SHORT, &wstr[0]);
+
+    glPopAttrib();
+
+    // 渲染文字
+    // m_FontManager.RenderText(text, static_cast<FLOAT>(x), static_cast<FLOAT>(y),
+    //                         scale, color, "default");
+
+    // 检查OpenGL错误
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR)
+    {
+        char buffer[256];
+        sprintf_s(buffer, "OpenGL错误在文字渲染后: 0x%X\n", error);
+        OutputDebugStringA(buffer);
+    }
+
+    // 恢复矩阵
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    // 恢复属性
+    glPopAttrib();
+}
+
+BOOL CRenderer::CreateSimpleFont()
+{
+    // OutputDebugStringA("创建简单字体...\n");
+
+    // 创建显示列表
+    m_FontDisplayList = glGenLists(65536);
+    HDC hDC = wglGetCurrentDC();
+
+    if (!hDC)
+    {
+        OutputDebugStringA("无法获取DC\n");
+        return false;
+    }
+
+    HFONT hFont = CreateFontW(
+        -20,                 // 高度
+        0,                   // 宽度
+        0,                   // 旋转角度
+        0,                   // 朝向角度
+        FW_NORMAL,           // 字重
+        FALSE,               // 斜体
+        FALSE,               // 下划线
+        FALSE,               // 删除线
+        DEFAULT_CHARSET,     // 使用字符集
+        OUT_TT_PRECIS,       // 输出精度
+        CLIP_DEFAULT_PRECIS, // 裁剪精度
+        CLEARTYPE_QUALITY,   // ClearType质量
+        DEFAULT_PITCH | FF_DONTCARE,
+        L"Microsoft YaHei"); // 雅黑字体
+
+    HGDIOBJ oldFont = SelectObject(hDC, hFont);
+
+    // 分段创建位图
+    wglUseFontBitmapsW(hDC, 0, 256, m_FontDisplayList);
+    wglUseFontBitmapsW(hDC, 0x4E00, 0x9FFF - 0x4E00, m_FontDisplayList + 0x4E00);
+
+    SelectObject(hDC, oldFont);
+    DeleteObject(hFont);
+    return TRUE;
+}
+
+void CRenderer::RenderSimpleText(const std::string &text, INT x, INT y,
+                                 FLOAT r, FLOAT g, FLOAT b)
+{
+    if (text.empty() || m_FontDisplayList == 0)
+        return;
+
+    // 保存状态
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+    // 设置2D投影
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, m_Width, m_Height, 0, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // 设置渲染状态
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // 设置颜色
+    glColor3f(r, g, b);
+
+    // 定位
+    glRasterPos2i(x, y);
+
+    // 渲染文字
+    glListBase(m_FontDisplayList);
+    glCallLists(static_cast<GLsizei>(text.length()), GL_UNSIGNED_BYTE, text.c_str());
+
+    // 恢复
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glPopAttrib();
 }
 
 std::string CRenderer::GetGLInfo() const
@@ -704,7 +897,7 @@ BOOL CRenderer::InternalSetVerticalSync(BOOL enable)
 
     if (m_WGLSwapControlSupported)
     {
-        typedef BOOL(WINAPI * PFNWGLSWAPINTERVALEXTPROC)(int);
+        typedef BOOL(WINAPI * PFNWGLSWAPINTERVALEXTPROC)(INT);
         PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT =
             (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 
