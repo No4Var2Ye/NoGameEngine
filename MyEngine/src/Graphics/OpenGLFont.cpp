@@ -1,9 +1,12 @@
-﻿#include "stdafx.h"
+﻿
+// ======================================================================
+#include "stdafx.h"
 
 #include <algorithm>
 #include <cstring>
 #include "Graphics/OpenGLFont.h"
 #include "Core/Renderer.h"
+// ======================================================================
 
 
 OpenGLFont::OpenGLFont()

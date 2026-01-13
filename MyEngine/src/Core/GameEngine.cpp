@@ -3,14 +3,13 @@
 #include "stdafx.h"
 
 #include "Core/GameEngine.h"
-
 #include "Utils/DebugUtils.h"
 #include "Core/Window.h"
 #include "Core/Renderer.h"
 #include "Core/InputManager.h"
 #include "Graphics/Camera.h"
 #include "Graphics/UIManager.h"
-// #include "Resources/ResourceManager.h"
+#include "Resources/ResourceManager.h"
 #include "Scene/SceneManager.h"
 // ======================================================================
 
@@ -25,6 +24,9 @@ CGameEngine &CGameEngine::GetInstance()
     return *s_Instance;
 }
 
+// ======================================================================
+// TODO: 引擎构造函数
+// ======================================================================
 CGameEngine::CGameEngine()
     : m_ShowDebugInfo(TRUE)
 {
@@ -39,6 +41,9 @@ CGameEngine::CGameEngine()
     m_UIManager = std::make_unique<CUIManager>();
 }
 
+// ======================================================================
+// TODO: 引擎初始化
+// ======================================================================
 BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 {
     std::wcout << L"========= 引擎初始化开始 =========" << std::endl;
@@ -88,7 +93,7 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 
     // 5. 初始化资源管理器
     // TODO: Shader 纹理 默认字体
-    // if (!m_ResourceManager->Initialize())
+    // if (!m_ResourceManager->Initialize(config.resConfig))
     // {
     //     return FALSE;
     // }
@@ -116,7 +121,9 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     return TRUE;
 }
 
+// ======================================================================
 // TODO: 引擎运行
+// ======================================================================
 INT CGameEngine::Run()
 {
     if (!m_Initialized)
@@ -238,26 +245,43 @@ INT CGameEngine::Run()
             // 8. 渲染场景
             m_Renderer->BeginFrame();
             // ================================================
-
-            m_pMainCamera->ApplyProjectionMatrix();
-            m_pMainCamera->ApplyViewMatrix();
-
-            m_SceneManager->Render();
-
-            m_Renderer->PushState();
-
-            // 渲染 UI
-
-            // 9. TODO: 显示调试信息 UI
-            if (m_ShowDebugInfo)
+            switch (m_State)
             {
-                DisplayDebugInfo(); // GDI 此时在已经显示出的画面上绘制
-                // DisplayStatistic();
+            case EngineState::FadeIn:
+            {
+                RenderSplashScreen(deltaTime, false);
+                break;
+            }
+            case EngineState::Running:
+            {
+
+                m_pMainCamera->ApplyProjectionMatrix();
+                m_pMainCamera->ApplyViewMatrix();
+                m_SceneManager->Render();
+
+                m_Renderer->PushState();
+                if (m_ShowDebugInfo)
+                    DisplayDebugInfo();
+                m_Renderer->PopState();
+
+                // 检测退出按键切换到 FadeOut
+                if (m_InputManager->IsKeyPressed(VK_ESCAPE))
+                    m_State = EngineState::FadeOut;
+            }
+            break;
+
+            case EngineState::FadeOut:
+            {
+                RenderSplashScreen(deltaTime, true);
+                break;
+            }
+            case EngineState::Finished:
+            {
+                m_Running = FALSE;
+                break;
+            }
             }
 
-            // TestFontRendering();
-
-            m_Renderer->PopState();
             // ================================================
             m_Renderer->EndFrame();
 
@@ -286,6 +310,8 @@ void CGameEngine::Shutdown()
     }
 
     // 逆序关闭子系统
+    m_UIManager->Shutdown();
+
     m_SceneManager->Shutdown();
     // m_ResourceManager->Shutdown();
 
@@ -302,7 +328,7 @@ void CGameEngine::Shutdown()
 #endif
 }
 
-void CGameEngine::ProcessInput(FLOAT delatTime)
+void CGameEngine::ProcessInput(FLOAT deltaTime)
 {
     // 1. 全局快捷键处理
     if (m_InputManager->IsKeyPressed(VK_F1))
@@ -310,45 +336,15 @@ void CGameEngine::ProcessInput(FLOAT delatTime)
         m_ShowDebugInfo = !m_ShowDebugInfo;
     }
 
-    // Vector3 pos = m_pMainCamera->GetPosition();
-    // Vector3 tar = m_pMainCamera->GetTarget();
-    // Vector3 fwd = m_pMainCamera->GetForward();
-
-    // 获取摄像机的位置
-    // if (m_InputManager->IsMouseButtonDown(MouseButton::Right))
-    // {
-    //     printf("\n--------- Camera Debug Info ---------\n");
-    //     printf("Pos   : [%8.2f, %8.2f, %8.2f]\n", pos.x, pos.y, pos.z);
-    //     printf("Target: [%8.2f, %8.2f, %8.2f]\n", tar.x, tar.y, tar.z);
-    //     printf("Dir(F): [%8.2f, %8.2f, %8.2f]\n", fwd.x, fwd.y, fwd.z);
-    //     printf("---------------------------------------\n");
-    // }
-
-    // 2. 相机模式快速切换 (用于测试)
-    if (m_InputManager->IsKeyPressed('1'))
-        GetMainCamera()->SetMode(CameraMode::FirstPerson);
-    if (m_InputManager->IsKeyPressed('2'))
-        GetMainCamera()->SetMode(CameraMode::ThirdPerson);
-    if (m_InputManager->IsKeyPressed('3'))
-        GetMainCamera()->SetMode(CameraMode::FreeLook);
-    if (m_InputManager->IsKeyPressed('4'))
-        GetMainCamera()->SetMode(CameraMode::Orbital);
-
-    // 3. 触发震动测试
-    if (m_InputManager->IsKeyPressed('G'))
-    {
-        GetMainCamera()->StartShake(0.2f, 0.1f);
-    }
-
-    // 4. ESC键退出时恢复输入法
+    // 2. ESC键退出时恢复输入法
     if (m_InputManager->IsKeyPressed(VK_ESCAPE))
     {
         m_Window->EnableIME(); // 退出前恢复输入法
     }
 
-    // 5. 分发输入给子系统
-    ProcessCameraInput(delatTime);
-    // ProcessUIInput(deltaTime);
+    // 3. 分发输入给子系统
+    ProcessCameraInput(deltaTime);
+    ProcessUIInput(deltaTime);
 }
 
 void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
@@ -358,6 +354,22 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
     {
         // OutputDebugStringA("DEBUG: Reset Key Pressed!\n");
         m_pMainCamera->Reset();
+    }
+
+    // 相机模式快速切换
+    if (m_InputManager->IsKeyPressed('1'))
+        GetMainCamera()->SetMode(CameraMode::FirstPerson);
+    if (m_InputManager->IsKeyPressed('2'))
+        GetMainCamera()->SetMode(CameraMode::ThirdPerson);
+    if (m_InputManager->IsKeyPressed('3'))
+        GetMainCamera()->SetMode(CameraMode::FreeLook);
+    if (m_InputManager->IsKeyPressed('4'))
+        GetMainCamera()->SetMode(CameraMode::Orbital);
+
+    // 触发震动测试
+    if (m_InputManager->IsKeyPressed('G'))
+    {
+        GetMainCamera()->StartShake(0.2f, 0.1f);
     }
 
     CameraMode mode = m_pMainCamera->GetMode();
@@ -465,22 +477,37 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
     m_InputManager->ClearDelta();
 }
 
+void CGameEngine::ProcessUIInput(FLOAT deltaTime)
+{
+
+}
+
 void CGameEngine::DisplayDebugInfo()
 {
     if (!m_ShowDebugInfo)
         return;
 
     // 1. 定义起始位置和行间距
-    INT startX = 10;
-    INT startY = 20;
-    INT lineHeight = 20; // 每一行的高度差
+    INT startX = 30;
+    INT startY = 40;
+    INT lineHeight = 22; // 每一行的高度差
     INT row = 0;         // 使用行倍数，方便排列
 
+    // 右侧：操作指南
+    // 定义右侧边距和行高
+    INT windowWidth = m_Renderer->GetWidth();
+    INT rightMargin = 250; // 预留给右侧文字的宽度
+    INT rightX = windowWidth - rightMargin;
+    INT rightY = 40; // 与左侧对齐或自定义
+    INT rRow = 0;
+
     // 设置颜色
+    FLOAT black[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    FLOAT white[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    FLOAT gray[] = {0.7f, 0.7f, 0.7f, 1.0f};
     FLOAT green[] = {0.0f, 1.0f, 0.0f, 1.0f};
     FLOAT yellow[] = {1.0f, 1.0f, 0.0f, 1.0f};
     FLOAT cyan[] = {0.0f, 1.0f, 1.0f, 1.0f};
-    FLOAT black[] = {0.0f, 0.0f, 0.0f, 1.0f};
     FLOAT orange[] = {1.0f, 0.5f, 0.0f, 1.0f};
 
     // ======================================================================
@@ -553,8 +580,28 @@ void CGameEngine::DisplayDebugInfo()
 
     m_Renderer->RenderText2D(inputState, startX, startY + (lineHeight * row++), black, 0.9f);
 
-    // 4. 操作提示
-    m_Renderer->RenderText2D("Controls: WASD-Move, F1-UI, 0-Reset Camera", startX, startY + (lineHeight * row++), black, 0.8f);
+    row++;
+
+    // ======================================================================
+    // TODO: 4. 操作提示
+    m_Renderer->RenderText2D("[ 快捷键 ]", rightX, rightY + (lineHeight * rRow++), black, 0.8f);
+    m_Renderer->RenderText2D("ESC: 退出系统", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F1 : 切换信息显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F11: 切换全屏显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("鼠标移动: 移动相机", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("鼠标滚动: 缩放视野", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("0: 重置相机位置", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("1/2/3/4: 切换相机模式", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("W/A/S/D: 相机移动", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("Q/E: 相机垂直升降", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("G: 摄像机抖动", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+
+    rRow++;
+    m_Renderer->RenderText2D("[ 相机模式 ]", rightX, rightY + (lineHeight * rRow++), black, 0.8f);
+    m_Renderer->RenderText2D("1: 第一人称视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("2: 第三人称视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("3: 自由视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("4: 轨道视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
 }
 
 void CGameEngine::TestFontRendering()
@@ -578,4 +625,51 @@ void CGameEngine::TestFontRendering()
     m_Renderer->RenderText2D("小号字体", 50, 170, colors[2], 0.7f);
 
     // OutputDebugStringA("字体渲染测试完成\n");
+}
+
+void CGameEngine::RenderSplashScreen(FLOAT deltaTime, BOOL isFadeOut)
+{
+    INT lineHeight = 22; // 每一行的高度差
+    INT row = 0;         // 使用行倍数，方便排列
+
+    m_SplashTimer += deltaTime;
+
+    // 计算 Alpha 值 (0.0 到 1.0)
+    FLOAT alpha = m_SplashTimer / SplashDuration;
+    if (alpha > 1.0f)
+        alpha = 1.0f;
+
+    // 如果是退出动画，Alpha 取反
+    FLOAT drawAlpha = isFadeOut ? (1.0f - alpha) : alpha;
+
+    // 清屏为纯黑 (这是关键，动画期间不显示场景)
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 设置文字颜色（白色，带动态透明度）
+    FLOAT textColor[] = {1.0f, 1.0f, 1.0f, drawAlpha};
+
+    // 计算屏幕中心
+    INT centerX = m_Renderer->GetWidth() / 2 - 40; // 粗略偏移
+    INT centerY = m_Renderer->GetHeight() / 2;
+
+    // 渲染 QMT
+    m_Renderer->RenderText2D("Q M T", centerX, centerY + (lineHeight * row++), textColor, 1.0f);
+    m_Renderer->RenderText2D("- - - - - - - - -", centerX - 30, centerY + (lineHeight * row++), textColor, 1.0f);
+    m_Renderer->RenderText2D("3D程序设计", centerX - 20, centerY + (lineHeight * row++), textColor, 1.0f);
+
+    // 状态切换逻辑
+    if (m_SplashTimer >= SplashDuration)
+    {
+        m_SplashTimer = 0.0f;
+        if (!isFadeOut)
+        {
+            m_State = EngineState::Running;
+            m_Renderer->SetClearColor(m_Renderer->GetClearColor());
+        }
+        else
+        {
+            m_State = EngineState::Finished;
+        }
+    }
 }

@@ -1,4 +1,9 @@
 ﻿
+// ======================================================================
+#ifndef __OPENGL_FONT_H__
+#define __OPENGL_FONT_H_
+// ======================================================================
+
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -73,3 +78,5 @@ private:
     // 渲染状态
     float m_Color[4];  // 当前颜色
 };
+
+#endif // __OPENGL_FONT_H__

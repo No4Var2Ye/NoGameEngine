@@ -1,9 +1,14 @@
-﻿// Graphics/FontManager.h
-#pragma once
-#include "Graphics/OpenGLFont.h"
+﻿// ======================================================================
+#ifndef __FONT_MANAGER_H__
+#define __FONT_MANAGER_H__
+
+// ======================================================================
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include "Graphics/OpenGLFont.h"
+// ======================================================================
+
 
 class FontManager
 {
@@ -42,3 +47,5 @@ private:
 
     static FontManager *s_pInstance; // 静态实例指针
 };
+
+#endif // __FONT_MANAGER_H__

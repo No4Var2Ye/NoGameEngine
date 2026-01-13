@@ -566,13 +566,24 @@ void CRenderer::RenderText2D(const std::string &text, INT x, INT y,
     else
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
+    glTranslatef((float)x, (float)y, 0.0f);
+    glScalef(scale, scale, 1.0f);
+
     // 定位
-    glRasterPos2i(x, y);
+    glRasterPos2i(0, 0);
 
     // 将ANSI字符串转换为宽字符
     INT len = MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, NULL, 0);
     if (len <= 0)
+    {
+        // 恢复矩阵
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+        glPopAttrib();
         return;
+    }
 
     std::vector<wchar_t> wstr(len);
     MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, &wstr[0], len);

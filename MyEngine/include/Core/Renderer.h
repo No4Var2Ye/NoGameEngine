@@ -170,6 +170,7 @@ public:
      * @param clearStencil 是否清除模板缓冲区
      */
     void Clear(BOOL clearColor = TRUE, BOOL clearDepth = TRUE, BOOL clearStencil = FALSE);
+    const FLOAT* GetClearColor() const { return m_ClearColor; }
 
     FLOAT GetFPS() const { return m_FPS; } // 获取当前帧率
     void AddFrameSample(FLOAT dt);         // 记录上一帧步长

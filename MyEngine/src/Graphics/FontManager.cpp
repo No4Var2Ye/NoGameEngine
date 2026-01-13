@@ -1,10 +1,12 @@
-﻿// Graphics/FontManager.cpp
+﻿
+// ======================================================================
 #include "stdafx.h"
 
 #include <cassert>
 #include "Graphics/FontManager.h"
+// ======================================================================
 
-// 初始化静态成员
+
 FontManager* FontManager::s_pInstance = nullptr;
 
 FontManager& FontManager::GetInstance()

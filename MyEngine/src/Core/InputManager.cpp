@@ -446,12 +446,12 @@ BOOL CInputManager::IsMouseButtonPressed(MouseButton button) const
             std::string name = (index < 5) ? buttonNames[index] : std::to_string(index);
 
             // 输出到控制台
-            std::cout << "[Input] Mouse Button Pressed: " << name << std::endl;
+            // std::cout << "[Input] Mouse Button Pressed: " << name << std::endl;
 
             // 同时输出到 Visual Studio 的调试输出窗口（方便在没有控制台的情况下查看）
-            char buf[64];
-            sprintf_s(buf, "[Input] Mouse Button Pressed: %s\n", name.c_str());
-            OutputDebugStringA(buf);
+            // char buf[64];h
+            // sprintf_s(buf, "[Input] Mouse Button Pressed: %s\n", name.c_str());
+            // OutputDebugStringA(buf);
 
             return TRUE;
         }

@@ -40,22 +40,35 @@ private:
     BOOL m_Initialized = FALSE;
     BOOL m_Running = FALSE;
 
+    enum class EngineState
+    {
+        FadeIn,
+        Running,
+        FadeOut,
+        Finished
+    };
+
+    // 成员变量
+    EngineState m_State = EngineState::FadeIn;
+    FLOAT m_SplashTimer = 0.0f;        // 动画计时器
+    const FLOAT SplashDuration = 0.0f; // 动画持续时间（秒）
+
     // ======================================================================
     // 引擎子系统
     // ======================================================================
     // 基础系统
     std::unique_ptr<CWindow> m_Window;
     std::unique_ptr<CRenderer> m_Renderer;
-    
+
     // 逻辑系统
     std::unique_ptr<CInputManager> m_InputManager;
     std::unique_ptr<CCamera> m_pMainCamera;
     // std::unique_ptr<CResourceManager> m_ResourceManager;
     std::unique_ptr<CSceneManager> m_SceneManager;
-    
+
     // UI系统
     std::unique_ptr<CUIManager> m_UIManager;
-    
+
     // ======================================================================
     // TODO: 输入处理
     // ======================================================================
@@ -64,7 +77,7 @@ private:
     // TODO: 相机控制相关
     void ProcessCameraInput(FLOAT deltaTime);
     // TODO: UI控制相关
-    void ProcessUInput(FLOAT deltaTime);
+    void ProcessUIInput(FLOAT deltaTime);
 
     // ======================================================================
     // 系统信息
@@ -73,6 +86,8 @@ private:
     BOOL m_ShowDebugInfo;
     void DisplayDebugInfo();
     void DisplayStatistics();
+
+    void RenderSplashScreen(FLOAT deltaTime, BOOL isFadeOut);
 
 public:
     static CGameEngine &GetInstance(); // 获取单例实例
@@ -87,8 +102,9 @@ public:
     CRenderer *GetRenderer() const { return m_Renderer.get(); }
     CInputManager *GetInputManager() const { return m_InputManager.get(); }
     CCamera *GetMainCamera() const { return m_pMainCamera.get(); }
+    // CResourceManager *GetResourceManager() const { return m_ResourceManager.get(); }
     CUIManager *GetUIManager() const { return m_UIManager.get(); }
-    
+
     // ======================================================================
     // 测试
     void TestFontRendering();
