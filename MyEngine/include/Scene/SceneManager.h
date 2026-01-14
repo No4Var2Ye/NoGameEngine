@@ -93,6 +93,7 @@ private:
     void RenderTransition(); // 渲染场景过渡效果
 
 public:
+    std::shared_ptr<CTexture> m_pTexture;
     CSceneManager();
     ~CSceneManager();
 
@@ -218,6 +219,8 @@ public:
     void CleanupUnusedScenes();   // 清理所有未使用的场景
     BOOL SaveCurrentSceneState(); // 保存当前场景状态
     BOOL LoadSavedSceneState();   // 加载保存的场景状态
+
+    void CreateDemoScene();
 };
 
 #endif // __SCENEMANAGER_H__

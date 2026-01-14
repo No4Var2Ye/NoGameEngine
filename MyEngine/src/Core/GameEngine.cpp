@@ -36,7 +36,7 @@ CGameEngine::CGameEngine()
     m_Renderer = std::make_unique<CRenderer>();
     m_InputManager = std::make_unique<CInputManager>();
     m_pMainCamera = std::make_unique<CCamera>();
-    // m_ResourceManager = std::make_unique<CResourceManager>();
+    m_ResourceManager = std::make_unique<CResourceManager>();
     m_SceneManager = std::make_unique<CSceneManager>();
     m_UIManager = std::make_unique<CUIManager>();
 }
@@ -93,10 +93,10 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 
     // 5. 初始化资源管理器
     // TODO: Shader 纹理 默认字体
-    // if (!m_ResourceManager->Initialize(config.resConfig))
-    // {
-    //     return FALSE;
-    // }
+    if (!m_ResourceManager->Initialize(config.resConfig))
+    {
+        return FALSE;
+    }
     if (!m_Renderer->InitializeFontSystem())
     {
         OutputDebugStringW(L"警告: 字体系统初始化失败，将继续运行\n");

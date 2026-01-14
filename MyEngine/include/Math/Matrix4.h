@@ -71,7 +71,7 @@ public:
 
     // 矩阵操作
     float Determinant() const;
-    Matrix4 Transposed() const;
+    Matrix4 Transposed() const; // 转置
     Matrix4 &Transpose();
     Matrix4 Inversed() const;
     Matrix4 &Inverse();

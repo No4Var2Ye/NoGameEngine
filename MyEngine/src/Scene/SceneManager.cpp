@@ -1,17 +1,238 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
-
 #include <algorithm>
-#include "Scene/SceneManager.h"
 #include "EngineConfig.h"
+#include "Scene/SceneManager.h"
+#include "Core/GameEngine.h"
 #include "Resources/Texture.h"
+#include "Resources/ResourceManager.h"
+#include "Resources/Model.h"
+#include "Resources/Entity.h"
 // ======================================================================
-
+std::shared_ptr<CTexture> g_pTexture = nullptr;
+BOOL g_bTextureLoaded = FALSE;
 CTexture g_texture;
 ResourceConfig config;
 FLOAT angle = 0.0f;
 
+void DrawGrid()
+{
+    glPushMatrix();
+
+    // ========================================================
+    // 1. 绘制参考地平面 (Grid)
+    // ========================================================
+
+    glDisable(GL_LIGHTING); // 调试阶段关闭光照，确保颜色准确
+
+    float size = 100.0f; // 地面大小
+    float step = 1.0f;   // 网格间距
+
+    glBegin(GL_LINES);
+    for (float i = -size; i <= size; i += step)
+    {
+        // 颜色：深灰色，中心轴可以用深白色区分
+        if (i == 0)
+            glColor3f(0.8f, 0.8f, 0.8f);
+        else
+            glColor3f(0.4f, 0.4f, 0.4f);
+
+        // 绘制横线 (平行于 Z 轴)
+        glVertex3f(i, 0.0f, -size);
+        glVertex3f(i, 0.0f, size);
+
+        // 绘制纵线 (平行于 X 轴)
+        glVertex3f(-size, 0.0f, i);
+        glVertex3f(size, 0.0f, i);
+    }
+    glEnd();
+
+    // 绘制世界坐标轴 (X-红, Y-绿, Z-蓝)
+    glLineWidth(2.0f);
+    glBegin(GL_LINES);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex3f(0, 0.1f, 0);
+    glVertex3f(5, 0.1f, 0); // X轴
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(0, 0.1f, 0);
+    glVertex3f(0, 5.1f, 0); // Y轴
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex3f(0, 0.1f, 0);
+    glVertex3f(0, 0.1f, 5); // Z轴
+    glEnd();
+    glLineWidth(1.0f);
+
+    glPopMatrix();
+}
+
+void DrawColorCube()
+{
+    glPushMatrix();
+    {
+        // 将立方体稍微抬高一点，放在坐标原点上方
+        glTranslatef(0.0f, 1.0f, 0.0f);
+
+        // 让立方体自己旋转，方便观察 3D 效果
+        // static float rotation = 0.0f;
+        // rotation += 0.5f;
+        // glRotatef(rotation, 0.0f, 1.0f, 0.0f);
+        glBegin(GL_QUADS);
+        {
+            // 前面 (Z+)
+            glColor3f(1.0f, 0.0f, 0.0f); // 红色
+            glVertex3f(-1.0f, -1.0f, 1.0f);
+            glVertex3f(1.0f, -1.0f, 1.0f);
+            glVertex3f(1.0f, 1.0f, 1.0f);
+            glVertex3f(-1.0f, 1.0f, 1.0f);
+
+            // 后面 (Z-)
+            glColor3f(0.0f, 1.0f, 0.0f); // 绿色
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, -1.0f, -1.0f);
+
+            // 顶面 (Y+)
+            glColor3f(0.0f, 0.0f, 1.0f); // 蓝色
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(-1.0f, 1.0f, 1.0f);
+            glVertex3f(1.0f, 1.0f, 1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
+
+            // 底面 (Y-)
+            glColor3f(1.0f, 1.0f, 0.0f); // 黄色
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(1.0f, -1.0f, -1.0f);
+            glVertex3f(1.0f, -1.0f, 1.0f);
+            glVertex3f(-1.0f, -1.0f, 1.0f);
+
+            // 右面 (X+)
+            glColor3f(1.0f, 0.0f, 1.0f); // 紫色
+            glVertex3f(1.0f, -1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, 1.0f);
+            glVertex3f(1.0f, -1.0f, 1.0f);
+
+            // 左面 (X-)
+            glColor3f(0.0f, 1.0f, 1.0f); // 青色
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(-1.0f, -1.0f, 1.0f);
+            glVertex3f(-1.0f, 1.0f, 1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+        }
+        glEnd();
+    }
+    glPopMatrix();
+}
+
+void DrawTexturedCube()
+{
+    glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
+
+    if (!g_bTextureLoaded)
+    {
+        g_pTexture = std::make_shared<CTexture>();
+        if (g_pTexture->LoadFromFile(L"test-texture.png"))
+        {
+            g_bTextureLoaded = TRUE;
+        }
+        else
+        {
+            return; // 纹理加载失败
+        }
+    }
+
+    glPushMatrix();
+    glTranslatef(4.0f, 1.0f, 0.0f);
+
+    glEnable(GL_TEXTURE_2D);
+    g_texture.Bind(GL_TEXTURE0);
+
+    // 设置纹理环境
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    // 绘制立方体（固定管线方式）
+    glBegin(GL_QUADS);
+    {
+
+        // 前面
+        glNormal3f(0.0f, 0.0f, 1.0f);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-1.0f, -1.0f, 1.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(1.0f, -1.0f, 1.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(1.0f, 1.0f, 1.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-1.0f, 1.0f, 1.0f);
+
+        // 后面
+        glNormal3f(0.0f, 0.0f, -1.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(-1.0f, -1.0f, -1.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(-1.0f, 1.0f, -1.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(1.0f, 1.0f, -1.0f);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(1.0f, -1.0f, -1.0f);
+
+        // 顶面
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-1.0f, 1.0f, -1.0f);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-1.0f, 1.0f, 1.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(1.0f, 1.0f, 1.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(1.0f, 1.0f, -1.0f);
+
+        // 底面
+        glNormal3f(0.0f, -1.0f, 0.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(-1.0f, -1.0f, -1.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(1.0f, -1.0f, -1.0f);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(1.0f, -1.0f, 1.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(-1.0f, -1.0f, 1.0f);
+
+        // 右面
+        glNormal3f(1.0f, 0.0f, 0.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(1.0f, -1.0f, -1.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(1.0f, 1.0f, -1.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(1.0f, 1.0f, 1.0f);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(1.0f, -1.0f, 1.0f);
+
+        // 左面
+        glNormal3f(-1.0f, 0.0f, 0.0f);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-1.0f, -1.0f, -1.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(-1.0f, -1.0f, 1.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(-1.0f, 1.0f, 1.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-1.0f, 1.0f, -1.0f);
+    }
+    glEnd();
+
+    g_texture.Unbind(GL_TEXTURE0);
+    glDisable(GL_TEXTURE_2D);
+    glPopMatrix();
+}
+
+// ======================================================================
+// =========================== 公有方法 ==================================
+// ======================================================================
 CSceneManager::CSceneManager()
     : m_CurrentScene(nullptr),                  //
       m_NextScene(nullptr),                     //
@@ -329,159 +550,6 @@ void CSceneManager::ReloadCurrentScene()
     m_CurrentScene->Reload();
 }
 
-void DrawGrid()
-{
-    // ========================================================
-    // 1. 绘制参考地平面 (Grid)
-    // ========================================================
-
-    glDisable(GL_LIGHTING); // 调试阶段关闭光照，确保颜色准确
-
-    float size = 100.0f; // 地面大小
-    float step = 1.0f;   // 网格间距
-
-    glBegin(GL_LINES);
-    for (float i = -size; i <= size; i += step)
-    {
-        // 颜色：深灰色，中心轴可以用深白色区分
-        if (i == 0)
-            glColor3f(0.8f, 0.8f, 0.8f);
-        else
-            glColor3f(0.4f, 0.4f, 0.4f);
-
-        // 绘制横线 (平行于 Z 轴)
-        glVertex3f(i, 0.0f, -size);
-        glVertex3f(i, 0.0f, size);
-
-        // 绘制纵线 (平行于 X 轴)
-        glVertex3f(-size, 0.0f, i);
-        glVertex3f(size, 0.0f, i);
-    }
-    glEnd();
-
-    // 可选：绘制世界坐标轴 (X-红, Y-绿, Z-蓝)
-    glLineWidth(2.0f);
-    glBegin(GL_LINES);
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(5, 0.1f, 0); // X轴
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(0, 5.1f, 0); // Y轴
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(0, 0.1f, 5); // Z轴
-    glEnd();
-    glLineWidth(1.0f);
-}
-
-void RenderTexturedCube()
-{
-    glDisable(GL_LIGHTING);       // 暂时关掉光照，排除光照干扰
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
-    
-    // g_texture.LoadFromFile(L"test-texture.png");
-    g_texture.CreateTestTexture();
-    // std::cout << "尝试加载纹理..." << std::endl;
-    // if (g_texture.LoadFromFile(L"test-texture.png"))
-    // {
-    //     std::cout << "纹理加载成功" << std::endl;
-    //     std::cout << "  尺寸: " << g_texture.GetWidth()
-    //               << "x" << g_texture.GetHeight() << std::endl;
-    //     std::cout << "  通道: " << g_texture.GetChannels() << std::endl;
-    //     std::cout << "  ID: " << g_texture.GetID() << std::endl;
-    // }
-    // else
-    // {
-    //     std::cout << "纹理加载失败" << std::endl;
-    //     std::cout << "请确保 test.png 文件存在" << std::endl;
-    // }
-
-    glPushMatrix();
-    glTranslatef(4.0f, 1.0f, 0.0f);
-
-    glEnable(GL_TEXTURE_2D);
-    g_texture.Bind(GL_TEXTURE0);
-
-    // 设置纹理环境
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-    // 绘制立方体（固定管线方式）
-    glBegin(GL_QUADS);
-
-    // 前面
-    glNormal3f(0.0f, 0.0f, 1.0f);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(-1.0f, -1.0f, 1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(1.0f, -1.0f, 1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(1.0f, 1.0f, 1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-
-    // 后面
-    glNormal3f(0.0f, 0.0f, -1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(-1.0f, -1.0f, -1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, -1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(1.0f, 1.0f, -1.0f);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(1.0f, -1.0f, -1.0f);
-
-    // 顶面
-    glNormal3f(0.0f, 1.0f, 0.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, -1.0f);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(1.0f, 1.0f, 1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(1.0f, 1.0f, -1.0f);
-
-    // 底面
-    glNormal3f(0.0f, -1.0f, 0.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(-1.0f, -1.0f, -1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(1.0f, -1.0f, -1.0f);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(1.0f, -1.0f, 1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(-1.0f, -1.0f, 1.0f);
-
-    // 右面
-    glNormal3f(1.0f, 0.0f, 0.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(1.0f, -1.0f, -1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(1.0f, 1.0f, -1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(1.0f, 1.0f, 1.0f);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(1.0f, -1.0f, 1.0f);
-
-    // 左面
-    glNormal3f(-1.0f, 0.0f, 0.0f);
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(-1.0f, -1.0f, -1.0f);
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(-1.0f, -1.0f, 1.0f);
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, -1.0f);
-
-    glEnd();
-
-    g_texture.Unbind(GL_TEXTURE0);
-    glDisable(GL_TEXTURE_2D);
-    glPopMatrix();
-}
-
 void CSceneManager::Update(FLOAT deltaTime)
 {
     if (!m_Initialized || m_Paused || !m_UpdateEnabled)
@@ -509,69 +577,10 @@ void CSceneManager::Render()
 
     glMatrixMode(GL_MODELVIEW);
 
-    glPushMatrix();
-    DrawGrid(); // 之前的网格逻辑
-    glPopMatrix();
-
-    glPushMatrix(); // 保存当前矩阵状态
-    {
-
-        // 将立方体稍微抬高一点，放在坐标原点上方
-        glTranslatef(0.0f, 1.0f, 0.0f);
-
-        // 让立方体自己旋转，方便观察 3D 效果
-        // static float rotation = 0.0f;
-        // rotation += 0.5f;
-        // glRotatef(rotation, 0.0f, 1.0f, 0.0f);
-        glBegin(GL_QUADS);
-        {
-            // 前面 (Z+)
-            glColor3f(1.0f, 0.0f, 0.0f); // 红色
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-
-            // 后面 (Z-)
-            glColor3f(0.0f, 1.0f, 0.0f); // 绿色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, -1.0f);
-
-            // 顶面 (Y+)
-            glColor3f(0.0f, 0.0f, 1.0f); // 蓝色
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-
-            // 底面 (Y-)
-            glColor3f(1.0f, 1.0f, 0.0f); // 黄色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-
-            // 右面 (X+)
-            glColor3f(1.0f, 0.0f, 1.0f); // 紫色
-            glVertex3f(1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-
-            // 左面 (X-)
-            glColor3f(0.0f, 1.0f, 1.0f); // 青色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-        }
-        glEnd();
-    }
-    glPopMatrix(); // 恢复矩阵
-
-    RenderTexturedCube();
+    DrawGrid();
+    // DrawColorCube();
+    // DrawTexturedCube();
+    CreateDemoScene();
 
     // SwapBuffers(wglGetCurrentDC());
 
@@ -737,4 +746,43 @@ BOOL CSceneManager::LoadSavedSceneState()
     // 这是一个占位函数，具体实现取决于场景的设计
     // 子类可以重写此函数来实现具体的状态加载逻辑
     return TRUE;
+}
+
+void CSceneManager::CreateDemoScene()
+{
+    // 获取资源管理器（假设你可以通过引擎单例访问）
+    auto resMgr = CGameEngine::GetInstance().GetResourceManager();
+
+    // 1. 获取模型
+    // auto pModel = resMgr->GetModel(L"teaport/teaport.obj");
+    auto pModel = resMgr->GetModel(L"model.3ds");
+
+    // 2. 创建实体并绑定模型
+    pModel->SetPosition(Vector3(5, 0, 0));
+    pModel->SetScale(Vector3(0.1f, 0.1f, 0.1f));
+
+    if (pModel)
+    {
+        // 保护当前矩阵状态
+        glPushMatrix();
+
+        // --- 应用变换 ---
+        // 获取模型内部合成的 Matrix4（包含你设置的 Position 等）
+        // 确保你的 CModel 有一个 GetTransform() 返回 m_transform
+        Matrix4 matWorld = pModel->GetWorldMatrix();
+
+        // 直接将你的矩阵应用到固定管线
+        // 因为你的 Matrix4 内部是 union 里的 m[16]，且是列优先，直接传即可
+        glMultMatrixf(matWorld.m);
+
+        // --- 执行绘制 ---
+        pModel->Draw();
+
+        // 恢复矩阵状态
+        glPopMatrix();
+    }
+    // auto pEntity = std::make_shared<CEntity>(pModel);
+    // pEntity->SetPosition(Vector3(-10, 0, 0));
+
+    // m_entities.push_back(pEntity);
 }

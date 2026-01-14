@@ -3,15 +3,13 @@
 #ifndef __GAMEENGINE_H__
 #define __GAMEENGINE_H__
 // ======================================================================
-
 #include <windows.h>
 #include <memory> // 引入智能指针, 用于自动管理动态分配的对象内存.
-
 #include "EngineConfig.h"
 // ======================================================================
 
 // ======================================================================
-// 前向声明 - 告诉编译器这些是什么
+// 前向声明
 class CWindow;
 class CRenderer;
 class CInputManager;
@@ -29,9 +27,8 @@ class CGameEngine
 private:
     static CGameEngine *s_Instance; // 静态私有成员，保存唯一实例
 
-    CGameEngine();                             // 私有构造函数，防止外部创建实例
-    CGameEngine(const CGameEngine &) = delete; // 防止拷贝构造和赋值
-    CGameEngine &operator=(const CGameEngine &) = delete;
+    CGameEngine(); // 私有构造函数，防止外部创建实例
+
     ~CGameEngine();
 
     // ======================================================================
@@ -51,7 +48,7 @@ private:
     // 成员变量
     EngineState m_State = EngineState::FadeIn;
     FLOAT m_SplashTimer = 0.0f;        // 动画计时器
-    const FLOAT SplashDuration = 0.0f; // 动画持续时间（秒）
+    const FLOAT SplashDuration = 1.0f; // 动画持续时间（秒）
 
     // ======================================================================
     // 引擎子系统
@@ -63,7 +60,7 @@ private:
     // 逻辑系统
     std::unique_ptr<CInputManager> m_InputManager;
     std::unique_ptr<CCamera> m_pMainCamera;
-    // std::unique_ptr<CResourceManager> m_ResourceManager;
+    std::unique_ptr<CResourceManager> m_ResourceManager;
     std::unique_ptr<CSceneManager> m_SceneManager;
 
     // UI系统
@@ -92,6 +89,9 @@ private:
 public:
     static CGameEngine &GetInstance(); // 获取单例实例
 
+    CGameEngine(const CGameEngine &) = delete; // 防止拷贝构造和赋值
+    CGameEngine &operator=(const CGameEngine &) = delete;
+
     BOOL Initialize(HINSTANCE hInstance, const EngineConfig &config); // 初始化游戏引擎
     INT Run();                                                        // 运行主循环
     void Shutdown();                                                  // 关闭引擎
@@ -102,7 +102,7 @@ public:
     CRenderer *GetRenderer() const { return m_Renderer.get(); }
     CInputManager *GetInputManager() const { return m_InputManager.get(); }
     CCamera *GetMainCamera() const { return m_pMainCamera.get(); }
-    // CResourceManager *GetResourceManager() const { return m_ResourceManager.get(); }
+    CResourceManager *GetResourceManager() const { return m_ResourceManager.get(); }
     CUIManager *GetUIManager() const { return m_UIManager.get(); }
 
     // ======================================================================

@@ -20,37 +20,37 @@ class CResourceManager
 public:
     CResourceManager() = default;
     ~CResourceManager() = default;
-    CResourceManager(const CResourceManager &) = delete;
-    CResourceManager &operator=(const CResourceManager &) = delete;
-    // static CResourceManager &GetInstance()
-    // {
-    //     static CResourceManager instance;
-    //     return instance;
-    // }
 
+    // 禁用拷贝
+    CResourceManager(const CResourceManager&) = delete;
+    CResourceManager& operator=(const CResourceManager&) = delete;
+    
     BOOL Initialize(const ResourceConfig &config);
     void Shutdown();
 
     // ======================================================================
     // 资源加载接口
-    std::shared_ptr<CTexture> GetTexture(const std::string &fileName);
-    std::shared_ptr<CModel> GetModel(const std::string &fileName);
-    // std::shared_ptr<CShader> GetShader(const std::string &name, const std::string &vPath, const std::string &fPath);
+    std::shared_ptr<CTexture> GetTexture(const std::wstring &fileName);
+    std::shared_ptr<CModel> GetModel(const std::wstring &fileName);
+    // std::shared_ptr<CShader> GetShader(const std::wstring &name, const std::wstring &vPath, const std::wstring &fPath);
 
+    // 创建 兜底资源
+    BOOL CreateDefaultResources(); 
+    std::shared_ptr<CModel> CreateDefaultModel();
     // ======================================================================
     // 清理资源
     void ReleaseUnusedResources();
 
 private:
-
-
     ResourceConfig m_Config;
 
     // ======================================================================
     // 资源容器
-    std::unordered_map<std::string, std::shared_ptr<CTexture>> m_Textures;
-    std::unordered_map<std::string, std::shared_ptr<CModel>> m_Models;
-    std::unordered_map<std::string, std::shared_ptr<CShader>> m_Shaders;
+    std::unordered_map<std::wstring, std::weak_ptr<CTexture>> m_Textures;
+    std::unordered_map<std::wstring, std::weak_ptr<CModel>> m_Models;
+    std::unordered_map<std::wstring, std::weak_ptr<CShader>> m_Shaders;
+
+    std::shared_ptr<CTexture> m_DefaultTexture;     // 兜底资源：当加载失败时返回，防止引擎崩溃
 };
 
 #endif // __RESOURCE_MANAGER_H__
