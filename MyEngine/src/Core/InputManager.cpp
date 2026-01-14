@@ -76,12 +76,12 @@ BOOL CInputManager::Initialize(HWND hWnd, HINSTANCE hInstance)
     // 验证是否设置成功
     if (GetWindowLongPtr(m_hWnd, GWLP_USERDATA) == 0)
     {
-        OutputDebugStringA("Warning: SetWindowLongPtr 失败！\n");
+        LogWarning(L"SetWindowLongPtr 失败！\n");
     }
-
+    
     if (!RegisterRawInputDevices(rid, 2, sizeof(rid[0])))
     {
-        OutputDebugStringA("Warning: 注册原始输入设备失败\n");
+        LogWarning(L"注册原始输入设备失败\n");
         return FALSE;
     }
 
@@ -170,7 +170,7 @@ LRESULT CALLBACK CInputManager::InputWindowProc(HWND hWnd, UINT msg, WPARAM wPar
     }
     else
     {
-        OutputDebugStringA("Warning: InputManager instance not found in UserData\n");
+        LogWarning(L"InputManager instance not found in UserData\n");
     }
 
     return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -186,7 +186,7 @@ void CInputManager::UpdateKeyboard()
 
     if (FAILED(hr))
     {
-        std::cerr << "获取键盘状态失败！错误码: 0x" << std::hex << hr << std::dec << std::endl;
+        LogWarning(L"获取键盘状态失败！错误码: 0x%08X", hr);
         return;
     }
 

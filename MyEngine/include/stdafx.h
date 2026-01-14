@@ -1,34 +1,32 @@
-﻿/**
- * @file stdafx.h
- */
-
+﻿
 // ======================================================================
 #ifndef __STDAFX_H__
 #define __STDAFX_H__
-
+// ======================================================================
+// 系统宏定义
 #define NOMINMAX // 禁用 min 和 max 宏
-
-#define MYDEDUG
 // ======================================================================
 
-// 常用的头文件
-#include <windows.h> // Header File For Windows
+// ======================================================================
+// Windows 头文件
+#include <windows.h>
+
+// ======================================================================
+// C++标准库 头文件
 #include <iostream>
-#include <stdio.h> // Header File For Standard Input/Output
-#include <cstdlib>
 #include <string>
+#include <vector>
+#include <memory>
 #include <cmath>
 #include <ctime>
-#include <math.h>
-#include <time.h>
-#include <vector>
+#include <cstdio>
+#include <cstdlib>
 
-// GL前缀的头文件
-#include "GL/gl.h"  // Header File For The OpenGL32 Library
-#include "GL/glu.h" // Header File For The GLu32 Library
-#include "GL/glaux.h"
-#include "GL/glext.h"
+// ======================================================================
+// 项目宏定义
+#define MYDEBUG
 
+// ======================================================================
 // 数学库
 #include "Math/MathUtils.h"
 #include "Math/Vector2.h"
@@ -37,7 +35,25 @@
 #include "Math/Matrix4.h"
 #include "Math/Quaternion.h"
 
-// 手动包含OpenGL链接库文件
+// ======================================================================
+// OpenGL 头文件
+#ifdef _WIN32
+#include "GL/gl.h"
+#include "GL/glu.h"
+#include "GL/glaux.h"
+#include "GL/glext.h"
+#else
+// Linux/macOS 的包含方式
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
+
+// ======================================================================
+// 工具类
+#include "Utils/LogUtils.h"
+
+// ======================================================================
+// 库链接指令
 // #pragma comment(lib, "opengl32.lib")
 // #pragma comment(lib, "glu32.lib")
 // #pragma comment(lib, "glaux.lib")

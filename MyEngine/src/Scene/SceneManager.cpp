@@ -148,7 +148,7 @@ void DrawTexturedCube()
     glTranslatef(4.0f, 1.0f, 0.0f);
 
     glEnable(GL_TEXTURE_2D);
-    g_texture.Bind(GL_TEXTURE0);
+    g_pTexture->Bind(GL_TEXTURE0);
 
     // 设置纹理环境
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -225,7 +225,7 @@ void DrawTexturedCube()
     }
     glEnd();
 
-    g_texture.Unbind(GL_TEXTURE0);
+    g_pTexture->Unbind(GL_TEXTURE0);
     glDisable(GL_TEXTURE_2D);
     glPopMatrix();
 }
@@ -578,9 +578,9 @@ void CSceneManager::Render()
     glMatrixMode(GL_MODELVIEW);
 
     DrawGrid();
-    // DrawColorCube();
-    // DrawTexturedCube();
-    CreateDemoScene();
+    DrawColorCube();
+    DrawTexturedCube();
+    // CreateDemoScene();
 
     // SwapBuffers(wglGetCurrentDC());
 

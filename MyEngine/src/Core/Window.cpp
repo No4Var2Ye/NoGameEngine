@@ -193,7 +193,7 @@ void CWindow::Show()
         DisableIME();
         ForceEnglishKeyboardLayout();
 
-        std::cout << "窗口已显示并设置焦点" << std::endl;
+        LogInfo(L"窗口已显示并设置焦点\n");
     }
 }
 
@@ -259,7 +259,7 @@ void CWindow::SetPosition(INT x, INT y, INT width, INT height)
 
 BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
 {
-    // OutputDebugStringA("使用无边框窗口模拟全屏\n");
+    LogInfo(L"使用无边框窗口模拟全屏\n");
 
     // char debugBuf[256];
     // sprintf_s(debugBuf, "[Debug] Enter SetFS: Target=%s, CurrentVar=%s, WindowPtr=%p\n",
@@ -286,7 +286,7 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
 
     if (enable)
     {
-        // OutputDebugStringA("切换到无边框全屏模式...\n");
+        LogInfo(L"切换到无边框全屏模式...\n");
 
         // 保存窗口位置和样式
         if (!m_Fullscreen)
@@ -312,11 +312,11 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
         m_Fullscreen = TRUE;
-        // OutputDebugStringA("无边框全屏设置完成\n");
+        LogInfo(L"无边框全屏设置完成\n");
     }
     else
     {
-        // OutputDebugStringA("切换到窗口模式...\n");
+        LogInfo(L"切换到窗口模式...\n");
 
         DWORD standardStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
         DWORD standardExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
@@ -342,7 +342,7 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
         m_Fullscreen = FALSE;
-        // OutputDebugStringA("窗口模式恢复完成\n");
+        LogInfo(L"窗口模式恢复完成\n");
     }
     // 调试 3: 打印退出前的最终状态
     // sprintf_s(debugBuf, "[Debug] Exit SetFS: Var now is %s\n", m_Fullscreen ? "TRUE" : "FALSE");
@@ -353,7 +353,7 @@ BOOL CWindow::SetBorderlessFullscreen(BOOL enable)
     //     m_ResizeCallback(GetClientWidth(), GetClientHeight());
     // }
 
-    // 【替换为】手动触发一次异步事件
+    // 手动触发一次异步事件
     m_ResizeEvent.width = GetClientWidth();
     m_ResizeEvent.height = GetClientHeight();
     m_ResizeEvent.pending = TRUE;
@@ -427,11 +427,12 @@ BOOL CWindow::ProcessMessages()
 
 void CWindow::EnableIME()
 {
-    if (!m_hWnd) return;
-    
+    if (!m_hWnd)
+        return;
+
     // 方法1: 恢复IME关联
     ImmAssociateContextEx(m_hWnd, nullptr, 0);
-    
+
     // 方法2: 恢复IME输入状态
     m_hImc = ImmGetContext(m_hWnd);
     if (m_hImc)
@@ -441,8 +442,8 @@ void CWindow::EnableIME()
         ImmReleaseContext(m_hWnd, m_hImc);
         m_hImc = nullptr;
     }
-    
-    // 注意：我们不强制切换回原来的键盘布局
+
+    // 注意：不强制切换回原来的键盘布局
     // 让用户自行选择输入法
 }
 
@@ -515,7 +516,6 @@ void CWindow::OnSetFocus()
     ForceEnglishKeyboardLayout();
 }
 
-// 新增：处理失去焦点
 void CWindow::OnKillFocus()
 {
     // 窗口失去焦点时，可以恢复输入法，以便其他程序使用
@@ -719,9 +719,15 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
         if (wParam == VK_ESCAPE)
         {
             // ESC键 - 退出程序
-            // OutputDebugStringA("ESC 键被按下，退出程序\n");
-            PostMessage(hWnd, WM_CLOSE, 0, 0);
-            Sleep(1000);
+            LogInfo(L"ESC 键被按下，退出程序\n");
+            // PostMessage(hWnd, WM_CLOSE, 0, 0);
+            if (CGameEngine::GetInstance().GetState() == CGameEngine::EngineState::Running)
+            {
+                CGameEngine::GetInstance().SetState(CGameEngine::EngineState::FadeOut);
+                // 注意：不要在这里 PostMessage(WM_CLOSE)，我们要拦截它
+            }
+            return 0; // 拦截消息，不让窗口立即关闭
+                      // Sleep(1000);
         }
         else if (wParam == VK_F11)
         // else if (wParam == VK_F11 || (wParam == VK_RETURN && (HIWORD(lParam) & KF_ALTDOWN)))

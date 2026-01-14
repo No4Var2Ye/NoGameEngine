@@ -156,7 +156,7 @@ void CWindow::Show()
         // 将输入焦点设到窗口
         SetFocus(m_hWnd);
 
-        std::cout << "窗口已显示并设置焦点" << std::endl;
+        LogInfo(L"窗口已显示并设置焦点\n");
     }
 }
 

@@ -8,8 +8,7 @@
 #include <string>
 #include <functional>
 // ======================================================================
-
-
+class CTexture;
 // ======================================================================
 /**
  * @brief 场景基类
@@ -93,7 +92,7 @@ private:
     void RenderTransition(); // 渲染场景过渡效果
 
 public:
-    std::shared_ptr<CTexture> m_pTexture;
+    std::shared_ptr<CTexture> m_texture;
     CSceneManager();
     ~CSceneManager();
 

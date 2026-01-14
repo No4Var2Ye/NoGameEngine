@@ -164,8 +164,7 @@ std::shared_ptr<CTexture> CResourceManager::GetTexture(const std::wstring &fileN
     }
 
     // 3. 文件加载失败
-    std::wstring warnMsg = L"[Warn]: 加载纹理失败: " + fileName + L". 使用默认样式.\n";
-    OutputDebugStringW(warnMsg.c_str());
+    LogWarning(L"加载纹理失败: %ls. 使用默认样式。", fileName.c_str());
 
     return m_DefaultTexture;
 }
@@ -201,11 +200,11 @@ std::shared_ptr<CModel> CResourceManager::GetModel(const std::wstring &fileName)
 
     // 3. 如果模型加载失败
     // 注意：模型通常没有“兜底模型”，建议返回 nullptr 或一个简单的立方体模型
-    OutputDebugStringW((L"[Error]: 无法加载模型文件: " + fullPath + L"\n").c_str());
+    LogError((L"[Error]: 无法加载模型文件: " + fullPath + L"\n").c_str());
 
     if (!newModel->LoadFromFile(fullPath, this))
     {
-        OutputDebugStringW((L"[Error]: 无法加载模型文件: " + fullPath + L"\n").c_str());
+        LogError((L"无法加载模型文件: " + fullPath + L"\n").c_str());
 
         // 返回一个简单的立方体模型作为默认
         return CreateDefaultModel();

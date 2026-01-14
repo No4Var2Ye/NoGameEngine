@@ -691,7 +691,7 @@ void CCamera::ApplyViewMatrix() const
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        std::cout << "[错误] glLoadMatrixf失败: " << error << std::endl;
+        LogError(L"glLoadMatrixf失败: 0x%X", error);
     }
 }
 
@@ -709,7 +709,7 @@ void CCamera::ApplyProjectionMatrix() const
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        std::cout << "[错误] glLoadMatrixf失败: " << error << std::endl;
+        LogError(L"glLoadMatrixf失败: 0x%X", error);
     }
 }
 

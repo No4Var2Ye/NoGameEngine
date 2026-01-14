@@ -210,7 +210,7 @@ public:
 
     FontManager &GetFontManager() { return m_FontManager; }
 
-    std::string GetGLInfo() const; // 获取OpenGL信息
+    std::wstring GetGLInfo() const; // 获取OpenGL信息
     BOOL CreateSimpleFont();
     void RenderSimpleText(const std::string &text, INT x, INT y,
                           FLOAT r = 1.0f, FLOAT g = 1.0f, FLOAT b = 1.0f);

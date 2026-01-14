@@ -282,4 +282,4 @@ inline Vector2 operator*(float scalar, const Vector2 &vec)
     return vec * scalar;
 }
 
-#endif // VECTOR2_H
+#endif // __VECTOR2_H__

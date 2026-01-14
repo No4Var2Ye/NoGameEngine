@@ -333,7 +333,7 @@ void CTexture::Bind(GLenum textureUnit) const
 {
     if (!IsValid())
     {
-        std::cerr << "尝试绑定无效纹理" << std::endl;
+        LogError(L"尝试绑定无效纹理");
         return;
     }
 
@@ -344,7 +344,7 @@ void CTexture::Bind(GLenum textureUnit) const
     glBindTexture(GL_TEXTURE_2D, m_TextureID);
 
     // 强制设置对齐为 1，解决非 4 倍数宽度图片花屏问题
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    // glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     // 固定管线需要启用纹理
     glEnable(GL_TEXTURE_2D);
@@ -459,13 +459,13 @@ BOOL CTexture::UploadToGPU(const unsigned char *data,
 {
     if (m_TextureID == 0)
     {
-        std::cerr << "纹理ID无效" << std::endl;
+        LogError(L"纹理ID无效");
         return FALSE;
     }
 
     if (m_Width <= 0 || m_Height <= 0)
     {
-        std::cerr << "纹理尺寸无效: " << m_Width << "x" << m_Height << std::endl;
+        LogError(L"纹理尺寸无效: %dx%d", m_Width, m_Height);
         return FALSE;
     }
 
@@ -480,7 +480,7 @@ BOOL CTexture::UploadToGPU(const unsigned char *data,
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        std::cerr << "glTexImage2D错误: " << error << std::endl;
+        LogError(L"glTexImage2D错误: %ls", error);
         glBindTexture(GL_TEXTURE_2D, 0);
         return FALSE;
     }
@@ -491,7 +491,7 @@ BOOL CTexture::UploadToGPU(const unsigned char *data,
     error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        std::cerr << "glGenerateMipmap错误: " << error << std::endl;
+        LogError(L"glGenerateMipmap错误: %ls", error);
         glBindTexture(GL_TEXTURE_2D, 0);
         return FALSE;
     }

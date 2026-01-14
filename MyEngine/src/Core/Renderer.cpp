@@ -1,13 +1,13 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
-
 #include <sstream>
 #include <cassert>
 #include <iomanip>
 #include "Math/MathUtils.h"
 #include "Core/Renderer.h"
 #include "Graphics/FontManager.h"
+#include "Utils/StringUtils.h"
 // ======================================================================
 
 // ======================================================================
@@ -127,9 +127,8 @@ BOOL CRenderer::Initialize(HWND hWnd)
     SetPerspectiveProjection(45.0f, m_AspectRatio, 0.1f, 1000.0f);
 
     // 输出OpenGL信息
-    std::string info = GetGLInfo();
-    OutputDebugStringA(info.c_str());
-
+    LogInfo(L"%ls", GetGLInfo().c_str());
+    
     // 初始化高精度计时器
     static LARGE_INTEGER s_Frequency;
     QueryPerformanceFrequency(&s_Frequency);
@@ -143,7 +142,7 @@ BOOL CRenderer::Initialize(HWND hWnd)
 
     if (!CreateSimpleFont())
     {
-        OutputDebugStringA("警告: 简单字体创建失败\n");
+        LogWarning(L"警告: 简单字体创建失败\n");
     }
 
     return TRUE;
@@ -151,15 +150,15 @@ BOOL CRenderer::Initialize(HWND hWnd)
 
 BOOL CRenderer::InitializeFontSystem()
 {
-    OutputDebugStringA("正在初始化字体系统...\n");
+    LogInfo(L"正在初始化字体系统...\n");
 
     if (!m_FontManager.LoadFont("default", "Arial", 16))
     {
-        OutputDebugStringA("字体系统初始化失败\n");
+        LogInfo(L"字体系统初始化失败\n");
         return false;
     }
 
-    OutputDebugStringA("字体系统初始化成功\n");
+    LogInfo(L"字体系统初始化成功\n");
 
     return TRUE;
 }
@@ -249,7 +248,7 @@ void CRenderer::Reset(INT width, INT height)
 
     if (!m_GLInitialized)
     {
-        OutputDebugStringA("!!! [Error] Reset 失败：m_GLInitialized 是 FALSE\n");
+        LogError(L"Reset 失败: m_GLInitialized 是 FALSE\n");
         return;
     }
 
@@ -603,9 +602,7 @@ void CRenderer::RenderText2D(const std::string &text, INT x, INT y,
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        char buffer[256];
-        sprintf_s(buffer, "OpenGL错误在文字渲染后: 0x%X\n", error);
-        OutputDebugStringA(buffer);
+        LogError(L"OpenGL错误在文字渲染后: 0x%X", error);
     }
 
     // 恢复矩阵
@@ -628,7 +625,7 @@ BOOL CRenderer::CreateSimpleFont()
 
     if (!hDC)
     {
-        OutputDebugStringA("无法获取DC\n");
+        LogError(L"无法获取DC\n");
         return false;
     }
 
@@ -702,19 +699,21 @@ void CRenderer::RenderSimpleText(const std::string &text, INT x, INT y,
     glPopAttrib();
 }
 
-std::string CRenderer::GetGLInfo() const
+std::wstring CRenderer::GetGLInfo() const
 {
-    std::ostringstream oss;
-    oss << "|====================== OpenGL 信息 ======================\n";
-    oss << "|OpenGL版本: " << GetGLVersion() << "\n";
-    oss << "|渲染器: " << GetGLRenderer() << "\n";
-    oss << "|供应商: " << GetGLVendor() << "\n";
-    oss << "|窗口尺寸: " << m_Width << "x" << m_Height << "\n";
-    oss << "|宽高比: " << std::fixed << std::setprecision(2) << m_AspectRatio << "\n";
-    oss << "|垂直同步: " << (m_VSyncEnabled ? "启用" : "禁用") << "\n";
-    oss << "|=========================================================\n";
+    std::wostringstream wss;
+    wss << L"\n";
+    wss << L"|====================== OpenGL 信息 ======================\n";
+    // 假设 GetGLVersion() 返回 std::string，需转换
+    wss << L"|OpenGL版本: " << CStringUtils::StringToWString(GetGLVersion()) << L"\n";
+    wss << L"|渲染器: " << CStringUtils::StringToWString(GetGLRenderer()) << L"\n";
+    wss << L"|供应商: " << CStringUtils::StringToWString(GetGLVendor()) << L"\n";
+    wss << L"|窗口尺寸: " << m_Width << L"x" << m_Height << L"\n";
+    wss << L"|宽高比: " << std::fixed << std::setprecision(2) << m_AspectRatio << L"\n";
+    wss << L"|垂直同步: " << (m_VSyncEnabled ? L"启用" : L"禁用") << L"\n";
+    wss << L"|=========================================================\n";
 
-    return oss.str();
+    return wss.str();
 }
 
 // ======================================================================
@@ -892,10 +891,7 @@ BOOL CRenderer::CheckGLError(const char *function)
             break;
         }
 
-        char buffer[256];
-        sprintf_s(buffer, sizeof(buffer),
-                  "OpenGL错误: %s\n函数: %s\n", errorMsg.c_str(), function);
-        OutputDebugStringA(buffer);
+        LogError(L"OpenGL错误: %s\n函数: %s\n", errorMsg.c_str(), function);
 
         return TRUE;
     }

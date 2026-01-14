@@ -33,19 +33,18 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
 
     if (!scene)
     {
-        std::string error = "Assimp Error: " + std::string(importer.GetErrorString());
-        OutputDebugStringA(error.c_str());
+        LogError(L"Assimp Error: %hs", importer.GetErrorString());
         return FALSE;
     }
 
     if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
     {
-        OutputDebugStringA("[Model] Warning: Scene is incomplete\n");
+        LogWarning(L"[Model] 场景不完整，模型可能显示异常: %ls", filePath.c_str());
     }
 
     if (!scene->mRootNode)
     {
-        OutputDebugStringA("[Model] Error: No root node\n");
+        LogError(L"[Model] 缺少根节点，无法解析模型: %ls", filePath.c_str());
         return FALSE;
     }
 
@@ -248,8 +247,10 @@ void CModel::SetScale(const Vector3 &scale)
     m_isDirty = true;
 }
 
-const Matrix4& CModel::GetWorldMatrix() const {
-    if (m_isDirty) {
+const Matrix4 &CModel::GetWorldMatrix() const
+{
+    if (m_isDirty)
+    {
         // 矩阵合成顺序：缩放 -> 旋转 -> 平移 (TRS)
         // 注意：矩阵乘法顺序取决于你的 Matrix4 实现，通常是 T * R * S
         m_transform = Matrix4::Translation(m_position) * m_rotation.ToMatrix() * Matrix4::Scale(m_scale);

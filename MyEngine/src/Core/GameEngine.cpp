@@ -1,7 +1,6 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
-
 #include "Core/GameEngine.h"
 #include "Utils/DebugUtils.h"
 #include "Core/Window.h"
@@ -46,7 +45,7 @@ CGameEngine::CGameEngine()
 // ======================================================================
 BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 {
-    std::wcout << L"========= 引擎初始化开始 =========" << std::endl;
+    LogInfo(L"=--=--=--=--=--=--=--= 引擎初始化开始 =--=--=--=--=--=--=--=\n");
 
     // 判断是是否已经初始化
     if (m_Initialized)
@@ -99,7 +98,7 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     }
     if (!m_Renderer->InitializeFontSystem())
     {
-        OutputDebugStringW(L"警告: 字体系统初始化失败，将继续运行\n");
+        LogWarning(L"字体系统初始化失败，将继续运行\n");
     }
 
     // 6. 初始化场景管理器
@@ -160,7 +159,12 @@ INT CGameEngine::Run()
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
             if (msg.message == WM_QUIT)
-                m_Running = FALSE;
+                if (m_State == EngineState::Running)
+                {
+                    m_State = EngineState::FadeOut;
+                    m_SplashTimer = 0.0f; // 重置计时器
+                    continue;             // 不设置 m_Running = FALSE，继续跑循环
+                }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
@@ -323,14 +327,23 @@ void CGameEngine::Shutdown()
 
     m_Initialized = FALSE;
 
-#ifdef MYDEBUG
-    OutputDebugStringA("游戏引擎已完全关闭\n");
-#endif
+    LogInfo(L"=--=--=--=--=--=--=--= 引擎已完全关闭 =--=--=--=--=--=--=--=\n");
+    Sleep(1000);
 }
 
 void CGameEngine::ProcessInput(FLOAT deltaTime)
 {
     // 1. 全局快捷键处理
+    if (m_InputManager->IsKeyPressed(VK_ESCAPE))
+    {
+        // 如果当前是运行状态，开启淡出
+        if (m_State == EngineState::Running)
+        {
+            m_State = EngineState::FadeOut;
+            m_SplashTimer = 0.0f;
+        }
+    }
+
     if (m_InputManager->IsKeyPressed(VK_F1))
     {
         m_ShowDebugInfo = !m_ShowDebugInfo;
@@ -479,7 +492,6 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
 void CGameEngine::ProcessUIInput(FLOAT deltaTime)
 {
-
 }
 
 void CGameEngine::DisplayDebugInfo()
@@ -627,15 +639,26 @@ void CGameEngine::TestFontRendering()
     // OutputDebugStringA("字体渲染测试完成\n");
 }
 
+void CGameEngine::SetState(EngineState newState)
+{
+    if (newState == EngineState::FadeOut && m_State == EngineState::Running)
+    {
+        m_SplashTimer = 0.0f;
+    }
+    m_State = newState;
+}
+
 void CGameEngine::RenderSplashScreen(FLOAT deltaTime, BOOL isFadeOut)
 {
+    FLOAT currentDuration = isFadeOut ? FadeOutDuration : FadeInDuration;
+
     INT lineHeight = 22; // 每一行的高度差
     INT row = 0;         // 使用行倍数，方便排列
 
     m_SplashTimer += deltaTime;
 
     // 计算 Alpha 值 (0.0 到 1.0)
-    FLOAT alpha = m_SplashTimer / SplashDuration;
+    FLOAT alpha = m_SplashTimer / currentDuration;
     if (alpha > 1.0f)
         alpha = 1.0f;
 
@@ -659,7 +682,7 @@ void CGameEngine::RenderSplashScreen(FLOAT deltaTime, BOOL isFadeOut)
     m_Renderer->RenderText2D("3D程序设计", centerX - 20, centerY + (lineHeight * row++), textColor, 1.0f);
 
     // 状态切换逻辑
-    if (m_SplashTimer >= SplashDuration)
+    if (m_SplashTimer >= currentDuration)
     {
         m_SplashTimer = 0.0f;
         if (!isFadeOut)

@@ -31,9 +31,9 @@
 // ======================================================================
 #include "stdafx.h"
 
-#ifdef MYDEDUG
-#undef MYDEDUG
-#endif
+// #ifdef MYDEBUG
+// #undef MYDEBUG
+// #endif
 
 #include "EngineConfig.h"
 #include "Core/GameEngine.h"
@@ -54,7 +54,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 {
     std::wcout.imbue(std::locale("chs"));
 
-#ifdef MYDEDUG
+#ifdef MYDEBUG
     // 分配控制台
     AllocConsole();
 
@@ -63,7 +63,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     freopen_s(&fp, "CONOUT$", "w", stdout);
     freopen_s(&fp, "CONOUT$", "w", stderr);
     freopen_s(&fp, "CONIN$", "r", stdin);
-#endif // MYDEDUG
+#endif // MYDEBUG
 
     // 初始化游戏引擎
     CGameEngine &engine = CGameEngine::GetInstance();
@@ -88,10 +88,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     // 清理资源
     engine.Shutdown();
 
-#ifdef MYDEDUG
+#ifdef MYDEBUG
     // 释放控制台
     FreeConsole();
-#endif // MYDEDUG
+#endif // MYDEBUG
 
     return exitCode;
 } // wWinMain
