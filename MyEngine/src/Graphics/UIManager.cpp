@@ -5,7 +5,7 @@
 #include <cstdarg>
 #include <cassert>
 #include "Core/Renderer.h"
-#include "Graphics/UIManager.h"
+#include "Graphics/UI/UIManager.h"
 #include "Math/MathUtils.h"
 // ======================================================================
 
@@ -46,6 +46,8 @@ BOOL CUIManager::Initialize(HWND hWnd, const std::wstring &fontName, int fontSiz
         return FALSE;
     }
 
+    LogInfo(L"------------------- UI系统初始化成功 --------------------------\n");
+
     return (m_hFont != nullptr);
 }
 
@@ -60,6 +62,7 @@ void CUIManager::Shutdown()
     m_DebugTexts.clear();
     m_hWnd = nullptr;
     m_IsInitialized = FALSE;
+    LogInfo(L"------------------- UI系统关闭成功 -----------------------------\n");
 }
 
 BOOL CUIManager::SetFont(const std::wstring &fontName, int size, bool bold)

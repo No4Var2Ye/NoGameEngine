@@ -116,6 +116,7 @@ public:
     const std::vector<unsigned int> &GetIndices() const { return m_indices; } // 获取索引数据
 
     size_t GetVertexCount() const { return m_vertices.size(); }
+    size_t GetIndexCount() const { return m_indices.size(); }
     size_t GetTriangleCount() const { return m_indices.size() / 3; }
 
     // 边界

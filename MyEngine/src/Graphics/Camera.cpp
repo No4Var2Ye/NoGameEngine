@@ -2,7 +2,7 @@
 // ======================================================================
 #include "stdafx.h"
 
-#include "Graphics/Camera.h"
+#include "Graphics/Camera/Camera.h"
 // ======================================================================
 
 using namespace Math;
@@ -82,11 +82,14 @@ void CCamera::Initialize(const Vector3 &position, const Vector3 &target, const V
     }
 
     UpdateCameraVectors();
+
+    LogInfo(L"------------------- 主相机初始化成功 --------------------------\n");
 }
 
 void CCamera::SetProjection(FLOAT fov, FLOAT aspectRatio, FLOAT nearPlane, FLOAT farPlane)
 {
-    if (aspectRatio <= 0.0f) aspectRatio = 1.0f;
+    if (aspectRatio <= 0.0f)
+        aspectRatio = 1.0f;
 
     m_Fov = fov;
     m_AspectRatio = aspectRatio;

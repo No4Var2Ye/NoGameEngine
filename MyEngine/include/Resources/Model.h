@@ -31,6 +31,11 @@ public:
     void Draw() const;
     void AddMesh(std::shared_ptr<CMesh> pMesh);
 
+    // 模型参数统计
+    size_t GetVertexCount() const { return m_totalVertices; }
+    size_t GetTriangleCount() const { return m_totalTriangles; }
+    size_t GetMeshCount() const { return m_meshes.size(); }
+
     // 名称相关
     void SetName(const std::wstring &name) { m_name = name; }
     const std::wstring &GetName() const { return m_name; }
@@ -52,17 +57,12 @@ public:
     BOOL IntersectsSphere(const Vector3 &center, float radius) const;
 
 private:
-    // 递归处理 Assimp 节点
-    void ProcessNode(aiNode *node, const aiScene *scene, CResourceManager *pResMgr);
-
-    // 转换网格数据
-    // 将 Assimp 的网格转换为我们的 CMesh
-    std::shared_ptr<CMesh> ProcessMesh(aiMesh *mesh, const aiScene *scene, CResourceManager *pResMgr);
-
-    // 加载材质贴图
-    std::shared_ptr<CTexture> LoadMaterialTexture(aiMaterial *mat, aiTextureType type, CResourceManager *pResMgr);
-
     std::vector<std::shared_ptr<CMesh>> m_meshes; // 一个模型由多个网格组成
+    
+    // 信息统计
+    size_t m_totalVertices = 0; // 顶点数
+    size_t m_totalTriangles = 0; // 三角面数
+
     // "Resources/Models/ANBY/"
     std::wstring m_directory; // 模型所在目录，用于纹理查找
     // "Resources/Models/ANBY/Anby.obj"
@@ -84,6 +84,12 @@ private:
     float m_radius = 0.0f;
 
     mutable Matrix4 m_invTransform; // 缓存逆矩阵
+
+    void ProcessNode(aiNode *node, const aiScene *scene, CResourceManager *pResMgr);    // 递归处理 Assimp 节点
+    std::shared_ptr<CMesh> ProcessMesh(aiMesh *mesh, const aiScene *scene, CResourceManager *pResMgr); // 转换网格数据 将 Assimp 的网格转换为我们的 CMesh
+
+    // 加载材质贴图
+    std::shared_ptr<CTexture> LoadMaterialTexture(aiMaterial *mat, aiTextureType type, CResourceManager *pResMgr);
 
     // 添加边界框计算方法
     void CalculateBoundingBox();

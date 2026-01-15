@@ -35,5 +35,7 @@ tmp/**/*
 
 **/res/Models/*
 !**/res/Models/Duck
+!**/res/Models/Teapot
+
 
 

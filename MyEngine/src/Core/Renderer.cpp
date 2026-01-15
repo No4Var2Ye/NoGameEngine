@@ -6,7 +6,7 @@
 #include <iomanip>
 #include "Math/MathUtils.h"
 #include "Core/Renderer.h"
-#include "Graphics/FontManager.h"
+#include "Graphics/UI/FontManager.h"
 #include "Utils/StringUtils.h"
 // ======================================================================
 
@@ -128,7 +128,7 @@ BOOL CRenderer::Initialize(HWND hWnd)
 
     // 输出OpenGL信息
     LogInfo(L"%ls", GetGLInfo().c_str());
-    
+
     // 初始化高精度计时器
     static LARGE_INTEGER s_Frequency;
     QueryPerformanceFrequency(&s_Frequency);
@@ -145,12 +145,13 @@ BOOL CRenderer::Initialize(HWND hWnd)
         LogWarning(L"警告: 简单字体创建失败\n");
     }
 
+    LogInfo(L"------------------- 渲染器初始化成功 --------------------------\n");
+
     return TRUE;
 }
 
 BOOL CRenderer::InitializeFontSystem()
 {
-    LogInfo(L"正在初始化字体系统...\n");
 
     if (!m_FontManager.LoadFont("default", "Arial", 16))
     {
@@ -158,7 +159,7 @@ BOOL CRenderer::InitializeFontSystem()
         return false;
     }
 
-    LogInfo(L"字体系统初始化成功\n");
+    LogInfo(L"------------------- 字体系统初始化成功 ------------------------\n");
 
     return TRUE;
 }
@@ -188,6 +189,8 @@ void CRenderer::Shutdown()
     }
 
     m_hWnd = nullptr;
+
+    LogInfo(L"------------------- 渲染器关闭成功 -----------------------------\n");
 }
 
 void CRenderer::BeginFrame()

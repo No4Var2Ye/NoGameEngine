@@ -8,8 +8,9 @@
 #include "Resources/Texture.h"
 #include "Resources/ResourceManager.h"
 #include "Resources/Model.h"
-#include "Resources/Entity.h"
+#include "Core/Entity.h"
 // ======================================================================
+// TODO: 测试
 namespace
 {
     ResourceConfig config;
@@ -22,7 +23,7 @@ namespace
     BOOL g_bModelLoaded = FALSE;
     FLOAT g_modelRotation = 0.0f;
     Vector3 g_modelPosition = Vector3(0.0f, 0.0f, 0.0f);
-    FLOAT g_modelScale = 0.05f;
+    FLOAT g_modelScale = 0.01f;
     BOOL g_showModel = TRUE;
 }
 
@@ -285,6 +286,8 @@ BOOL CSceneManager::Initialize()
 
     m_Initialized = TRUE;
 
+    LogInfo(L"------------------- 场景管理器初始化成功 ----------------------\n");
+
     return TRUE;
 }
 
@@ -315,6 +318,8 @@ void CSceneManager::Shutdown()
     m_SceneChangePending = FALSE;
 
     m_Initialized = FALSE;
+
+    LogInfo(L"------------------- 场景管理器关闭成功 -------------------------\n");
 }
 
 BOOL CSceneManager::RegisterScene(std::shared_ptr<CScene> scene)
@@ -592,7 +597,7 @@ void CSceneManager::Render()
 
     DrawGrid();
     // DrawColorCube();
-    DrawTexturedCube();
+    // DrawTexturedCube();
     RenderTestModel();
 
     // SwapBuffers(wglGetCurrentDC());
@@ -791,7 +796,7 @@ void CSceneManager::InitTestResources()
         LogWarning(L"请检查文件是否存在: res/Models/Duck/glTF/Duck.gltf\n");
 
         // 调整默认模型的显示
-        g_modelScale = 2.0f;
+        g_modelScale = 1.0f;
     }
     else
     {
@@ -810,18 +815,12 @@ void CSceneManager::RenderTestModel()
     if (!g_bModelLoaded || !g_pTestModel)
         return;
 
+    glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
+
     glPushMatrix();
-    // glEnable(GL_LIGHTING);
-    // glEnable(GL_LIGHT0);
 
-    // 设置灯光参数 (每帧根据需要更新位置)
-    // GLfloat lightPos[] = {5.0f, 5.0f, 5.0f, 1.0f};
-    // glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-
-    // 纯粹的渲染指令：GPU 读取已经准备好的 Buffer
     g_pTestModel->Draw();
 
-    // glDisable(GL_LIGHT0);
-    // glDisable(GL_LIGHTING);
     glPopMatrix();
 }

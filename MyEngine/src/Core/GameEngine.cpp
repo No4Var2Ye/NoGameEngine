@@ -6,8 +6,8 @@
 #include "Core/Window.h"
 #include "Core/Renderer.h"
 #include "Core/InputManager.h"
-#include "Graphics/Camera.h"
-#include "Graphics/UIManager.h"
+#include "Graphics/Camera/Camera.h"
+#include "Graphics/UI/UIManager.h"
 #include "Resources/ResourceManager.h"
 #include "Scene/SceneManager.h"
 // ======================================================================

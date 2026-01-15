@@ -78,12 +78,14 @@ BOOL CInputManager::Initialize(HWND hWnd, HINSTANCE hInstance)
     {
         LogWarning(L"SetWindowLongPtr 失败！\n");
     }
-    
+
     if (!RegisterRawInputDevices(rid, 2, sizeof(rid[0])))
     {
         LogWarning(L"注册原始输入设备失败\n");
         return FALSE;
     }
+
+    LogInfo(L"------------------- 输入系统初始化成功 ------------------------\n");
 
     return TRUE;
 }
@@ -104,6 +106,8 @@ void CInputManager::Shutdown()
 
     m_hWnd = nullptr;
     m_hInstance = nullptr;
+
+    LogInfo(L"------------------- 输入系统关闭成功 ---------------------------\n");
 }
 
 void CInputManager::Update()

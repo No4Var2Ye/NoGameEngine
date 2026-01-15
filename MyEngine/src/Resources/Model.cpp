@@ -25,7 +25,7 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
     // 转换语义
     // fullPath = res/Models/Duck/Duck.obj
     std::wstring fullPath = filePath;
-    
+
     // m_filePath = res/Models/Duck/Duck.obj
     m_filePath = fullPath;
 
@@ -88,7 +88,7 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
         m_name = fullPath.substr(lastSlash + 1, lastDot - lastSlash - 1);
     else
         m_name = fullPath;
-    
+
     LogInfo(L"模型加载成功: %ls, 网格数: %d.\n", m_name.c_str(), (int)m_meshes.size());
 
     return TRUE;
@@ -99,6 +99,10 @@ void CModel::Unload()
     m_meshes.clear();
     m_directory.clear();
     m_name.clear();
+
+    // 重置统计数据
+    m_totalVertices = 0;
+    m_totalTriangles = 0;
 
     m_minBounds = Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
     m_maxBounds = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -119,6 +123,10 @@ void CModel::AddMesh(std::shared_ptr<CMesh> pMesh)
 
     m_meshes.push_back(pMesh);
 
+    // 累加统计数据
+    m_totalVertices += pMesh->GetVertexCount();
+    m_totalTriangles += pMesh->GetTriangleCount();
+
     // 只需要拿 CMesh 的 Min/Max 更新 CModel 的 Min/Max
     const Vector3 &meshMin = pMesh->GetMinBounds();
     const Vector3 &meshMax = pMesh->GetMaxBounds();
@@ -133,7 +141,7 @@ void CModel::AddMesh(std::shared_ptr<CMesh> pMesh)
         m_minBounds.x = Math::Min(m_minBounds.x, meshMin.x);
         m_minBounds.y = Math::Min(m_minBounds.y, meshMin.y);
         m_minBounds.z = Math::Min(m_minBounds.z, meshMin.z);
-        
+
         m_maxBounds.x = Math::Max(m_maxBounds.x, meshMax.x);
         m_maxBounds.y = Math::Max(m_maxBounds.y, meshMax.y);
         m_maxBounds.z = Math::Max(m_maxBounds.z, meshMax.z);

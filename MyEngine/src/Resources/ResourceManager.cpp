@@ -23,7 +23,7 @@ BOOL CResourceManager::Initialize(const ResourceConfig &config)
         LogError(L"创建引擎默认资源失败\n");
         return FALSE;
     }
-
+    LogInfo(L"------------------- 资源管理器初始化成功 ----------------------\n");
     return TRUE;
 }
 
@@ -41,7 +41,7 @@ void CResourceManager::Shutdown()
     // 3. 可以在这里打印一份资源残留报告
     // 如果此时还有资源没释放，说明代码里有地方产生了“内存泄漏”（循环引用或没删除的shared_ptr）
 
-    LogInfo(L"========= 资源管理器关闭成功 =========\n");
+    LogInfo(L"------------------- 资源管理器关闭成功 -----------------------\n");
 }
 
 void CResourceManager::ReleaseUnusedResources()
@@ -113,8 +113,8 @@ BOOL CResourceManager::CreateDefaultResources()
     LogInfo(L"默认资源创建成功！\n");
     LogInfo(L"  - 默认纹理: %dx%d\n",
             m_DefaultTexture->GetWidth(), m_DefaultTexture->GetHeight());
-    // LogInfo(L"  - 默认模型: 顶点数=%zu, 三角形数=%zu\n",
-    //    m_DefaultModel->GetVertexCount(), m_DefaultModel->GetTriangleCount());
+    LogInfo(L"  - 默认模型: 顶点数=%u, 三角形数=%u\n",
+            (unsigned int)m_DefaultModel->GetVertexCount(), (unsigned int)m_DefaultModel->GetTriangleCount());
 
     return TRUE;
 }
