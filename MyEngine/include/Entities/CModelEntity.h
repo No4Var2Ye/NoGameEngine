@@ -12,12 +12,18 @@ class CModel; // 前向声明
 class CModelEntity : public CEntity
 {
 public:
-    static std::shared_ptr<CModelEntity> Create(std::shared_ptr<CModel> pModel);
-
     virtual ~CModelEntity() = default;
 
+    template <typename... Args>
+    static std::shared_ptr<CModelEntity> Create(Args &&...args)
+    {
+        auto entity = std::shared_ptr<CModelEntity>(new CModelEntity(std::forward<Args>(args)...));
+        entity->m_uID = ++s_nextID;
+                return entity;
+    }
+
     // 实现基类的核心接口
-    virtual void Update(FLOAT deltaTime) override;
+    virtual void Update(float deltaTime) override;
     virtual void Render() override;
 
     // 模型特有操作

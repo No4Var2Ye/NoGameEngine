@@ -28,10 +28,32 @@ public:
     void SetParent(std::shared_ptr<CEntity> pParent);
     void AddChild(std::shared_ptr<CEntity> pChild);
     BOOL RemoveChild(unsigned int uID);
+    const std::vector<std::shared_ptr<CEntity>> &GetChildren() const { return m_children; }
+    std::shared_ptr<CEntity> GetChild(size_t index) const
+    {
+        if (index < m_children.size())
+            return m_children[index];
+        return nullptr;
+    }
+
+    template <typename... Args>
+    static std::shared_ptr<CEntity> Create(Args &&...args)
+    {
+        auto entity = std::shared_ptr<CEntity>(new CEntity(std::forward<Args>(args)...));
+        entity->m_uID = ++s_nextID;
+        return entity;
+    }
 
     // 更新与渲染
     virtual void Update(float deltaTime);
-    virtual void Render() = 0;
+    virtual void Render()
+    {
+        for (auto &pChild : m_children)
+        {
+            if (pChild)
+                pChild->Render();
+        }
+    };
 
     unsigned int GetID() const { return m_uID; }
 
@@ -50,10 +72,8 @@ public:
     void SetVisible(BOOL visible) { m_bVisible = visible; }
     BOOL IsVisible() const { return m_bVisible; }
 
-private:
-    unsigned int m_uID = 0;
-
 protected:
+    unsigned int m_uID = 0;
     CEntity();
 
     static unsigned int s_nextID;

@@ -12,7 +12,6 @@
 // TODO: 测试
 namespace
 {
-    ResourceConfig config;
     // 测试贴图加载
     std::shared_ptr<CTexture> g_pTexture = nullptr;
     BOOL g_bTextureLoaded = FALSE;
@@ -24,116 +23,6 @@ namespace
     Vector3 g_modelPosition = Vector3(0.0f, 0.0f, 0.0f);
     FLOAT g_modelScale = 0.01f;
     BOOL g_showModel = TRUE;
-}
-
-void DrawGrid()
-{
-    glPushMatrix();
-
-    // ========================================================
-    // 1. 绘制参考地平面 (Grid)
-    // ========================================================
-
-    glDisable(GL_LIGHTING); // 调试阶段关闭光照，确保颜色准确
-
-    float size = 100.0f; // 地面大小
-    float step = 1.0f;   // 网格间距
-
-    glBegin(GL_LINES);
-    for (float i = -size; i <= size; i += step)
-    {
-        // 颜色：深灰色，中心轴可以用深白色区分
-        if (i == 0)
-            glColor3f(0.8f, 0.8f, 0.8f);
-        else
-            glColor3f(0.4f, 0.4f, 0.4f);
-
-        // 绘制横线 (平行于 Z 轴)
-        glVertex3f(i, 0.0f, -size);
-        glVertex3f(i, 0.0f, size);
-
-        // 绘制纵线 (平行于 X 轴)
-        glVertex3f(-size, 0.0f, i);
-        glVertex3f(size, 0.0f, i);
-    }
-    glEnd();
-
-    // 绘制世界坐标轴 (X-红, Y-绿, Z-蓝)
-    glLineWidth(2.0f);
-    glBegin(GL_LINES);
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(5, 0.1f, 0); // X轴
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(0, 5.1f, 0); // Y轴
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(0, 0.1f, 5); // Z轴
-    glEnd();
-    glLineWidth(1.0f);
-
-    glPopMatrix();
-}
-
-void DrawColorCube()
-{
-    glPushMatrix();
-    {
-        // 将立方体稍微抬高一点，放在坐标原点上方
-        glTranslatef(0.0f, 1.0f, 0.0f);
-
-        // 让立方体自己旋转，方便观察 3D 效果
-        // static float rotation = 0.0f;
-        // rotation += 0.5f;
-        // glRotatef(rotation, 0.0f, 1.0f, 0.0f);
-        glBegin(GL_QUADS);
-        {
-            // 前面 (Z+)
-            glColor3f(1.0f, 0.0f, 0.0f); // 红色
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-
-            // 后面 (Z-)
-            glColor3f(0.0f, 1.0f, 0.0f); // 绿色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, -1.0f);
-
-            // 顶面 (Y+)
-            glColor3f(0.0f, 0.0f, 1.0f); // 蓝色
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-
-            // 底面 (Y-)
-            glColor3f(1.0f, 1.0f, 0.0f); // 黄色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-
-            // 右面 (X+)
-            glColor3f(1.0f, 0.0f, 1.0f); // 紫色
-            glVertex3f(1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-
-            // 左面 (X-)
-            glColor3f(0.0f, 1.0f, 1.0f); // 青色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-        }
-        glEnd();
-    }
-    glPopMatrix();
 }
 
 void DrawTexturedCube()
@@ -564,7 +453,7 @@ void CSceneManager::ReloadCurrentScene()
     if (!m_CurrentScene)
         return;
 
-    m_CurrentScene->Reload();
+    // m_CurrentScene->Reload();
 }
 
 void CSceneManager::Update(FLOAT deltaTime)
@@ -589,17 +478,6 @@ void CSceneManager::Update(FLOAT deltaTime)
 // TODO: 渲染场景
 void CSceneManager::Render()
 {
-    if (!m_Initialized || !m_RenderEnabled)
-        return;
-
-    // glMatrixMode(GL_MODELVIEW);
-    // DrawGrid();
-    // // DrawColorCube();
-    // // DrawTexturedCube();
-    // RenderTestModel();
-
-    SwapBuffers(wglGetCurrentDC());
-
     if (!m_Initialized || !m_RenderEnabled)
         return;
 

@@ -10,6 +10,7 @@
 #include "Graphics/UI/UIManager.h"
 #include "Resources/ResourceManager.h"
 #include "Scene/SceneManager.h"
+#include "Scene/DemoScene.h"
 // ======================================================================
 
 CGameEngine *CGameEngine::s_Instance = nullptr; // 初始化静态实例
@@ -102,9 +103,18 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     }
 
     // 6. 初始化场景管理器
-    if (!m_SceneManager->Initialize())
+    if (m_SceneManager)
     {
-        return FALSE;
+        // 1. 初始化场景管理器
+        m_SceneManager->Initialize();
+
+        // 2. 创建并注册 DemoScene
+        // 使用 std::make_shared，因为 SceneManager 内部使用 shared_ptr 管理场景列表
+        auto pDemoScene = std::make_shared<CDemoScene>();
+        m_SceneManager->RegisterScene(pDemoScene);
+
+        // 3. 立即切换到该场景 (不带过渡效果，作为首个场景)
+        m_SceneManager->ChangeSceneImmediate("DemoScene");
     }
 
     // 7. 初始化UI系统
@@ -262,7 +272,6 @@ INT CGameEngine::Run()
                 m_pMainCamera->ApplyProjectionMatrix();
                 m_pMainCamera->ApplyViewMatrix();
                 m_SceneManager->Render();
-                
 
                 m_Renderer->PushState();
                 if (m_ShowDebugInfo)
