@@ -791,7 +791,7 @@ void CSceneManager::InitTestResources()
         LogWarning(L"请检查文件是否存在: res/Models/Duck/glTF/Duck.gltf\n");
 
         // 调整默认模型的显示
-        g_modelScale = 1.0f; // 放大
+        g_modelScale = 2.0f;
     }
     else
     {

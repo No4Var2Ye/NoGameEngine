@@ -32,7 +32,7 @@ class CMesh
 public:
     struct SimpleMaterial
     {
-        std::string name = "DefaultMaterial";
+        std::wstring name = L"DefaultMaterial";
         Vector3 ambient = Vector3(0.2f, 0.2f, 0.2f);
         Vector3 diffuse = Vector3(0.8f, 0.8f, 0.8f);
         Vector3 specular = Vector3(1.0f, 1.0f, 1.0f);
@@ -59,21 +59,21 @@ public:
         }
 
         // 获取材质哈希
-        std::string GetHash() const
+        std::wstring GetHash() const
         {
-            std::ostringstream oss;
-            oss << name << "_"
-                << ambient.x << "_" << ambient.y << "_" << ambient.z << "_"
-                << diffuse.x << "_" << diffuse.y << "_" << diffuse.z << "_"
-                << specular.x << "_" << specular.y << "_" << specular.z << "_"
-                << shininess << "_" << opacity;
-            return oss.str();
+            std::wostringstream woss;
+            woss << name << L"_"
+                 << ambient.x << L"_" << ambient.y << L"_" << ambient.z << L"_"
+                 << diffuse.x << L"_" << diffuse.y << L"_" << diffuse.z << L"_"
+                 << specular.x << L"_" << specular.y << L"_" << specular.z << L"_"
+                 << shininess << L"_" << opacity;
+            return woss.str();
         }
     };
 
     // 设置材质名称
-    void SetMaterialName(const std::string &name) { m_material.name = name; }
-    const std::string &GetMaterialName() const { return m_material.name; }
+    void SetMaterialName(const std::wstring &name) { m_material.name = name; }
+    const std::wstring &GetMaterialName() const { return m_material.name; }
 
     // 完整材质设置
     void SetMaterial(const SimpleMaterial &material) { m_material = material; }
@@ -119,9 +119,9 @@ public:
     size_t GetTriangleCount() const { return m_indices.size() / 3; }
 
     // 边界
-    const Vector3& GetMinBounds() const { return m_boundingBox.min; }
-    const Vector3& GetMaxBounds() const { return m_boundingBox.max; }
-    const BoundingBox& GetBoundingBox() const { return m_boundingBox; }
+    const Vector3 &GetMinBounds() const { return m_boundingBox.min; }
+    const Vector3 &GetMaxBounds() const { return m_boundingBox.max; }
+    const BoundingBox &GetBoundingBox() const { return m_boundingBox; }
 
 private:
     std::vector<Vertex> m_vertices;

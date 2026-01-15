@@ -37,6 +37,7 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
     std::string pathStr = CStringUtils::WStringToString(fullPath);
 
     // 2. 读取文件并进行预处理
+    // WARNING: 贴图翻转
     unsigned int flags =
         aiProcess_Triangulate |           // 转为三角形
         aiProcess_FlipUVs |               // 翻转纹理坐标
@@ -122,13 +123,21 @@ void CModel::AddMesh(std::shared_ptr<CMesh> pMesh)
     const Vector3 &meshMin = pMesh->GetMinBounds();
     const Vector3 &meshMax = pMesh->GetMaxBounds();
 
-    m_minBounds.x = Math::Min(m_minBounds.x, meshMin.x);
-    m_minBounds.y = Math::Min(m_minBounds.y, meshMin.y);
-    m_minBounds.z = Math::Min(m_minBounds.z, meshMin.z);
-
-    m_maxBounds.x = Math::Max(m_maxBounds.x, meshMax.x);
-    m_maxBounds.y = Math::Max(m_maxBounds.y, meshMax.y);
-    m_maxBounds.z = Math::Max(m_maxBounds.z, meshMax.z);
+    if (m_meshes.size() == 1)
+    {
+        m_minBounds = meshMin;
+        m_maxBounds = meshMax;
+    }
+    else
+    {
+        m_minBounds.x = Math::Min(m_minBounds.x, meshMin.x);
+        m_minBounds.y = Math::Min(m_minBounds.y, meshMin.y);
+        m_minBounds.z = Math::Min(m_minBounds.z, meshMin.z);
+        
+        m_maxBounds.x = Math::Max(m_maxBounds.x, meshMax.x);
+        m_maxBounds.y = Math::Max(m_maxBounds.y, meshMax.y);
+        m_maxBounds.z = Math::Max(m_maxBounds.z, meshMax.z);
+    }
 
     // 更新模型中心和半径
     m_center = (m_minBounds + m_maxBounds) * 0.5f;
@@ -242,7 +251,7 @@ std::shared_ptr<CMesh> CModel::ProcessMesh(aiMesh *mesh, const aiScene *scene, C
         aiString matName;
         if (mat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS)
         {
-            material.name = matName.C_Str();
+            material.name = CStringUtils::StringToWString(matName.C_Str());
         }
 
         // 获取材质颜色
@@ -251,6 +260,7 @@ std::shared_ptr<CMesh> CModel::ProcessMesh(aiMesh *mesh, const aiScene *scene, C
         // 漫反射颜色
         if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
         {
+            // LogDebug(L"Material: %ls, R: %f, G: %f, B: %f.\n", material.name.c_str(), color.r, color.g, color.b);
             material.diffuse = Vector3(color.r, color.g, color.b);
         }
 

@@ -93,7 +93,7 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
         return FALSE;
     }
 
-    stbi_set_flip_vertically_on_load(TRUE);
+    stbi_set_flip_vertically_on_load(false);
     unsigned char *data = stbi_load(narrowPath.c_str(),
                                     &m_Width,
                                     &m_Height,
@@ -102,7 +102,7 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
     if (!data)
     {
         const char *failReason = stbi_failure_reason();
-        std::wstring wReason = CStringUtils::StringToWString(failReason ? failReason : "Unknown error");
+        std::wstring wReason = CStringUtils::StringToWString(failReason ? failReason : "未知原因");
 
         if (!PathUtils::Exists(fullPath))
         {
@@ -110,7 +110,7 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
         }
         else
         {
-            // LogError(L"无法加载纹理: %ls. 路径: %ls\n", wReason.c_str(), filePath.c_str());
+            LogError(L"无法加载纹理: %ls. 路径: %ls\n", wReason.c_str(), filePath.c_str());
         }
         return FALSE;
     }
@@ -125,7 +125,8 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
         internalFormat = GL_R8;
         break;
     case 3:
-        format = GL_BGR_EXT;
+        format = GL_RGB;
+        // format = GL_BGR_EXT;
         internalFormat = GL_RGB8;
         break;
     case 4:
