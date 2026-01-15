@@ -1,6 +1,7 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
+#include <cfloat>
 #include "Resources/Mesh.h"
 #include "Resources/Texture.h"
 // ======================================================================
@@ -18,6 +19,8 @@ CMesh::CMesh(const std::vector<Vertex> &vertices,
     {
         throw std::runtime_error("Indices count must be multiple of 3");
     }
+
+    CalculateBoundingBox();
 }
 
 CMesh::~CMesh()
@@ -95,4 +98,32 @@ void CMesh::Draw() const
     {
         glDisable(GL_TEXTURE_2D);
     }
+}
+
+void CMesh::CalculateBoundingBox()
+{
+    if (m_vertices.empty())
+    {
+        m_boundingBox.min = m_boundingBox.max = m_boundingBox.center = m_boundingBox.size = Vector3::Zero();
+        return;
+    }
+
+    Vector3 vMin(FLT_MAX, FLT_MAX, FLT_MAX);
+    Vector3 vMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+    for (const auto &v : m_vertices)
+    {
+        vMin.x = Math::Min(vMin.x, v.Position.x);
+        vMin.y = Math::Min(vMin.y, v.Position.y);
+        vMin.z = Math::Min(vMin.z, v.Position.z);
+
+        vMax.x = Math::Max(vMax.x, v.Position.x);
+        vMax.y = Math::Max(vMax.y, v.Position.y);
+        vMax.z = Math::Max(vMax.z, v.Position.z);
+    }
+
+    m_boundingBox.min = vMin;
+    m_boundingBox.max = vMax;
+    m_boundingBox.center = (vMin + vMax) * 0.5f;
+    m_boundingBox.size = vMax - vMin;
 }

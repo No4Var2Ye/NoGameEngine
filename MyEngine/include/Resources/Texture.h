@@ -26,7 +26,7 @@ public:
 
     // 加载纹理
     BOOL CreateTestTexture();
-    BOOL LoadFromFile(const std::wstring &relativePath); // 加载纹理逻辑
+    BOOL LoadFromFile(const std::wstring &filePath); // 加载纹理逻辑
     BOOL LoadFromMemory(const unsigned char *data,
                         INT width, INT height,
                         INT channels, GLenum format = GL_RGBA); // 从内存加载纹理
@@ -46,6 +46,8 @@ public:
     void SetAnisotropy(FLOAT level = 4.0f); // 各向异性过滤
 
     // 获取属性
+    void SetName(const std::wstring& name) { m_name = name; }
+    const std::wstring& GetName() const { return m_name; }
     GLuint GetID() const { return m_TextureID; }
     INT GetWidth() const { return m_Width; }
     INT GetHeight() const { return m_Height; }
@@ -57,6 +59,7 @@ public:
     static void SetFlipVerticallyOnLoad(BOOL flip);
 
 private:
+    std::wstring m_name;
     GLuint m_TextureID; // OpenGL纹理ID
     INT m_Width;        // 纹理宽度
     INT m_Height;       // 纹理高度

@@ -2,7 +2,6 @@
 // ======================================================================
 #include "stdafx.h"
 #include "Resources/Texture.h"
-#include "EngineConfig.h"
 #include "Utils/stb_image.h"
 #include "Utils/StringUtils.h"
 // ======================================================================
@@ -75,25 +74,23 @@ CTexture &CTexture::operator=(CTexture &&other)
     return *this;
 }
 
-BOOL CTexture::LoadFromFile(const std::wstring &relativePath)
+BOOL CTexture::LoadFromFile(const std::wstring &filePath)
 {
-    ResourceConfig config;
-
     // 0. 清理现有纹理
     Cleanup();
-    std::wstring fullPath = config.GetTexturePath() + relativePath;
+    std::wstring fullPath = filePath;
     m_Path = fullPath;
 
     // 1. 使用 stb_image 加载数据
+    std::string narrowPath = CStringUtils::WStringToString(fullPath, CP_UTF8);
     // 强制翻转 Y 轴，因为 OpenGL 的原点在左下角，而图片在左上角
     // 重要：解决OpenGL坐标系与图片坐标系Y轴方向不一致的问题
     // OpenGL：(0,0)在左下角
     // 图片：(0,0)在左上角
-    std::string narrowPath = CStringUtils::WStringToString(fullPath, CP_UTF8);
     if (narrowPath.empty())
     {
-        std::cerr << "路径转换失败: " << narrowPath.c_str() << std::endl;
-        return false;
+        LogError(L"路径转换失败，无法处理路径: %ls.\n", fullPath.c_str());
+        return FALSE;
     }
 
     stbi_set_flip_vertically_on_load(TRUE);
@@ -104,8 +101,17 @@ BOOL CTexture::LoadFromFile(const std::wstring &relativePath)
 
     if (!data)
     {
-        std::wcerr << L"无法加载纹理: " << fullPath << std::endl;
-        std::wcerr << L"错误: " << stbi_failure_reason() << std::endl;
+        const char *failReason = stbi_failure_reason();
+        std::wstring wReason = CStringUtils::StringToWString(failReason ? failReason : "Unknown error");
+
+        if (!PathUtils::Exists(fullPath))
+        {
+            LogError(L"无法加载纹理: 文件不存在. 路径: %ls\n", filePath.c_str());
+        }
+        else
+        {
+            // LogError(L"无法加载纹理: %ls. 路径: %ls\n", wReason.c_str(), filePath.c_str());
+        }
         return FALSE;
     }
 
@@ -127,7 +133,7 @@ BOOL CTexture::LoadFromFile(const std::wstring &relativePath)
         internalFormat = GL_RGBA8;
         break;
     default:
-        std::cerr << "不支持的通道数: " << m_Channels << std::endl;
+        LogWarning(L"不支持的通道数: %d", m_Channels);
         stbi_image_free(data);
         return FALSE;
     }
@@ -136,7 +142,7 @@ BOOL CTexture::LoadFromFile(const std::wstring &relativePath)
     glGenTextures(1, &m_TextureID);
     if (m_TextureID == 0)
     {
-        std::cerr << "glGenTextures失败" << std::endl;
+        LogError(L"glGenTextures失败\n");
         stbi_image_free(data);
         return FALSE;
     }
@@ -217,11 +223,9 @@ BOOL CTexture::CreateTestTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 64, 64, 0,
                  GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
     std::cout << "测试纹理: 使用 GL_BGR_EXT 格式" << std::endl;
-
 
     // 生成mipmaps
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -333,7 +337,7 @@ void CTexture::Bind(GLenum textureUnit) const
 {
     if (!IsValid())
     {
-        LogError(L"尝试绑定无效纹理");
+        LogError(L"尝试绑定无效纹理\n");
         return;
     }
 
@@ -459,13 +463,13 @@ BOOL CTexture::UploadToGPU(const unsigned char *data,
 {
     if (m_TextureID == 0)
     {
-        LogError(L"纹理ID无效");
+        LogError(L"纹理ID无效\n");
         return FALSE;
     }
 
     if (m_Width <= 0 || m_Height <= 0)
     {
-        LogError(L"纹理尺寸无效: %dx%d", m_Width, m_Height);
+        LogError(L"纹理尺寸无效: %dx%d\n", m_Width, m_Height);
         return FALSE;
     }
 
@@ -480,7 +484,7 @@ BOOL CTexture::UploadToGPU(const unsigned char *data,
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        LogError(L"glTexImage2D错误: %ls", error);
+        LogError(L"glTexImage2D错误: %d.\n", error);
         glBindTexture(GL_TEXTURE_2D, 0);
         return FALSE;
     }
@@ -491,7 +495,7 @@ BOOL CTexture::UploadToGPU(const unsigned char *data,
     error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        LogError(L"glGenerateMipmap错误: %ls", error);
+        LogError(L"glGenerateMipmap错误: %d.\n", error);
         glBindTexture(GL_TEXTURE_2D, 0);
         return FALSE;
     }

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <cstdarg>
+#include <vector>
 // ======================================================================
 
 enum class LogLevel
@@ -19,42 +20,43 @@ enum class LogLevel
 
 inline void Log(LogLevel level, const wchar_t *message)
 {
+    const wchar_t *prefix = L"";
+
     switch (level)
     {
     case LogLevel::MYERROR:
-    {
-        std::wcerr << L"[ERROR] " << message << std::endl;
-#ifdef MYDEBUG
-        OutputDebugStringW((std::wstring(L"[ERROR] ") + message + L"\n").c_str());
-#endif
+        prefix = L"[ERROR] ";
         break;
-    }
-
     case LogLevel::WARNING:
-    {
-        std::wcerr << L"[WARNING] " << message << std::endl;
-#ifdef MYDEBUG
-        OutputDebugStringW((std::wstring(L"[WARNING] ") + message + L"\n").c_str());
-#endif
+        prefix = L"[WARNING] ";
         break;
-    }
-
     case LogLevel::INFO:
-        std::wcout << L"[INFO] " << message << std::endl;
+        prefix = L"[INFO] ";
         break;
     case LogLevel::DEBUG:
-#ifdef MYDEBUG
-        std::wcout << L"[DEBUG] " << message << std::endl;
-        OutputDebugStringW((std::wstring(L"[DEBUG] ") + message + L"\n").c_str());
-#endif
+        prefix = L"[DEBUG] ";
         break;
     }
+
+    std::wcout << prefix << message << std::endl;
+
+#ifdef MYDEBUG
+    // 3. 调试输出也加上前缀和换行
+    std::wstring dbg = prefix;
+    dbg += message;
+    dbg += L"\n";
+    OutputDebugStringW(dbg.c_str());
+#endif
 }
 
 inline void LogFormatV(LogLevel level, const wchar_t *format, va_list args)
 {
     // 1. 第一次调用：计算格式化后需要的空间大小
-    int size = vswprintf(nullptr, 0, format, args);
+    va_list argsCopy;
+    va_copy(argsCopy, args); // 必须拷贝 args，因为 vswprintf 会改变它
+    int size = _vscwprintf(format, argsCopy);
+    va_end(argsCopy);
+
     if (size <= 0)
         return;
 
@@ -62,8 +64,7 @@ inline void LogFormatV(LogLevel level, const wchar_t *format, va_list args)
     std::vector<wchar_t> buffer(size + 1);
 
     // 3. 第二次调用：实际将内容写入缓冲区
-    vswprintf(buffer.data(), buffer.size(), format, args);
-
+    _vsnwprintf_s(buffer.data(), buffer.size(), _TRUNCATE, format, args);
     // 4. 调用原始的 Log 函数
     Log(level, buffer.data());
 }

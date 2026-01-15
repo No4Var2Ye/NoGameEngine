@@ -219,7 +219,10 @@ public:
     BOOL SaveCurrentSceneState(); // 保存当前场景状态
     BOOL LoadSavedSceneState();   // 加载保存的场景状态
 
+    // 测试
     void CreateDemoScene();
+    void InitTestResources();
+    void RenderTestModel();
 };
 
 #endif // __SCENEMANAGER_H__

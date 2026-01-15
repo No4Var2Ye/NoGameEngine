@@ -18,6 +18,7 @@ struct ResourceConfig
     std::wstring soundDir   = L"Sounds/";
 
     // 辅助方法：获取完整路径
+    std::wstring GetRootPath() const { return rootPath; }
     std::wstring GetModelPath() const { return rootPath + modelDir; }
     std::wstring GetTexturePath() const { return rootPath + textureDir; }
 };

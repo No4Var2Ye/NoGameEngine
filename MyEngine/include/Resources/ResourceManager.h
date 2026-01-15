@@ -18,6 +18,12 @@ class CShader;
 class CResourceManager
 {
 public:
+    // 路径类型
+    enum class PathType {
+        Relative,  // 相对路径
+        Absolute   // 绝对路径
+    };
+
     CResourceManager() = default;
     ~CResourceManager() = default;
 
@@ -30,8 +36,8 @@ public:
 
     // ======================================================================
     // 资源加载接口
-    std::shared_ptr<CTexture> GetTexture(const std::wstring &fileName);
-    std::shared_ptr<CModel> GetModel(const std::wstring &fileName);
+    std::shared_ptr<CTexture> GetTexture(const std::wstring &filepath, PathType pathType = PathType::Relative);
+    std::shared_ptr<CModel> GetModel(const std::wstring &filepath, PathType pathType = PathType::Relative);
     // std::shared_ptr<CShader> GetShader(const std::wstring &name, const std::wstring &vPath, const std::wstring &fPath);
 
     // 创建 兜底资源
@@ -39,6 +45,20 @@ public:
     std::shared_ptr<CTexture> CreateDefaultTexture();
     std::shared_ptr<CModel> CreateDefaultModel();
     std::shared_ptr<CShader> CreateDefaultShader();
+
+    // 强制重新创建兜底资源
+    BOOL RecreateDefaultResources();
+
+    // 检查是否有
+    BOOL HasDefaultTexture() const { return m_DefaultTexture != nullptr; }
+    BOOL HasDefaultModel() const { return m_DefaultModel != nullptr; }
+    BOOL HasDefaultShader() const { return m_DefaultShader != nullptr; }
+  
+    // 获取
+    std::shared_ptr<CTexture> GetDefaultTexture() const { return m_DefaultTexture; }
+    std::shared_ptr<CModel> GetDefaultModel() const { return m_DefaultModel; }
+    std::shared_ptr<CShader> GetDefaultShader() const { return m_DefaultShader; }
+
     // ======================================================================
     // 清理资源
     void ReleaseUnusedResources();
@@ -56,6 +76,8 @@ private:
     std::shared_ptr<CTexture> m_DefaultTexture;
     std::shared_ptr<CModel> m_DefaultModel;
     std::shared_ptr<CShader> m_DefaultShader;
+
+    std::shared_ptr<CModel> CreateCubeModel();
 };
 
 #endif // __RESOURCE_MANAGER_H__

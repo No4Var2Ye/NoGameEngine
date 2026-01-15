@@ -12,15 +12,16 @@
 // ======================================================================
 namespace
 {
+    ResourceConfig config;
+    // 测试贴图加载
     std::shared_ptr<CTexture> g_pTexture = nullptr;
     BOOL g_bTextureLoaded = FALSE;
-    CTexture g_texture;
-    ResourceConfig config;
-    FLOAT angle = 0.0f;
+
+    // 测试 模型加载
     std::shared_ptr<CModel> g_pTestModel = nullptr;
     BOOL g_bModelLoaded = FALSE;
     FLOAT g_modelRotation = 0.0f;
-    Vector3 g_modelPosition = Vector3(5.0f, 0.0f, 0.0f);
+    Vector3 g_modelPosition = Vector3(0.0f, 0.0f, 0.0f);
     FLOAT g_modelScale = 0.05f;
     BOOL g_showModel = TRUE;
 }
@@ -140,16 +141,16 @@ void DrawTexturedCube()
     glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
 
-    if (!g_bTextureLoaded)
+    static bool bAttempted = false;
+
+    if (!bAttempted)
     {
+        bAttempted = true; // 无论成功失败，只试一次
         g_pTexture = std::make_shared<CTexture>();
-        if (g_pTexture->LoadFromFile(L"test-texture.png"))
+        if (!g_pTexture->LoadFromFile(L"res/Textures/test-texture.png"))
         {
-            g_bTextureLoaded = TRUE;
-        }
-        else
-        {
-            return; // 纹理加载失败
+            // 如果加载失败，使用资源管理器里的兜底纹理
+            g_pTexture = CGameEngine::GetInstance().GetResourceManager()->GetDefaultTexture();
         }
     }
 
@@ -278,6 +279,9 @@ BOOL CSceneManager::Initialize()
 
     m_TransitionState = TransitionState::None;
     m_TransitionAlpha = 0.0f;
+
+    // 测试场景
+    InitTestResources();
 
     m_Initialized = TRUE;
 
@@ -588,8 +592,8 @@ void CSceneManager::Render()
 
     DrawGrid();
     // DrawColorCube();
-    // DrawTexturedCube();
-    CreateDemoScene();
+    DrawTexturedCube();
+    RenderTestModel();
 
     // SwapBuffers(wglGetCurrentDC());
 
@@ -757,66 +761,67 @@ BOOL CSceneManager::LoadSavedSceneState()
     return TRUE;
 }
 
-void CSceneManager::CreateDemoScene()
+void CSceneManager::InitTestResources()
 {
-    // 获取资源管理器（假设你可以通过引擎单例访问）
+    // 如果模型已经加载过，直接返回，避免重复加载
+    if (g_bModelLoaded)
+        return;
+
     auto resMgr = CGameEngine::GetInstance().GetResourceManager();
     if (!resMgr)
     {
-        LogError(L"ResourceManager is not available");
+        LogError(L"资源管理器未初始化，无法加载模型\n");
         return;
     }
 
-    // 尝试加载模型
-    g_pTestModel = std::make_shared<CModel>();
+    g_pTestModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
+    // g_pTestModel = resMgr->GetModel(L"Teapot/teapot.obj");
 
-    std::vector<std::wstring> modelPaths = {
-        L"res/Models/Duck/glTF/Duck.gltf"
-        // L"res/Models/Cube/cube.obj"
-        // L"res/Models/teaport/teaport.obj"
-    };
-
-    BOOL modelLoaded = FALSE;
-    for (const auto &path : modelPaths)
+    if (!g_pTestModel)
     {
-        // LogInfo(L"Trying to load model: %ls", path.c_str());
-
-        if (g_pTestModel->LoadFromFile(path, resMgr))
-        {
-            // LogInfo(L"Model loaded successfully: %ls", path.c_str());
-            modelLoaded = TRUE;
-            break;
-        }
-    }
-
-    if (!modelLoaded)
-    {
-        LogError(L"Failed to load any model file");
-        g_pTestModel.reset();
+        LogError(L"模型加载完全失败\n");
+        g_bModelLoaded = FALSE;
         return;
     }
 
-    g_bModelLoaded = TRUE;
+    auto defaultModel = resMgr->GetDefaultModel();
+    if (defaultModel && (g_pTestModel == defaultModel))
+    {
+        LogWarning(L"鸭子模型不存在，已自动使用默认立方体模型\n");
+        LogWarning(L"请检查文件是否存在: res/Models/Duck/glTF/Duck.gltf\n");
 
-    // 设置初始位置和缩放
+        // 调整默认模型的显示
+        g_modelScale = 1.0f; // 放大
+    }
+    else
+    {
+        LogInfo(L"鸭子模型加载成功\n");
+    }
+
+    // 设置模型变换
     g_pTestModel->SetPosition(g_modelPosition);
     g_pTestModel->SetScale(Vector3(g_modelScale, g_modelScale, g_modelScale));
 
+    g_bModelLoaded = TRUE;
+}
+
+void CSceneManager::RenderTestModel()
+{
+    if (!g_bModelLoaded || !g_pTestModel)
+        return;
+
     glPushMatrix();
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
+    // glEnable(GL_LIGHTING);
+    // glEnable(GL_LIGHT0);
 
-    GLfloat lightPos[] = {5.0f, 5.0f, 5.0f, 1.0f};
-    GLfloat lightAmb[] = {0.2f, 0.2f, 0.2f, 1.0f};
-    GLfloat lightDif[] = {0.8f, 0.8f, 0.8f, 1.0f};
+    // 设置灯光参数 (每帧根据需要更新位置)
+    // GLfloat lightPos[] = {5.0f, 5.0f, 5.0f, 1.0f};
+    // glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmb);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDif);
-
+    // 纯粹的渲染指令：GPU 读取已经准备好的 Buffer
     g_pTestModel->Draw();
 
-    glDisable(GL_LIGHT0);
-    glDisable(GL_LIGHTING);
+    // glDisable(GL_LIGHT0);
+    // glDisable(GL_LIGHTING);
     glPopMatrix();
 }

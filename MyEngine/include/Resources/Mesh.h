@@ -118,13 +118,16 @@ public:
     size_t GetVertexCount() const { return m_vertices.size(); }
     size_t GetTriangleCount() const { return m_indices.size() / 3; }
 
-    const BoundingBox &GetBoundingBox() const;
+    // 边界
+    const Vector3& GetMinBounds() const { return m_boundingBox.min; }
+    const Vector3& GetMaxBounds() const { return m_boundingBox.max; }
+    const BoundingBox& GetBoundingBox() const { return m_boundingBox; }
 
 private:
     std::vector<Vertex> m_vertices;
     std::vector<unsigned int> m_indices;
-    std::shared_ptr<CTexture> m_pTexture;
 
+    std::shared_ptr<CTexture> m_pTexture;
     SimpleMaterial m_material;
 
     int m_subMeshID = -1; // 在模型中的子网格ID

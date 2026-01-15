@@ -27,17 +27,26 @@ public:
     BOOL LoadFromFile(const std::wstring &filePath, CResourceManager *pResMgr);
     void Unload();
 
-    void Draw() const; // 渲染模型（遍历所有网格绘制）
+    // 模型绘制
+    void Draw() const;
+    void AddMesh(std::shared_ptr<CMesh> pMesh);
 
+    // 名称相关
+    void SetName(const std::wstring &name) { m_name = name; }
+    const std::wstring &GetName() const { return m_name; }
+
+    // 模型变换
     void SetPosition(const Vector3 &position);
     void SetRotation(const Vector3 &eulerAngles);
     void SetScale(const Vector3 &scale);
     const Matrix4 &GetWorldMatrix() const;
 
+    // 边界框
     const Vector3 &GetMinBounds() const { return m_minBounds; }
     const Vector3 &GetMaxBounds() const { return m_maxBounds; }
     const Vector3 &GetCenter() const { return m_center; }
     float GetRadius() const { return m_radius; }
+    void DrawBoundingBox(const Vector3& color = Vector3(0, 1, 0)) const;
 
     BOOL IsPointInside(const Vector3 &point) const;
     BOOL IntersectsSphere(const Vector3 &center, float radius) const;
@@ -59,8 +68,10 @@ private:
     // "Resources/Models/ANBY/Anby.obj"
     std::wstring m_filePath; // 完整文件路径，用于重新加载等
 
+    std::wstring m_name;
+
     Vector3 m_position;
-    Quaternion m_rotation; // 建议用四元数，避免万向节死锁
+    Quaternion m_rotation;
     Vector3 m_scale = Vector3(1, 1, 1);
 
     mutable Matrix4 m_transform;   // 模型变换矩阵
@@ -71,6 +82,8 @@ private:
     Vector3 m_maxBounds;
     Vector3 m_center;
     float m_radius = 0.0f;
+
+    mutable Matrix4 m_invTransform; // 缓存逆矩阵
 
     // 添加边界框计算方法
     void CalculateBoundingBox();

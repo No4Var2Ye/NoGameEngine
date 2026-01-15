@@ -83,63 +83,115 @@ void CResourceManager::ReleaseUnusedResources()
 
 BOOL CResourceManager::CreateDefaultResources()
 {
-    // 创建默认纹理
-    // 这种格子图即使不看代码也能立刻发现纹理丢失
-    const int size = 64;
-    unsigned char data[size * size * 3];
-    for (int y = 0; y < size; y++)
-    {
-        for (int x = 0; x < size; x++)
-        {
-            int idx = (y * size + x) * 3;
-            bool isPink = ((x / 8) + (y / 8)) % 2 == 0;
-            if (isPink)
-            {
-                data[idx] = 255;
-                data[idx + 1] = 0;
-                data[idx + 2] = 255; // Magenta
-            }
-            else
-            {
-                data[idx] = 0;
-                data[idx + 1] = 0;
-                data[idx + 2] = 0; // Black
-            }
-        }
-    }
+    LogInfo(L"开始创建默认资源...\n");
 
-    // 注意：默认纹理存入一个特殊的 shared_ptr 成员变量
-    // 这样就永远不会被释放，直到管理器关闭
-    m_DefaultTexture = std::make_shared<CTexture>();
-    if (!m_DefaultTexture->LoadFromMemory(data, size, size, 3, GL_RGB))
+    // 1. 创建默认纹理
+    m_DefaultTexture = CreateDefaultTexture();
+    if (!m_DefaultTexture || !m_DefaultTexture->IsValid())
     {
+        LogError(L"创建默认纹理失败\n");
+        return FALSE;
+    }
+    m_DefaultTexture->SetWrapMode(GL_REPEAT, GL_REPEAT);
+    m_DefaultTexture->SetFilterMode(GL_LINEAR, GL_LINEAR);
+
+    // 2. 创建默认模型
+    m_DefaultModel = CreateDefaultModel();
+    if (!m_DefaultModel)
+    {
+        LogError(L"创建默认模型失败\n");
         return FALSE;
     }
 
-    // TODO: 创建默认 Shader
-    // 可以创建一个简单的只渲染纯色的 Shader 供出错时使用
+    // 3. 创建默认着色器（如果需要的话）
+    // m_DefaultShader = CreateDefaultShader();
+    // if (!m_DefaultShader)
+    // {
+    //     LogWarning(L"创建默认着色器失败（着色器是可选的）\n");
+    // }
+
+    LogInfo(L"默认资源创建成功！\n");
+    LogInfo(L"  - 默认纹理: %dx%d\n",
+            m_DefaultTexture->GetWidth(), m_DefaultTexture->GetHeight());
+    // LogInfo(L"  - 默认模型: 顶点数=%zu, 三角形数=%zu\n",
+    //    m_DefaultModel->GetVertexCount(), m_DefaultModel->GetTriangleCount());
 
     return TRUE;
 }
 
-std::shared_ptr<CModel> CResourceManager::CreateDefaultModel()
+BOOL CResourceManager::RecreateDefaultResources()
 {
-    // 创建一个简单的立方体模型
-    static std::weak_ptr<CModel> s_DefaultModel;
+    LogInfo(L"重新创建默认资源...\n");
 
-    if (auto model = s_DefaultModel.lock())
-        return model;
+    // 清理旧的兜底资源
+    m_DefaultTexture.reset();
+    m_DefaultModel.reset();
+    m_DefaultShader.reset();
 
-    auto model = std::make_shared<CModel>();
-    // 创建立方体数据...
-    s_DefaultModel = model;
-    return model;
+    // 重新创建
+    return CreateDefaultResources();
 }
 
-std::shared_ptr<CTexture> CResourceManager::GetTexture(const std::wstring &fileName)
+std::shared_ptr<CTexture> CResourceManager::CreateDefaultTexture()
 {
+    // 创建明显的棋盘格纹理，便于调试
+    const int size = 64;
+    std::vector<unsigned char> data(size * size * 4); // RGBA
+
+    for (int y = 0; y < size; y++)
+    {
+        for (int x = 0; x < size; x++)
+        {
+            int idx = (y * size + x) * 4;
+            bool isPink = ((x / 8) + (y / 8)) % 2 == 0;
+
+            if (isPink)
+            {
+                data[idx] = 255;     // R: 品红
+                data[idx + 1] = 0;   // G
+                data[idx + 2] = 255; // B
+                data[idx + 3] = 255; // A: 不透明
+            }
+            else
+            {
+                data[idx] = 0;       // R: 黑色
+                data[idx + 1] = 0;   // G
+                data[idx + 2] = 0;   // B
+                data[idx + 3] = 255; // A
+            }
+        }
+    }
+
+    auto texture = std::make_shared<CTexture>();
+    if (texture->LoadFromMemory(data.data(), size, size, 4, GL_RGBA))
+    {
+        // 给纹理一个描述性的名字
+        // texture->SetPath(L"[DefaultTexture]");
+        return texture;
+    }
+
+    LogError(L"从内存创建默认纹理失败\n");
+    return nullptr;
+}
+
+std::shared_ptr<CModel> CResourceManager::CreateDefaultModel()
+{
+    // 返回一个立方体作为默认模型
+    return CreateCubeModel();
+}
+
+std::shared_ptr<CTexture> CResourceManager::GetTexture(const std::wstring &filepath, PathType pathType)
+{
+    // 提取文件名
+    std::wstring fileName = filepath;
+    size_t lastSlash = filepath.find_last_of(L"/\\");
+    if (lastSlash != std::wstring::npos)
+    {
+        fileName = filepath.substr(lastSlash + 1);
+    }
+
     // 1. 缓存查找逻辑 (lock weak_ptr)...
-    auto it = m_Textures.find(fileName);
+    auto it = m_Textures.find(filepath);
     if (it != m_Textures.end())
     {
         // 尝试提升为 shared_ptr
@@ -156,23 +208,43 @@ std::shared_ptr<CTexture> CResourceManager::GetTexture(const std::wstring &fileN
     // 2. 如果没找到，加载默认材质
     auto newTex = std::make_shared<CTexture>();
 
-    std::wstring fullPath = m_Config.rootPath + L"/Textures/" + fileName;
+    std::wstring fullPath;
+    if (pathType == PathType::Relative)
+    {
+        fullPath = m_Config.GetTexturePath() + filepath;
+    }
+    else
+    {
+        // 走传入的原始路径: res/Models/Duck/DuckCM.png
+        // 这样就不会出现 res/Textures/res/Models/... 的套娃问题
+        fullPath = filepath;
+    }
+
+    // 3. 执行加载
     if (newTex->LoadFromFile(fullPath))
     {
         m_Textures[fileName] = newTex;
         return newTex;
     }
 
-    // 3. 文件加载失败
-    LogWarning(L"加载纹理失败: %ls. 使用默认样式。", fileName.c_str());
+    LogWarning(L"加载纹理失败: %ls. 使用默认样式. \n", fileName.c_str());
 
     return m_DefaultTexture;
 }
 
-std::shared_ptr<CModel> CResourceManager::GetModel(const std::wstring &fileName)
+std::shared_ptr<CModel> CResourceManager::GetModel(const std::wstring &filepath, PathType pathType)
 {
+    // 提取文件名
+    std::wstring fileName = filepath;
+    size_t lastSlash = filepath.find_last_of(L"/\\");
+    if (lastSlash != std::wstring::npos)
+    {
+        fileName = filepath.substr(lastSlash + 1);
+    }
+    // filename = Duck.obj
+
     // 1. 缓存查找
-    auto it = m_Models.find(fileName);
+    auto it = m_Models.find(filepath);
     if (it != m_Models.end())
     {
         if (auto shared = it->second.lock())
@@ -188,8 +260,9 @@ std::shared_ptr<CModel> CResourceManager::GetModel(const std::wstring &fileName)
     // 2. 加载新模型
     auto newModel = std::make_shared<CModel>();
 
-    // 拼接完整路径：rootPath/Models/fileName
-    std::wstring fullPath = m_Config.rootPath + L"/Models/" + fileName;
+    // 拼接完整路径：res/Models/fileName // fileName = Duck/Duck.obj
+    // exp: fullPath = res/Models/Duck/Duck.obj
+    std::wstring fullPath = m_Config.GetModelPath() + filepath;
 
     // 传入 this，允许 CModel 在加载过程中调用 GetTexture
     if (newModel->LoadFromFile(fullPath, this))
@@ -199,16 +272,86 @@ std::shared_ptr<CModel> CResourceManager::GetModel(const std::wstring &fileName)
     }
 
     // 3. 如果模型加载失败
-    // 注意：模型通常没有“兜底模型”，建议返回 nullptr 或一个简单的立方体模型
-    LogError((L"[Error]: 无法加载模型文件: " + fullPath + L"\n").c_str());
+    LogError(L"无法加载模型文件: %ls, 使用默认模型.\n", fullPath.c_str());
 
-    if (!newModel->LoadFromFile(fullPath, this))
+    // 确保默认模型存在
+    if (!m_DefaultModel)
     {
-        LogError((L"无法加载模型文件: " + fullPath + L"\n").c_str());
-
-        // 返回一个简单的立方体模型作为默认
-        return CreateDefaultModel();
+        m_DefaultModel = CreateDefaultModel();
+        if (!m_DefaultModel)
+        {
+            LogError(L"创建默认模型也失败了! \n");
+            return nullptr;
+        }
     }
 
-    return newModel;
+    return m_DefaultModel;
+}
+
+std::shared_ptr<CModel> CResourceManager::CreateCubeModel()
+{
+    // 创建立方体顶点数据
+    std::vector<Vertex> vertices = {
+        // 前面 (Z+)
+        {Vector3(-0.5f, -0.5f, 0.5f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f)},
+        {Vector3(0.5f, -0.5f, 0.5f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f)},
+        {Vector3(0.5f, 0.5f, 0.5f), Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f)},
+        {Vector3(-0.5f, 0.5f, 0.5f), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f)},
+
+        // 后面 (Z-)
+        {Vector3(0.5f, -0.5f, -0.5f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f)},
+        {Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f)},
+        {Vector3(-0.5f, 0.5f, -0.5f), Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f)},
+        {Vector3(0.5f, 0.5f, -0.5f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f)},
+
+        // 右面 (X+)
+        {Vector3(0.5f, -0.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f)},
+        {Vector3(0.5f, -0.5f, -0.5f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f)},
+        {Vector3(0.5f, 0.5f, -0.5f), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f)},
+        {Vector3(0.5f, 0.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f)},
+
+        // 左面 (X-)
+        {Vector3(-0.5f, -0.5f, -0.5f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f)},
+        {Vector3(-0.5f, -0.5f, 0.5f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f)},
+        {Vector3(-0.5f, 0.5f, 0.5f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f)},
+        {Vector3(-0.5f, 0.5f, -0.5f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f)},
+
+        // 顶面 (Y+)
+        {Vector3(-0.5f, 0.5f, 0.5f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f)},
+        {Vector3(0.5f, 0.5f, 0.5f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f)},
+        {Vector3(0.5f, 0.5f, -0.5f), Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f)},
+        {Vector3(-0.5f, 0.5f, -0.5f), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f)},
+
+        // 底面 (Y-)
+        {Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f)},
+        {Vector3(0.5f, -0.5f, -0.5f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f)},
+        {Vector3(0.5f, -0.5f, 0.5f), Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f)},
+        {Vector3(-0.5f, -0.5f, 0.5f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f)}};
+
+    std::vector<unsigned int> indices = {
+        // 前面
+        0, 1, 2, 0, 2, 3,
+        // 后面
+        4, 5, 6, 4, 6, 7,
+        // 右面
+        8, 9, 10, 8, 10, 11,
+        // 左面
+        12, 13, 14, 12, 14, 15,
+        // 顶面
+        16, 17, 18, 16, 18, 19,
+        // 底面
+        20, 21, 22, 20, 22, 23};
+
+    // 创建网格
+    auto mesh = std::make_shared<CMesh>(vertices, indices, m_DefaultTexture);
+
+    // 创建模型
+    auto model = std::make_shared<CModel>();
+    // 这里需要你的CModel有AddMesh方法
+    model->AddMesh(mesh);
+
+    // 设置模型名称
+    model->SetName(L"DefaultCube");
+
+    return model;
 }

@@ -602,7 +602,7 @@ void CRenderer::RenderText2D(const std::string &text, INT x, INT y,
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)
     {
-        LogError(L"OpenGL错误在文字渲染后: 0x%X", error);
+        LogError(L"OpenGL错误在文字渲染后: 0x%X.\n", error);
     }
 
     // 恢复矩阵
