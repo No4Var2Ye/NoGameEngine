@@ -1,6 +1,7 @@
 ﻿#ifndef __SCENEMANAGER_H__
 #define __SCENEMANAGER_H__
 
+#include <Windows.h>
 #include <memory>
 #include <vector>
 #include <string>

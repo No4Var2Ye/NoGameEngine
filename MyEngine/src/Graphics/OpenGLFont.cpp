@@ -1,9 +1,6 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
-
-#include <algorithm>
-#include <cstring>
 #include "Graphics/UI/OpenGLFont.h"
 #include "Core/Renderer.h"
 // ======================================================================

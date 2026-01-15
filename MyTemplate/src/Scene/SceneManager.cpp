@@ -1,6 +1,8 @@
-﻿#include "stdafx.h"
+﻿
+// ======================================================================
+#include "stdafx.h"
 #include "Scene/SceneManager.h"
-#include <algorithm>
+// ======================================================================
 
 /**
  * @brief 构造函数
@@ -400,7 +402,7 @@ void CSceneManager::Render()
     glClearColor(0.2f, 0.3f, 0.8f, 1.0f);  // 蓝色背景
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    DrawTestTriangle();
+    // DrawTestTriangle();
 
     // if (!m_Initialized || !m_RenderEnabled)
     //     return;
@@ -425,23 +427,6 @@ void CSceneManager::Render()
     // {
     //     RenderTransition();
     // }
-}
-
-void CSceneManager::DrawTestTriangle()
-{
-    // 绘制一个简单的彩色三角形
-    glBegin(GL_TRIANGLES);
-    
-    glColor3f(1.0f, 0.0f, 0.0f);  // 红色
-    glVertex3f(-0.5f, -0.5f, 0.0f);
-    
-    glColor3f(0.0f, 1.0f, 0.0f);  // 绿色
-    glVertex3f(0.5f, -0.5f, 0.0f);
-    
-    glColor3f(0.0f, 0.0f, 1.0f);  // 蓝色
-    glVertex3f(0.0f, 0.5f, 0.0f);
-    
-    glEnd();
 }
 
 /**

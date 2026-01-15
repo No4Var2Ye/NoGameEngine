@@ -7,53 +7,9 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include "Scene/Scene.h"
 // ======================================================================
 class CTexture;
-// ======================================================================
-/**
- * @brief 场景基类
- * @details 所有游戏场景必须继承自此类
- */
-class CScene
-{
-protected:
-    std::string m_Name;         // 场景名称
-    BOOL m_Initialized = FALSE; // 是否已初始化
-    BOOL m_Active = FALSE;      // 是否激活状态
-    BOOL m_Paused = FALSE;      // 是否暂停状态
-
-public:
-    CScene(const std::string &name) : m_Name(name) {}
-    virtual ~CScene() = default;
-
-    // 禁止拷贝
-    CScene(const CScene &) = delete;
-    CScene &operator=(const CScene &) = delete;
-
-    const std::string &GetName() const { return m_Name; } // 获取场景名称
-
-    BOOL IsInitialized() const { return m_Initialized; } // 检查场景是否已初始化
-    BOOL IsActive() const { return m_Active; }           // 检查场景是否激活
-    BOOL IsPaused() const { return m_Paused; }           // 检查场景是否暂停
-
-    // ======================================================================
-    // 生命周期方法
-    // ======================================================================
-    virtual BOOL Initialize() = 0;            // 初始化场景
-    virtual void Shutdown() = 0;              // 关闭场景
-    virtual void Render() = 0;                // 渲染场景
-    virtual void Update(FLOAT deltaTime) = 0; // 更新场景逻辑
-
-    virtual void OnActivate() {}   // 场景激活时调用
-    virtual void OnDeactivate() {} // 场景失活时调用
-    virtual void OnPause() {}      // 场景暂停时调用
-    virtual void OnResume() {}     // 场景恢复时调用
-
-    virtual void ProcessInput(FLOAT deltaTime) {} // 处理输入
-
-    virtual void Reload() {} // 重新加载场景资源
-};
-
 // ======================================================================
 /**
  * @brief 场景管理器类
@@ -65,6 +21,7 @@ private:
     std::vector<std::shared_ptr<CScene>> m_Scenes; // 所有场景
     std::shared_ptr<CScene> m_CurrentScene;        // 当前场景
     std::shared_ptr<CScene> m_NextScene;           // 下一个场景
+    std::unordered_map<std::string, std::shared_ptr<CScene>> m_SceneMap;
 
     BOOL m_Initialized = FALSE;        // 是否已初始化
     BOOL m_SceneChangePending = FALSE; // 是否有场景切换请求
@@ -87,9 +44,9 @@ private:
     DWORD m_TransitionStartTime = 0;  // 过渡开始时间
     DWORD m_TransitionWaitTime = 500; // 过渡等待时间（毫秒）
 
-    void PerformSceneChange(); // 执行场景切换
+    void PerformSceneChange();              // 执行场景切换
     void UpdateTransition(FLOAT deltaTime); // 更新场景过渡效果
-    void RenderTransition(); // 渲染场景过渡效果
+    void RenderTransition();                // 渲染场景过渡效果
 
 public:
     std::shared_ptr<CTexture> m_texture;
@@ -101,78 +58,29 @@ public:
     CSceneManager &operator=(const CSceneManager &) = delete;
 
     BOOL Initialize(); // 初始化场景管理器
-    void Shutdown(); // 关闭场景管理器
+    void Shutdown();   // 关闭场景管理器
 
     // ======================================================================
     // 场景管理
     // ======================================================================
 
-    // 注册场景, 传入场景指针
-    BOOL RegisterScene(std::shared_ptr<CScene> scene);
-
-    // 取消注册场景 传入场景名称
-    BOOL UnregisterScene(const std::string &sceneName);
-
-    /**
-     * @brief 获取场景
-     * @param sceneName 场景名称
-     * @return 场景指针，找不到返回nullptr
-     */
-    std::shared_ptr<CScene> GetScene(const std::string &sceneName) const;
-
-    // 获取当前场景
-    std::shared_ptr<CScene> GetCurrentScene() const { return m_CurrentScene; }
-
-    // 获取场景数量
-    size_t GetSceneCount() const { return m_Scenes.size(); }
-
-    // 获取所有场景名称
-    void GetAllSceneNames(std::vector<std::string> &names) const;
+    BOOL RegisterScene(std::shared_ptr<CScene> scene);                         // 注册场景, 传入场景指针
+    BOOL UnregisterScene(const std::string &sceneName);                        // 取消注册场景 传入场景名称
+    std::shared_ptr<CScene> GetScene(const std::string &sceneName) const;      // 获取场景
+    std::shared_ptr<CScene> GetCurrentScene() const { return m_CurrentScene; } // 获取当前场景
+    size_t GetSceneCount() const { return m_Scenes.size(); }                   // 获取场景数量
+    void GetAllSceneNames(std::vector<std::string> &names) const;              // 获取所有场景名称
 
     // ======================================================================
     // 场景切换
     // ======================================================================
 
-    /**
-     * @brief 切换到指定场景
-     * @param sceneName 场景名称
-     * @param withTransition 是否使用过渡效果
-     * @return 切换成功返回TRUE，失败返回FALSE
-     */
-    BOOL ChangeScene(const std::string &sceneName, BOOL withTransition = TRUE);
-
-    /**
-     * @brief 直接切换到指定场景（无过渡效果）
-     * @param sceneName 场景名称
-     * @return 切换成功返回TRUE，失败返回FALSE
-     */
-    BOOL ChangeSceneImmediate(const std::string &sceneName);
-
-    /**
-     * @brief 切换到下一个场景
-     * @param withTransition 是否使用过渡效果
-     * @return 切换成功返回TRUE，失败返回FALSE
-     */
-    BOOL ChangeToNextScene(BOOL withTransition = TRUE);
-
-    /**
-     * @brief 切换到上一个场景
-     * @param withTransition 是否使用过渡效果
-     * @return 切换成功返回TRUE，失败返回FALSE
-     */
-    BOOL ChangeToPreviousScene(BOOL withTransition = TRUE);
-
-    /**
-     * @brief 重启当前场景
-     * @param withTransition 是否使用过渡效果
-     */
-    void RestartCurrentScene(BOOL withTransition = TRUE);
-
-    /**
-     * @brief 检查是否正在切换场景
-     * @return 正在切换返回TRUE，否则返回FALSE
-     */
-    BOOL IsChangingScene() const { return m_SceneChangePending || m_TransitionState != TransitionState::None; }
+    BOOL ChangeScene(const std::string &sceneName, BOOL withTransition = TRUE);                                 // 切换到指定场景
+    BOOL ChangeSceneImmediate(const std::string &sceneName);                                                    // 直接切换到指定场景（无过渡效果）
+    BOOL ChangeToNextScene(BOOL withTransition = TRUE);                                                         // 切换到下一个场景
+    BOOL ChangeToPreviousScene(BOOL withTransition = TRUE);                                                     // 切换到上一个场景
+    void RestartCurrentScene(BOOL withTransition = TRUE);                                                       // 重启当前场景
+    BOOL IsChangingScene() const { return m_SceneChangePending || m_TransitionState != TransitionState::None; } // 检查是否正在切换场景
 
     // ======================================================================
     // 场景控制

@@ -1,7 +1,6 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
-#include <algorithm>
 #include "EngineConfig.h"
 #include "Scene/SceneManager.h"
 #include "Core/GameEngine.h"
@@ -593,38 +592,37 @@ void CSceneManager::Render()
     if (!m_Initialized || !m_RenderEnabled)
         return;
 
-    glMatrixMode(GL_MODELVIEW);
+    // glMatrixMode(GL_MODELVIEW);
+    // DrawGrid();
+    // // DrawColorCube();
+    // // DrawTexturedCube();
+    // RenderTestModel();
 
-    DrawGrid();
-    // DrawColorCube();
-    // DrawTexturedCube();
-    RenderTestModel();
+    SwapBuffers(wglGetCurrentDC());
 
-    // SwapBuffers(wglGetCurrentDC());
+    if (!m_Initialized || !m_RenderEnabled)
+        return;
 
-    // if (!m_Initialized || !m_RenderEnabled)
-    //     return;
+    // 渲染当前场景
+    if (m_CurrentScene && !IsInTransition())
+    {
+        m_CurrentScene->Render();
+    }
+    else if (IsInTransition())
+    {
+        // 在过渡期间，可能需要渲染前后两个场景
+        // 这里简化处理，只渲染当前场景
+        if (m_CurrentScene)
+        {
+            m_CurrentScene->Render();
+        }
+    }
 
-    // // 渲染当前场景
-    // if (m_CurrentScene && !IsInTransition())
-    // {
-    //     m_CurrentScene->Render();
-    // }
-    // else if (IsInTransition())
-    // {
-    //     // 在过渡期间，可能需要渲染前后两个场景
-    //     // 这里简化处理，只渲染当前场景
-    //     if (m_CurrentScene)
-    //     {
-    //         m_CurrentScene->Render();
-    //     }
-    // }
-
-    // // 渲染过渡效果
-    // if (IsInTransition())
-    // {
-    //     RenderTransition();
-    // }
+    // 渲染过渡效果
+    if (IsInTransition())
+    {
+        RenderTransition();
+    }
 }
 
 void CSceneManager::UpdateTransition(FLOAT deltaTime)
@@ -821,6 +819,7 @@ void CSceneManager::RenderTestModel()
     glPushMatrix();
 
     g_pTestModel->Draw();
+    g_pTestModel->DrawBoundingBox();
 
     glPopMatrix();
 }

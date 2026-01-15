@@ -6,6 +6,9 @@
 #include <windows.h>
 #include <string>
 #include <memory>
+#include <vector>
+#include <algorithm>
+#include <unordered_map>
 #include "EngineConfig.h"
 #include "GL/gl.h"
 #include "Math/Vector3.h"
@@ -14,54 +17,66 @@
 // ======================================================================
 class CModel;
 // ======================================================================
-class CEntity
+class CEntity : public std::enable_shared_from_this<CEntity>
 {
 public:
-    CEntity();
     virtual ~CEntity() = default;
+
+    CEntity(const CEntity &) = delete;
+    CEntity &operator=(const CEntity &) = delete;
+
+    void SetParent(std::shared_ptr<CEntity> pParent);
+    void AddChild(std::shared_ptr<CEntity> pChild);
+    BOOL RemoveChild(unsigned int uID);
 
     // 更新与渲染
     virtual void Update(float deltaTime);
     virtual void Render() = 0;
+
+    unsigned int GetID() const { return m_uID; }
 
     // 实体名称
     void SetName(const std::wstring &name) { m_name = name; }
     const std::wstring &GetName() const { return m_name; }
 
     // 变换操作
-    void SetPosition(const Vector3 &pos)
-    {
-        m_position = pos;
-        m_isDirty = true;
-    }
-    void SetRotation(const Vector3 &euler)
-    {
-        m_rotation = Quaternion::FromEuler(euler.x, euler.y, euler.z);
-        m_isDirty = true;
-    }
-    void SetScale(const Vector3 &scale)
-    {
-        m_scale = scale;
-        m_isDirty = true;
-    }
+    void SetPosition(const Vector3 &pos);
+    void SetRotation(const Vector3 &euler);
+    void SetScale(const Vector3 &scale);
+    Vector3 GetWorldPosition() const;
+    Matrix4 GetWorldMatrix() const;
 
     // 可见性控制
     void SetVisible(BOOL visible) { m_bVisible = visible; }
     BOOL IsVisible() const { return m_bVisible; }
 
+private:
+    unsigned int m_uID = 0;
+
 protected:
+    CEntity();
+
+    static unsigned int s_nextID;
     std::wstring m_name;
+    std::weak_ptr<CEntity> m_pParent;
+    std::vector<std::shared_ptr<CEntity>> m_children;
+    std::unordered_map<unsigned int, std::shared_ptr<CEntity>> m_childrenMap;
+
+    void InternalAddChild(std::shared_ptr<CEntity> pChild);
+    void InternalRemoveChild(unsigned int uID);
 
     // 变换属性
     Vector3 m_position;
     Quaternion m_rotation;
     Vector3 m_scale;
 
-    mutable Matrix4 m_worldMatrix;
-    mutable bool m_isDirty;
-    BOOL m_bVisible = true;
+    mutable Matrix4 m_cachedWorldMatrix;
+    mutable BOOL m_bWorldDirty;
+
+    BOOL m_bVisible;
 
     void ApplyTransform() const;
+    void MarkDirty();
 };
 
 #endif // __ENTITY_H__

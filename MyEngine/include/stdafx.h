@@ -21,6 +21,7 @@
 #include <ctime>
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 
 // ======================================================================
 // 项目宏定义

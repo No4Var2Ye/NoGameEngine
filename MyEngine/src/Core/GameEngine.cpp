@@ -45,7 +45,7 @@ CGameEngine::CGameEngine()
 // ======================================================================
 BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 {
-    LogInfo(L"=--=--=--=--=--=--=--= 引擎初始化开始 =--=--=--=--=--=--=--=\n");
+    LogInfo(L"=--=--=--=--=--=--=--=--= 引擎初始化开始 =--=--=--=--=--=--=--=--=\n");
 
     // 判断是是否已经初始化
     if (m_Initialized)
