@@ -234,3 +234,11 @@ C/C++
 输入 glu32.lib;glaux.lib;opengl32.lib;
 
 命令行 /SAFESEH:NO 
+
+## 启动全局代理配置
+git config --global http.proxy socks5://127.0.0.1:7890
+git config --global https.proxy socks5://127.0.0.1:7890
+
+#取消配置
+git config --global --unset http.proxy
+git config --global --unset https.proxy

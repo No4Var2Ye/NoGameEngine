@@ -2,14 +2,27 @@
 // ======================================================================
 #include "stdafx.h"
 #include <iostream>
+#include <cfloat>
+#include "EngineConfig.h"
 #include "Resources/Model.h"
+#include "Resources/Mesh.h"
 #include "Resources/ResourceManager.h"
-#include "Math/MathConverter.h" // 之前编写的转换类
+#include "Math/MathConverter.h"
 #include "Utils/StringUtils.h"
 // ======================================================================
 
 BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMgr)
 {
+    if (!pResMgr)
+    {
+        LogError(L"ResourceManager为空\n");
+        return FALSE;
+    }
+
+    Unload();
+
+    m_filePath = filePath;
+
     Assimp::Importer importer;
 
     // 1. 将 wstring 转为 string (Assimp 接口要求)
@@ -52,17 +65,40 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
     size_t lastSlash = filePath.find_last_of(L"/\\");
     m_directory = (lastSlash != std::wstring::npos) ? filePath.substr(0, lastSlash) : L"";
 
+
     // 4. 递归处理节点
     m_meshes.reserve(scene->mNumMeshes); // 预分配内存
     ProcessNode(scene->mRootNode, scene, pResMgr);
 
-    return true;
+    if (m_meshes.empty())
+    {
+        LogWarning(L"No meshes loaded from: %ls", filePath);
+        return FALSE;
+    }
+
+    // TODO: 5. 计算边界框
+    // CalculateBoundingBox();
+
+    // LOG_WARNING(L"Model loaded successfully: %ls, %d meshes", filePath.c_str(), m_meshes.size());
+
+    return TRUE;
 }
 
 void CModel::Unload()
 {
     m_meshes.clear();
     m_directory.clear();
+
+    m_minBounds = Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
+    m_maxBounds = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    m_center = Vector3::Zero();
+    m_radius = 0.0f;
+
+    m_position = Vector3::Zero();
+    m_rotation = Quaternion::Identity();
+    m_scale = Vector3(1, 1, 1);
+    m_isDirty = true;
+    m_transform = Matrix4::Identity();
 }
 
 void CModel::ProcessNode(aiNode *node, const aiScene *scene, CResourceManager *pResMgr)
@@ -149,84 +185,143 @@ std::shared_ptr<CMesh> CModel::ProcessMesh(aiMesh *mesh, const aiScene *scene, C
         // 可以存储顶点颜色到自定义属性
     }
 
-    // 4. 处理材质（贴图）
+    // 4. 处理材质贴图
     std::shared_ptr<CTexture> pTex = nullptr;
-    std::shared_ptr<CTexture> pSpecularTex = nullptr;
-    std::shared_ptr<CTexture> pNormalTex = nullptr;
 
-    if (mesh->mMaterialIndex >= 0 && pResMgr)
+    CMesh::SimpleMaterial material; // 默认材质
+
+    if (mesh->mMaterialIndex >= 0)
     {
-        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+        aiMaterial *mat = scene->mMaterials[mesh->mMaterialIndex];
 
-        // 尝试加载漫反射贴图
-        pTex = LoadMaterialTexture(material, aiTextureType_DIFFUSE, pResMgr);
+        // 加载漫反射贴图
+        pTex = LoadMaterialTexture(mat, aiTextureType_DIFFUSE, pResMgr);
 
         // 如果没有漫反射贴图，尝试其他类型
         if (!pTex)
         {
-            pTex = LoadMaterialTexture(material, aiTextureType_AMBIENT, pResMgr);
+            pTex = LoadMaterialTexture(mat, aiTextureType_AMBIENT, pResMgr);
         }
 
-        // 加载高光贴图
-        pSpecularTex = LoadMaterialTexture(material, aiTextureType_SPECULAR, pResMgr);
-
-        // 加载法线贴图
-        pNormalTex = LoadMaterialTexture(material, aiTextureType_NORMALS, pResMgr);
-        if (!pNormalTex)
+        // 获取材质名称
+        aiString matName;
+        if (mat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS)
         {
-            pNormalTex = LoadMaterialTexture(material, aiTextureType_HEIGHT, pResMgr);
+            material.name = matName.C_Str();
+        }
+
+        // 获取材质颜色
+        aiColor3D color(0.0f, 0.0f, 0.0f);
+
+        // 漫反射颜色
+        if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+        {
+            material.diffuse = Vector3(color.r, color.g, color.b);
+        }
+
+        // 镜面反射颜色
+        if (mat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
+        {
+            material.specular = Vector3(color.r, color.g, color.b);
+        }
+
+        // 环境光颜色
+        if (mat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
+        {
+            material.ambient = Vector3(color.r, color.g, color.b);
+        }
+
+        // 高光指数
+        if (mat->Get(AI_MATKEY_SHININESS, material.shininess) != AI_SUCCESS)
+        {
+            material.shininess = 32.0f;
+        }
+
+        // 透明度
+        float opacity = 1.0f;
+        if (mat->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS)
+        {
+            material.opacity = opacity;
+        }
+
+        // 高光强度
+        float shininessStrength = 1.0f;
+        if (mat->Get(AI_MATKEY_SHININESS_STRENGTH, shininessStrength) == AI_SUCCESS)
+        {
+            material.specular *= shininessStrength;
         }
     }
 
     // 6. 创建网格
     auto pMesh = std::make_shared<CMesh>(vertices, indices, pTex);
 
-    // 7. 可以设置其他材质属性
-    if (pMesh && mesh->mMaterialIndex >= 0 && pResMgr)
-    {
-        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+    // 7. 设置材质
+    pMesh->SetMaterial(material);
 
-        // 获取材质颜色
-        aiColor3D diffuse(0.f, 0.f, 0.f);
-        aiColor3D specular(0.f, 0.f, 0.f);
-        aiColor3D ambient(0.f, 0.f, 0.f);
-        float shininess = 0.0f;
+    // 创建网格ID
+    pMesh->SetSubMeshID(mesh->mMaterialIndex);
 
-        material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-        material->Get(AI_MATKEY_COLOR_SPECULAR, specular);
-        material->Get(AI_MATKEY_COLOR_AMBIENT, ambient);
-        material->Get(AI_MATKEY_SHININESS, shininess);
-
-        // 可以将这些值存储到网格中
-        // pMesh->SetMaterialProperties(diffuse, specular, ambient, shininess);
-    }
-
-    return std::make_shared<CMesh>(vertices, indices, pTex);
+    return pMesh;
 }
 
 std::shared_ptr<CTexture> CModel::LoadMaterialTexture(aiMaterial *mat, aiTextureType type, CResourceManager *pResMgr)
 {
-    if (mat->GetTextureCount(type) > 0)
+    if (!mat || !pResMgr)
+        return nullptr;
+
+    if (mat->GetTextureCount(type) <= 0)
+        return nullptr;
+
+    aiString str;
+    if (mat->GetTexture(type, 0, &str) != AI_SUCCESS)
+        return nullptr;
+
+    std::string fileName = str.C_Str();
+    if (fileName.empty())
+        return nullptr;
+
+    // 转换为宽字符串
+    std::wstring wFileName(fileName.begin(), fileName.end());
+
+    // 处理嵌入纹理
+    if (fileName[0] == '*')
     {
-        aiString str;
-        mat->GetTexture(type, 0, &str);
-
-        // INFO: 将 Assimp 路径转为相对路径（假设贴图在模型同级目录）
-        std::string fileName = str.C_Str();
-        std::wstring wFileName(fileName.begin(), fileName.end());
-
-        // 从资源管理器获取贴图
-        return pResMgr->GetTexture(wFileName);
+        LogWarning(L"Embedded textures not supported: %ls", wFileName.c_str());
+        return nullptr;
     }
-    return nullptr;
+
+    // 获取文件名
+    size_t lastSlash = wFileName.find_last_of(L"/\\");
+    if (lastSlash != std::wstring::npos)
+    {
+        wFileName = wFileName.substr(lastSlash + 1);
+    }
+
+    // 构建完整的纹理路径
+    std::wstring fullPath = m_directory + L"/" + wFileName;
+
+    return pResMgr->GetTexture(fullPath);
 }
 
 void CModel::Draw() const
 {
+    if (m_meshes.empty())
+        return;
+
+    // 保存当前矩阵
+    glPushMatrix();
+
+    // 应用模型变换
+    const Matrix4 &worldMat = GetWorldMatrix();
+    glMultMatrixf(worldMat.GetData());
+
     for (const auto &mesh : m_meshes)
     {
         mesh->Draw();
     }
+
+    // 恢复矩阵
+    glPopMatrix();
 }
 
 void CModel::SetPosition(const Vector3 &position)
@@ -253,8 +348,66 @@ const Matrix4 &CModel::GetWorldMatrix() const
     {
         // 矩阵合成顺序：缩放 -> 旋转 -> 平移 (TRS)
         // 注意：矩阵乘法顺序取决于你的 Matrix4 实现，通常是 T * R * S
-        m_transform = Matrix4::Translation(m_position) * m_rotation.ToMatrix() * Matrix4::Scale(m_scale);
-        m_isDirty = false;
+        m_transform = Matrix4::TRS(m_position, m_rotation, m_scale);
+        m_isDirty = FALSE;
     }
     return m_transform;
+}
+
+void CModel::CalculateBoundingBox()
+{
+    if (m_meshes.empty())
+    {
+        m_minBounds = m_maxBounds = m_center = Vector3::Zero();
+        m_radius = 0.0f;
+        return;
+    }
+
+    m_minBounds = Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
+    m_maxBounds = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+    for (const auto &mesh : m_meshes)
+    {
+        for (const auto &vertex : mesh->GetVertices())
+        {
+            // 更新最小边界
+            m_minBounds.x = std::min(m_minBounds.x, vertex.Position.x);
+            m_minBounds.y = std::min(m_minBounds.y, vertex.Position.y);
+            m_minBounds.z = std::min(m_minBounds.z, vertex.Position.z);
+
+            // 更新最大边界
+            m_maxBounds.x = std::max(m_maxBounds.x, vertex.Position.x);
+            m_maxBounds.y = std::max(m_maxBounds.y, vertex.Position.y);
+            m_maxBounds.z = std::max(m_maxBounds.z, vertex.Position.z);
+        }
+    }
+
+    m_center = (m_minBounds + m_maxBounds) * 0.5f;
+    m_radius = (m_maxBounds - m_minBounds).Length() * 0.5f;
+}
+
+BOOL CModel::IsPointInside(const Vector3 &point) const
+{
+    Vector3 localPoint = point - m_position;
+
+    // 简单AABB检测
+    return (localPoint.x >= m_minBounds.x && localPoint.x <= m_maxBounds.x &&
+            localPoint.y >= m_minBounds.y && localPoint.y <= m_maxBounds.y &&
+            localPoint.z >= m_minBounds.z && localPoint.z <= m_maxBounds.z);
+}
+
+BOOL CModel::IntersectsSphere(const Vector3 &center, float radius) const
+{
+    Vector3 closestPoint;
+
+    // 找到AABB上离球心最近的点
+    closestPoint.x = std::max(m_minBounds.x, std::min(center.x, m_maxBounds.x));
+    closestPoint.y = std::max(m_minBounds.y, std::min(center.y, m_maxBounds.y));
+    closestPoint.z = std::max(m_minBounds.z, std::min(center.z, m_maxBounds.z));
+
+    // 计算距离
+    Vector3 difference = center - closestPoint;
+    float distanceSquared = difference.LengthSquared();
+
+    return distanceSquared <= (radius * radius);
 }

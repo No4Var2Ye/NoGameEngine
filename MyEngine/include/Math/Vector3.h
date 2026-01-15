@@ -18,6 +18,17 @@ public:
     Vector3(const Vector2 &vec2, float z = 0.0f) : x(vec2.x), y(vec2.y), z(z) {}
     explicit Vector3(float scalar) : x(scalar), y(scalar), z(scalar) {}
 
+    // 添加：获取底层数据指针的方法（用于 OpenGL 函数）
+    const float *GetData() const
+    {
+        return &x;
+    }
+
+    float *GetData()
+    {
+        return &x;
+    }
+
     // 访问运算符
     float &operator[](int index)
     {
@@ -27,6 +38,16 @@ public:
     const float &operator[](int index) const
     {
         return (&x)[index];
+    }
+
+    operator const float *() const
+    {
+        return &x;
+    }
+
+    operator float *()
+    {
+        return &x;
     }
 
     // 向量运算

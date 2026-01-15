@@ -77,3 +77,9 @@ NDC（Normalized Device Coordinates，归一化设备坐标）是指在裁剪空
 
 状态保护: 在绘制临时对象（如 HUD）前使用 PushState()，绘制结束后 PopState()，确保状态不污染主管线。
 
+[简单模型地址](https://github.com/KhronosGroup/glTF-Sample-Models/)
+```sh
+git clone --filter=blob:none --sparse https://github.com/KhronosGroup/glTF-Sample-Models.git
+cd glTF-Sample-Models
+git sparse-checkout set 2.0/Duck
+```

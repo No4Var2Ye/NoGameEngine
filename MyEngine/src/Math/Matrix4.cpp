@@ -22,23 +22,11 @@ Matrix4::Matrix4(float _m00, float _m01, float _m02, float _m03,
                  float _m20, float _m21, float _m22, float _m23,
                  float _m30, float _m31, float _m32, float _m33)
 {
-    m00 = _m00;
-    m01 = _m01;
-    m02 = _m02;
-    m03 = _m03;
-    m10 = _m10;
-    m11 = _m11;
-    m12 = _m12;
-    m13 = _m13;
-    m20 = _m20;
-    m21 = _m21;
-    m22 = _m22;
-    m23 = _m23;
-    m30 = _m30;
-    m31 = _m31;
-    m32 = _m32;
-    m33 = _m33;
-}
+    m00 = _m00;m01 = _m01;m02 = _m02;m03 = _m03; //
+    m10 = _m10;m11 = _m11;m12 = _m12;m13 = _m13; //
+    m20 = _m20;m21 = _m21;m22 = _m22;m23 = _m23; //
+    m30 = _m30;m31 = _m31;m32 = _m32;m33 = _m33; //
+    }
 
 // 矩阵运算
 Matrix4 Matrix4::operator+(const Matrix4 &other) const
@@ -394,6 +382,15 @@ Matrix4 Matrix4::LookAt(const Vector3 &eye, const Vector3 &target, const Vector3
     //     Vector3::Dot(f, eye),  // 第四列 (平移Z)
     //     1.0f                   // 第四列 (W)
     // );
+}
+
+// TRS 矩阵（平移*旋转*缩放）
+Matrix4 Matrix4::TRS(const Vector3& translation, const Quaternion& rotation, const Vector3& scale)
+{
+    Matrix4 s = Scale(scale);
+    Matrix4 r = Rotation(rotation);
+    Matrix4 t = Translation(translation);
+    return t * r * s;  // OpenGL: 先缩放，再旋转，最后平移
 }
 
 // 投影矩阵

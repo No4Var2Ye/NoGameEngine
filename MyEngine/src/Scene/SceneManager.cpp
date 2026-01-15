@@ -10,11 +10,20 @@
 #include "Resources/Model.h"
 #include "Resources/Entity.h"
 // ======================================================================
-std::shared_ptr<CTexture> g_pTexture = nullptr;
-BOOL g_bTextureLoaded = FALSE;
-CTexture g_texture;
-ResourceConfig config;
-FLOAT angle = 0.0f;
+namespace
+{
+    std::shared_ptr<CTexture> g_pTexture = nullptr;
+    BOOL g_bTextureLoaded = FALSE;
+    CTexture g_texture;
+    ResourceConfig config;
+    FLOAT angle = 0.0f;
+    std::shared_ptr<CModel> g_pTestModel = nullptr;
+    BOOL g_bModelLoaded = FALSE;
+    FLOAT g_modelRotation = 0.0f;
+    Vector3 g_modelPosition = Vector3(5.0f, 0.0f, 0.0f);
+    FLOAT g_modelScale = 0.05f;
+    BOOL g_showModel = TRUE;
+}
 
 void DrawGrid()
 {
@@ -578,9 +587,9 @@ void CSceneManager::Render()
     glMatrixMode(GL_MODELVIEW);
 
     DrawGrid();
-    DrawColorCube();
-    DrawTexturedCube();
-    // CreateDemoScene();
+    // DrawColorCube();
+    // DrawTexturedCube();
+    CreateDemoScene();
 
     // SwapBuffers(wglGetCurrentDC());
 
@@ -752,37 +761,62 @@ void CSceneManager::CreateDemoScene()
 {
     // 获取资源管理器（假设你可以通过引擎单例访问）
     auto resMgr = CGameEngine::GetInstance().GetResourceManager();
-
-    // 1. 获取模型
-    // auto pModel = resMgr->GetModel(L"teaport/teaport.obj");
-    auto pModel = resMgr->GetModel(L"model.3ds");
-
-    // 2. 创建实体并绑定模型
-    pModel->SetPosition(Vector3(5, 0, 0));
-    pModel->SetScale(Vector3(0.1f, 0.1f, 0.1f));
-
-    if (pModel)
+    if (!resMgr)
     {
-        // 保护当前矩阵状态
-        glPushMatrix();
-
-        // --- 应用变换 ---
-        // 获取模型内部合成的 Matrix4（包含你设置的 Position 等）
-        // 确保你的 CModel 有一个 GetTransform() 返回 m_transform
-        Matrix4 matWorld = pModel->GetWorldMatrix();
-
-        // 直接将你的矩阵应用到固定管线
-        // 因为你的 Matrix4 内部是 union 里的 m[16]，且是列优先，直接传即可
-        glMultMatrixf(matWorld.m);
-
-        // --- 执行绘制 ---
-        pModel->Draw();
-
-        // 恢复矩阵状态
-        glPopMatrix();
+        LogError(L"ResourceManager is not available");
+        return;
     }
-    // auto pEntity = std::make_shared<CEntity>(pModel);
-    // pEntity->SetPosition(Vector3(-10, 0, 0));
 
-    // m_entities.push_back(pEntity);
+    // 尝试加载模型
+    g_pTestModel = std::make_shared<CModel>();
+
+    std::vector<std::wstring> modelPaths = {
+        L"res/Models/Duck/glTF/Duck.gltf"
+        // L"res/Models/Cube/cube.obj"
+        // L"res/Models/teaport/teaport.obj"
+    };
+
+    BOOL modelLoaded = FALSE;
+    for (const auto &path : modelPaths)
+    {
+        // LogInfo(L"Trying to load model: %ls", path.c_str());
+
+        if (g_pTestModel->LoadFromFile(path, resMgr))
+        {
+            // LogInfo(L"Model loaded successfully: %ls", path.c_str());
+            modelLoaded = TRUE;
+            break;
+        }
+    }
+
+    if (!modelLoaded)
+    {
+        LogError(L"Failed to load any model file");
+        g_pTestModel.reset();
+        return;
+    }
+
+    g_bModelLoaded = TRUE;
+
+    // 设置初始位置和缩放
+    g_pTestModel->SetPosition(g_modelPosition);
+    g_pTestModel->SetScale(Vector3(g_modelScale, g_modelScale, g_modelScale));
+
+    glPushMatrix();
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    GLfloat lightPos[] = {5.0f, 5.0f, 5.0f, 1.0f};
+    GLfloat lightAmb[] = {0.2f, 0.2f, 0.2f, 1.0f};
+    GLfloat lightDif[] = {0.8f, 0.8f, 0.8f, 1.0f};
+
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmb);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDif);
+
+    g_pTestModel->Draw();
+
+    glDisable(GL_LIGHT0);
+    glDisable(GL_LIGHTING);
+    glPopMatrix();
 }

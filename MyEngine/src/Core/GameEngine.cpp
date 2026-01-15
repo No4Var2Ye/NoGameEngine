@@ -262,6 +262,7 @@ INT CGameEngine::Run()
                 m_pMainCamera->ApplyProjectionMatrix();
                 m_pMainCamera->ApplyViewMatrix();
                 m_SceneManager->Render();
+                
 
                 m_Renderer->PushState();
                 if (m_ShowDebugInfo)

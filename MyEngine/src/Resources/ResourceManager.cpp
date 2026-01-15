@@ -20,7 +20,7 @@ BOOL CResourceManager::Initialize(const ResourceConfig &config)
     // 加载兜底资源
     if (!CreateDefaultResources())
     {
-        OutputDebugStringA("Error: Failed to create default engine resources!\n");
+        LogError(L"创建引擎默认资源失败\n");
         return FALSE;
     }
 
@@ -41,7 +41,7 @@ void CResourceManager::Shutdown()
     // 3. 可以在这里打印一份资源残留报告
     // 如果此时还有资源没释放，说明代码里有地方产生了“内存泄漏”（循环引用或没删除的shared_ptr）
 
-    OutputDebugStringW(L"========= 资源管理器关闭成功 =========\n");
+    LogInfo(L"========= 资源管理器关闭成功 =========\n");
 }
 
 void CResourceManager::ReleaseUnusedResources()

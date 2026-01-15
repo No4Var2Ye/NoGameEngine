@@ -3,10 +3,11 @@
 #define __MATRIX4_H__
 // ======================================================================
 
+#include <cmath>
+#include <string>
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
 #include "Math/Quaternion.h"
-#include <cmath>
 // ======================================================================
 
 class Quaternion;
@@ -49,6 +50,26 @@ public:
     const float &operator()(int row, int col) const
     {
         return m4[col][row];
+    }
+    
+    const float* GetData() const
+    {
+        return m;
+    }
+
+        float* GetData()
+    {
+        return m;
+    }
+
+    operator const float*() const
+    {
+        return m;
+    }
+
+    operator float*()
+    {
+        return m;
     }
 
     // 矩阵运算
@@ -95,6 +116,9 @@ public:
     static Matrix4 Rotation(const Quaternion &q);
     static Matrix4 Scale(const Vector3 &scale);
     static Matrix4 Scale(float scale);
+
+    // TRS 矩阵（平移*旋转*缩放）
+    static Matrix4 TRS(const Vector3& translation, const Quaternion& rotation, const Vector3& scale);
 
     // 视图矩阵
     static Matrix4 LookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up);

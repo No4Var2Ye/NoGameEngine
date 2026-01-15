@@ -33,4 +33,7 @@ tmp/**/*
 *.cache
 *.ipch
 
-res/Models/*
+**/res/Models/*
+!**/res/Models/Duck
+
+
