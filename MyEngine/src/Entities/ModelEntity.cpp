@@ -41,12 +41,14 @@ void CModelEntity::Render()
     // 3. 真正绘制模型数据
     m_pModel->Draw();
 
-    // FIXME:
-    SetDrawBoundingBox(TRUE);
+    // 4. 绘制包围盒
+    if (m_bDrawBBox) {
+        m_pModel->DrawBoundingBox(); 
+    }
 
-    if (m_bDrawBBox)
-    {
-        m_pModel->DrawBoundingBox();
+    // 5. 绘制法线
+    if (m_bDrawNormals) {
+        m_pModel->DrawNormals(m_fNormalScale, m_uNormalStep);
     }
 
     // 4. 恢复矩阵状态

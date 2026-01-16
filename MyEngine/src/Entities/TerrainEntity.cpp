@@ -14,16 +14,19 @@ unsigned int CTerrainEntity::s_nextID = 3000;
 
 CTerrainEntity::CTerrainEntity()
     : m_uTextureID(0),
-      m_width(0),                            //
-      m_height(0),                           //
-      m_cellSize(0.0f),                      //
-      m_maxHeight(10.0f),                    //
-      m_bWireframe(false),                   //
-      m_iLODLevel(1),                        //
-      m_bUseVBO(false),                      //
-      m_vertexBuffer(0),                     //
-      m_indexBuffer(0),                      //
-      m_terrainColor(0.3f, 0.6f, 0.3f, 1.0f) // 默认绿色
+      m_width(0),                             // 宽度
+      m_height(0),                            // 高度
+      m_cellSize(0.0f),                       //
+      m_maxHeight(15.0f),                     // 最大高度
+      m_bWireframe(FALSE),                    //
+      m_iLODLevel(1),                         //
+      m_bUseVBO(FALSE),                       //
+      m_vertexBuffer(0),                      //
+      m_indexBuffer(0),                       //
+      m_terrainColor(0.5f, 0.5f, 0.5f, 1.0f), // 地形颜色灰色
+      m_bDrawNormals(FALSE),                  // 是否绘制法线
+      m_uNormalStep(5),                       // 法线步长
+      m_fNormalScale(10.0f)                   // 法线长度
 {
     SetName(L"Terrain");
 }
@@ -38,6 +41,17 @@ CTerrainEntity::~CTerrainEntity()
         if (m_indexBuffer)
             glDeleteBuffers(1, &m_indexBuffer);
     }
+}
+
+std::shared_ptr<CTerrainEntity> CTerrainEntity::Create(const std::wstring &heightmapPath, float size, float maxHeight)
+{
+    auto entity = std::shared_ptr<CTerrainEntity>(new CTerrainEntity());
+    entity->m_uID = ++s_nextID;
+    if (entity->LoadHeightmap(heightmapPath, size, maxHeight))
+    {
+        return entity;
+    }
+    return nullptr;
 }
 
 std::shared_ptr<CTerrainEntity> CTerrainEntity::CreateProcedural(int width, int height, float size, float maxHeight)
@@ -62,7 +76,7 @@ BOOL CTerrainEntity::LoadHeightmap(const std::wstring &path, float size, float m
 
     unsigned char *data = stbi_load(narrowPath.c_str(), &m_width, &m_height, &channels, 1);
 
-    // 安全检查
+    // 4. 安全检查
     if (!data || m_width <= 0 || m_height <= 0)
     {
         LogError(L"高度图加载失败: %ls. 请检查路径是否存在或格式是否正确.\n", path.c_str());
@@ -112,8 +126,8 @@ BOOL CTerrainEntity::LoadHeightmap(const std::wstring &path, float size, float m
     stbi_image_free(data);
 
     // 计算法线和生成索引
-    CalculateNormals();
     GenerateIndices();
+    CalculateNormals();
 
     // 尝试创建VBO
     CreateVBO();
@@ -197,6 +211,11 @@ void CTerrainEntity::CalculateNormals()
     {
         v.normal.Normalize();
     }
+
+    for (int i = 0; i < 5 && i < m_vertices.size(); ++i)
+    {
+        LogDebug(L"Vertex %d Normal: %.2f, %.2f, %.2f.\n", i, m_vertices[i].normal.x, m_vertices[i].normal.y, m_vertices[i].normal.z);
+    }
 }
 
 void CTerrainEntity::GenerateIndices()
@@ -270,7 +289,7 @@ void CTerrainEntity::CreateVBO()
     else
     {
         m_bUseVBO = false;
-        LogWarning(L"OpenGL版本过低 (%d.%d)，VBO不可用", major, minor);
+        LogWarning(L"OpenGL版本过低 (%d.%d), VBO不可用", major, minor);
         return;
     }
 
@@ -322,32 +341,15 @@ void CTerrainEntity::Render()
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_LIGHTING);
+    // ?: 测试光源
     // glEnable(GL_LIGHT0); // 启用默认光源
-    // glDisable(GL_LIGHTING);  // 先关闭光照，看地形是否显示
+    // glDisable(GL_LIGHTING);  // 先关闭光照, 看地形是否显示
 
-    // glEnable(GL_COLOR_MATERIAL); // 关键：让顶点颜色生效
-    // glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL); // CAUTION: 关键：让顶点颜色生效
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
-    // 如果没有光源，这行可以让你看清地形（但失去阴影感）
+    // 如果没有光源, 这行可以让你看清地形（但失去阴影感）
     // glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-
-    // // 设置光源位置（在相机位置）
-    // auto pCamera = CGameEngine::GetInstance().GetMainCamera();
-    // if (pCamera)
-    // {
-    //     Vector3 camPos = pCamera->GetPosition();
-    //     GLfloat lightPos[] = {camPos.x, camPos.y, camPos.z, 1.0f};
-    //     glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-
-    //     // 设置光源属性
-    //     GLfloat lightAmbient[] = {0.3f, 0.3f, 0.3f, 1.0f};
-    //     GLfloat lightDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
-    //     GLfloat lightSpecular[] = {0.5f, 0.5f, 0.5f, 1.0f};
-
-    //     glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-    //     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
-    //     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
-    // }
 
     if (m_bWireframe)
     {
@@ -361,14 +363,33 @@ void CTerrainEntity::Render()
     glPushMatrix();
     ApplyTransform();
 
-    glColor4f(0.3f, 0.6f, 0.3f, 1.0f); // 绿色
-
     // 设置材质
+    // TODO: 设置地形材质
     // 设置材质属性 - 关键部分！
-    GLfloat matAmbient[] = {0.3f, 0.5f, 0.3f, 1.0f};  // 环境光反射
-    GLfloat matDiffuse[] = {0.7f, 0.7f, 0.7f, 1.0f};  // 漫反射 - 这个最重要！
-    GLfloat matSpecular[] = {0.1f, 0.1f, 0.1f, 1.0f}; // 镜面反射
-    GLfloat matShininess[] = {10.0f};                 // 光泽度
+    // GLfloat matAmbient[] = {1.0f, 1.0f, 1.0f, 1.0f};  // 环境光反射
+    GLfloat matAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};  // 环境光反射
+    GLfloat matDiffuse[] = {0.6f, 0.6f, 0.6f, 1.0f};  // 漫反射
+    GLfloat matSpecular[] = {0.9f, 0.9f, 0.9f, 1.0f}; // 镜面反射
+    GLfloat matShininess[] = {100.0f};                 // 光泽度
+
+
+    // 塑料质感
+    // GLfloat matAmbient[] = {0.1f, 0.1f, 0.1f, 1.0f};    // 减少环境光
+    // GLfloat matDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};    // 保持中性色
+    // GLfloat matSpecular[] = {0.8f, 0.8f, 0.8f, 1.0f};   // 增强镜面反射
+    // GLfloat matShininess[] = {80.0f};                   // 提高光泽度
+
+    // 金属质感
+    // GLfloat matAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
+    // GLfloat matDiffuse[] = {0.6f, 0.6f, 0.6f, 1.0f};
+    // GLfloat matSpecular[] = {0.9f, 0.9f, 0.9f, 1.0f};   // 强镜面反射
+    // GLfloat matShininess[] = {100.0f};                  // 高光泽度
+
+    // 绿色草地质感
+    // GLfloat matAmbient[] = {0.2f, 0.3f, 0.1f, 1.0f};    // 绿色环境光
+    // GLfloat matDiffuse[] = {0.2f, 0.5f, 0.1f, 1.0f};    // 绿色漫反射
+    // GLfloat matSpecular[] = {0.1f, 0.2f, 0.05f, 1.0f};  // 弱绿色高光
+    // GLfloat matShininess[] = {5.0f};                    // 非常粗糙
 
     glMaterialfv(GL_FRONT, GL_AMBIENT, matAmbient);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse); // 漫反射必须设置！
@@ -414,6 +435,7 @@ void CTerrainEntity::Render()
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glDisableClientState(GL_VERTEX_ARRAY); // CAUTION: 必要
     }
     else
     {
@@ -424,10 +446,16 @@ void CTerrainEntity::Render()
             const Vertex &v = m_vertices[m_indices[i]];
             glNormal3f(v.normal.x, v.normal.y, v.normal.z);
             glTexCoord2f(v.uv.x, v.uv.y);
-            glColor4f(v.color.x, v.color.y, v.color.z, v.color.w);
+            // glColor4f(v.color.x, v.color.y, v.color.z, v.color.w);
             glVertex3f(v.pos.x, v.pos.y, v.pos.z);
         }
         glEnd();
+    }
+
+    // 渲染法线
+    if (m_bDrawNormals)
+    {
+        DrawNormals(m_fNormalScale, m_uNormalStep);
     }
 
     // 解绑纹理
@@ -490,102 +518,61 @@ void CTerrainEntity::RenderSimpleGeometry()
     glEnd();
 }
 
-void CTerrainEntity::RenderWithLightingDebug()
+void CTerrainEntity::DrawNormals(float scale, unsigned int step)
 {
-    if (!m_bVisible || m_vertices.empty())
-        return;
+    // 使用默认值如果参数为默认值
+    float actualScale = (scale < 0) ? m_fNormalScale : scale;
+    unsigned int actualStep = (step == 0) ? m_uNormalStep : step;
 
-    glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
-    glPushMatrix();
-    ApplyTransform();
-
-    LogInfo(L"=== 地形光照调试开始 ===");
-
-    // ============================================
-    // 第1步：显示无光照的纯色地形（验证几何体）
-    // ============================================
-    LogInfo(L"步骤1: 显示无光照的纯色地形");
-    glDisable(GL_LIGHTING);
-    glColor3f(0.3f, 0.6f, 0.3f); // 纯绿色
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    RenderSimpleGeometry();
-
-    // ============================================
-    // 第2步：显示法线方向（调试用）
-    // ============================================
-    LogInfo(L"步骤2: 显示法线方向");
-    RenderNormalsDebug();
-    LogInfo(L"法线显示完成，检查法线方向是否正确");
-    
-    // 短暂延迟，让你能看到效果
-    Sleep(1000); // 如果需要，可以取消注释
-    
-    // ============================================
-    // 第3步：启用简单光照，使用白色材质
-    // ============================================
-    LogInfo(L"步骤3: 启用简单光照");
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    
-    // 设置简单的光源
-    GLfloat lightPosition[] = { 10.0f, 20.0f, 10.0f, 1.0f }; // 固定光源位置
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-    
-    // 使用最简单的白色材质
-    GLfloat matDiffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse);
-    
-    // 渲染几何体
-    glBegin(GL_TRIANGLES);
-    for (size_t i = 0; i < m_indices.size(); ++i) {
-        const Vertex &v = m_vertices[m_indices[i]];
-        glNormal3f(v.normal.x, v.normal.y, v.normal.z);
-        glVertex3f(v.pos.x, v.pos.y, v.pos.z);
-    }
-    glEnd();
-    
-    LogInfo(L"简单光照渲染完成");
-
-    // ============================================
-    // 第4步：使用颜色材质
-    // ============================================
-    LogInfo(L"步骤4: 使用颜色材质");
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-    glColor3f(0.3f, 0.6f, 0.3f); // 绿色
-    
-
-    glBegin(GL_TRIANGLES);
-    for (size_t i = 0; i < m_indices.size(); ++i) {
-        const Vertex &v = m_vertices[m_indices[i]];
-        glNormal3f(v.normal.x, v.normal.y, v.normal.z);
-        glVertex3f(v.pos.x, v.pos.y, v.pos.z);
-    }
-    glEnd();
-    
-    glDisable(GL_COLOR_MATERIAL);
-    
-    LogInfo(L"颜色材质渲染完成");
-
-    glPopMatrix();
-    glPopAttrib();
-    
-    LogInfo(L"=== 地形光照调试结束 ===");
+    DrawNormalsImpl(actualScale, actualStep);
 }
 
-void CTerrainEntity::RenderNormalsDebug()
+void CTerrainEntity::DrawNormalsImpl(float scale, unsigned int step)
 {
-    // 显示法线方向（红色线条）
+    if (m_vertices.empty())
+    {
+        LogWarning(L"无法绘制法线：顶点数据为空.\n");
+        return;
+    }
+
+    // 保存OpenGL状态
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_LINE_BIT);
+
+    // 禁用深度测试
+    glEnable(GL_DEPTH_TEST);
+    // glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
-    glColor3f(1.0f, 0.0f, 0.0f);
+    glDisable(GL_TEXTURE_2D);
+
+    // 保存当前颜色
+    GLfloat currentColor[4];
+    glGetFloatv(GL_CURRENT_COLOR, currentColor);
+
+    // 设置法线颜色（亮红色, 便于观察）
+    glColor3f(1.0f, 0.2f, 0.2f);
+    glLineWidth(1.0f);
+
+    // 绘制法线线条
     glBegin(GL_LINES);
-    for (size_t i = 0; i < m_vertices.size(); i += 10)
-    { // 每10个顶点画一个法线
-        const auto &v = m_vertices[i];
+    size_t vertexCount = m_vertices.size();
+    for (size_t i = 0; i < vertexCount; i += step)
+    {
+        const Vertex &v = m_vertices[i];
+
+        if (v.normal.Length() < 0.1f)
+            continue; // 跳过无效法线
+        Vector3 endPos = v.pos + v.normal * scale;
+
         glVertex3f(v.pos.x, v.pos.y, v.pos.z);
-        glVertex3f(v.pos.x + v.normal.x * 2.0f,
-                   v.pos.y + v.normal.y * 2.0f,
-                   v.pos.z + v.normal.z * 2.0f);
+        glVertex3f(endPos.x, endPos.y, endPos.z);
     }
     glEnd();
+
+    // 恢复状态
+    glLineWidth(1.0f);
+    glColor4fv(currentColor);
+    glPopAttrib();
+
+    // LogDebug(L"绘制了 %d 条法线, 缩放: %.1f, 步长: %d.\n",
+    //          m_vertices.size() / step, scale, step);
 }

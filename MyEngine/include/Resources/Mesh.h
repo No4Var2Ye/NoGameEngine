@@ -124,6 +124,9 @@ public:
     const Vector3 &GetMaxBounds() const { return m_boundingBox.max; }
     const BoundingBox &GetBoundingBox() const { return m_boundingBox; }
 
+    // 渲染法线
+    void DrawNormals(float scale = 0.5f, unsigned int step = 1, const Vector3& color = Vector3(1, 0, 0)) const;
+
 private:
     std::vector<Vertex> m_vertices;
     std::vector<unsigned int> m_indices;

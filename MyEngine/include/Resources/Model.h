@@ -56,6 +56,9 @@ public:
     BOOL IsPointInside(const Vector3 &point) const;
     BOOL IntersectsSphere(const Vector3 &center, float radius) const;
 
+    // 绘制法线
+    void DrawNormals(float scale = 0.5f, unsigned int step = 1);
+
 private:
     std::vector<std::shared_ptr<CMesh>> m_meshes; // 一个模型由多个网格组成
     

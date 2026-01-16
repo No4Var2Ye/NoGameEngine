@@ -127,3 +127,48 @@ void CMesh::CalculateBoundingBox()
     m_boundingBox.center = (vMin + vMax) * 0.5f;
     m_boundingBox.size = vMax - vMin;
 }
+
+void CMesh::DrawNormals(float scale, unsigned int step, const Vector3 &color) const
+{
+    if (m_vertices.empty())
+        return;
+
+    // 确保步长至少为1，防止死循环
+    if (step < 1)
+        step = 1;
+
+    // 1. 保护现有渲染状态
+    // GL_ENABLE_BIT: 备份 glEnable/Disable 状态
+    // GL_CURRENT_BIT: 备份当前颜色等状态
+    // GL_LINE_BIT: 备份线宽状态
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_LINE_BIT);
+
+    // 2. 强制关闭干扰状态
+    glDisable(GL_LIGHTING);   // 调试线不需要光照
+    glDisable(GL_TEXTURE_2D); // 调试线不需要贴图
+
+    // 如果希望法线永远显示在模型前面（透视效果），取消下面这行的注释
+    // glDisable(GL_DEPTH_TEST);
+
+    // 3. 开始绘制
+    glLineWidth(1.0f);
+    glBegin(GL_LINES);
+    for (size_t i = 0; i < m_vertices.size(); i += step)
+    {
+        const auto &v = m_vertices[i];
+
+        // 起点：红色
+        glColor3f(color.x, color.y, color.z);
+        glVertex3f(v.Position.x, v.Position.y, v.Position.z);
+
+        // 终点：黄色
+        glColor3f(1.0f, 1.0f, 0.0f);
+        glVertex3f(v.Position.x + v.Normal.x * scale,
+                   v.Position.y + v.Normal.y * scale,
+                   v.Position.z + v.Normal.z * scale);
+    }
+    glEnd();
+
+    // 4. 恢复状态
+    glPopAttrib();
+}

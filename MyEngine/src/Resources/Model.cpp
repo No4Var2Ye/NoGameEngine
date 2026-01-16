@@ -501,37 +501,53 @@ void CModel::DrawBoundingBox(const Vector3 &color) const
     glColor3f(color.x, color.y, color.z);
 
     glBegin(GL_LINES);
-    // 底面
-    glVertex3f(m_minBounds.x, m_minBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_minBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_minBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_minBounds.y, m_maxBounds.z);
-    glVertex3f(m_maxBounds.x, m_minBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_minBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_minBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_minBounds.y, m_minBounds.z);
+    {
+        // 底面
+        glVertex3f(m_minBounds.x, m_minBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_minBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_minBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_minBounds.y, m_maxBounds.z);
+        glVertex3f(m_maxBounds.x, m_minBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_minBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_minBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_minBounds.y, m_minBounds.z);
 
-    // 顶面
-    glVertex3f(m_minBounds.x, m_maxBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_maxBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_maxBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_maxBounds.y, m_maxBounds.z);
-    glVertex3f(m_maxBounds.x, m_maxBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_maxBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_maxBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_maxBounds.y, m_minBounds.z);
+        // 顶面
+        glVertex3f(m_minBounds.x, m_maxBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_maxBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_maxBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_maxBounds.y, m_maxBounds.z);
+        glVertex3f(m_maxBounds.x, m_maxBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_maxBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_maxBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_maxBounds.y, m_minBounds.z);
 
-    // 连接上下面的 4 条垂直线
-    glVertex3f(m_minBounds.x, m_minBounds.y, m_minBounds.z);
-    glVertex3f(m_minBounds.x, m_maxBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_minBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_maxBounds.y, m_minBounds.z);
-    glVertex3f(m_maxBounds.x, m_minBounds.y, m_maxBounds.z);
-    glVertex3f(m_maxBounds.x, m_maxBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_minBounds.y, m_maxBounds.z);
-    glVertex3f(m_minBounds.x, m_maxBounds.y, m_maxBounds.z);
+        // 连接上下面的 4 条垂直线
+        glVertex3f(m_minBounds.x, m_minBounds.y, m_minBounds.z);
+        glVertex3f(m_minBounds.x, m_maxBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_minBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_maxBounds.y, m_minBounds.z);
+        glVertex3f(m_maxBounds.x, m_minBounds.y, m_maxBounds.z);
+        glVertex3f(m_maxBounds.x, m_maxBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_minBounds.y, m_maxBounds.z);
+        glVertex3f(m_minBounds.x, m_maxBounds.y, m_maxBounds.z);
+    }
     glEnd();
 
     glPopAttrib();
+    glPopMatrix();
+}
+
+void CModel::DrawNormals(float scale, unsigned int step)
+{
+    glPushMatrix();
+    // 假设你的 CModel 有应用变换的逻辑，或者在 Entity 层处理
+    // ApplyTransform(); 
+
+    for (auto& mesh : m_meshes)
+    {
+        mesh->DrawNormals(scale, step);
+    }
+
     glPopMatrix();
 }

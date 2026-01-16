@@ -212,10 +212,17 @@ BOOL CDemoScene::Initialize()
     }
 
     // 3. 添加地形
-    auto pTerrain = CTerrainEntity::Create(L"assets/Textures/Terrain/heightmap1.png", 200.0f, 5.0f);
+    auto pTerrain = CTerrainEntity::Create(L"assets/Textures/Terrain/terrain_heightmap4.png", 300.0f, 15.0f);
     if (pTerrain)
     {
         pTerrain->SetName(L"WorldTerrain");
+        pTerrain->SetColor(Vector4(0.6f, 0.8f, 0.9f, 1.0f));
+
+        pTerrain->SetNormalScale(1.0f);
+        pTerrain->SetNormalStep(100);
+        pTerrain->SetDrawNormals(TRUE);
+
+        pTerrain->SetPosition(Vector3(0, 0, 0));
 
         // 加载并设置纹理
         // std::wstring grassPath = L"Terrain/grass.jpg";
@@ -237,7 +244,7 @@ BOOL CDemoScene::Initialize()
 
     // 4. 创建网格实体
     auto pGrid = CGridEntity::Create(100.0f, 1.0f);
-    pGrid->SetPosition(Vector3(0, 0.01f, 0));
+    pGrid->SetPosition(Vector3(0, -0.01f, 0));
 
     m_pRootEntity->AddChild(pGrid);
 
@@ -253,6 +260,11 @@ BOOL CDemoScene::Initialize()
 
         // 调试：输出模型信息
         LogInfo(L"鸭子模型位置: (0, 1, 0), 缩放: 0.01.\n");
+
+        pDuckEntity->SetDrawBoundingBox(TRUE);
+        pDuckEntity->SetNormalScale(10.0f);
+        pDuckEntity->SetNormalStep(10);
+        pDuckEntity->SetDrawNormals(TRUE);
 
         m_pRootEntity->AddChild(pDuckEntity);
     }
@@ -330,8 +342,8 @@ void CDemoScene::Render()
         m_pRootEntity->Render();
     }
 
-    DrawColorCube();    // 测试渲染
-    DrawTexturedCube(); // 测试贴图
+    // DrawColorCube();    // 测试渲染
+    // DrawTexturedCube(); // 测试贴图
 }
 
 GLuint CDemoScene::LoadSkybox()
@@ -433,21 +445,21 @@ void CDemoScene::SetupGlobalLighting()
     // 全局光照设置
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    
+
     // 光源位置（跟随相机）
     Vector3 camPos = CGameEngine::GetInstance().GetMainCamera()->GetPosition();
-    GLfloat lightPosition[] = { camPos.x, camPos.y + 10.0f, camPos.z, 1.0f };
+    GLfloat lightPosition[] = {camPos.x, camPos.y + 10.0f, camPos.z, 1.0f};
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-    
+
     // 光源属性
-    GLfloat lightAmbient[] = { 0.4f, 0.4f, 0.4f, 1.0f };
-    GLfloat lightDiffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-    GLfloat lightSpecular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-    
+    GLfloat lightAmbient[] = {0.4f, 0.4f, 0.4f, 1.0f};
+    GLfloat lightDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
+    GLfloat lightSpecular[] = {0.5f, 0.5f, 0.5f, 1.0f};
+
     glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
-    
+
     // 全局材质
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
