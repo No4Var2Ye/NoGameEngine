@@ -18,6 +18,7 @@ public:
     virtual void Render() override;
 
 private:
+    GLuint LoadSkybox();
     void DrawGrid();
 };
 

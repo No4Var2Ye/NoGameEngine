@@ -7,8 +7,7 @@
 // ======================================================================
 struct ResourceConfig
 {
-    // 基础根路径 (相对于可执行文件或项目根目录)
-    std::wstring rootPath = L"res/";
+    std::wstring rootPath = L"assets/";
 
     // 子目录路径
     std::wstring modelDir   = L"Models/";
@@ -16,11 +15,14 @@ struct ResourceConfig
     std::wstring shaderDir  = L"Shaders/";
     std::wstring fontDir    = L"Fonts/";
     std::wstring soundDir   = L"Sounds/";
+    std::wstring skyboxPath = L"Textures/Skybox/";
 
     // 辅助方法：获取完整路径
     std::wstring GetRootPath() const { return rootPath; }
     std::wstring GetModelPath() const { return rootPath + modelDir; }
     std::wstring GetTexturePath() const { return rootPath + textureDir; }
+    std::wstring GetSoundPath() const { return rootPath + soundDir; }
+    std::wstring GetSkyboxPath() const { return rootPath + skyboxPath; }
 };
 
 // ======================================================================

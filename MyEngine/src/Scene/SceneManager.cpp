@@ -9,129 +9,10 @@
 #include "Resources/Model.h"
 #include "Core/Entity.h"
 // ======================================================================
-// TODO: 测试
-namespace
-{
-    // 测试贴图加载
-    std::shared_ptr<CTexture> g_pTexture = nullptr;
-    BOOL g_bTextureLoaded = FALSE;
 
-    // 测试 模型加载
-    std::shared_ptr<CModel> g_pTestModel = nullptr;
-    BOOL g_bModelLoaded = FALSE;
-    FLOAT g_modelRotation = 0.0f;
-    Vector3 g_modelPosition = Vector3(0.0f, 0.0f, 0.0f);
-    FLOAT g_modelScale = 0.01f;
-    BOOL g_showModel = TRUE;
-}
-
-void DrawTexturedCube()
-{
-    glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
-
-    static bool bAttempted = false;
-
-    if (!bAttempted)
-    {
-        bAttempted = true; // 无论成功失败，只试一次
-        g_pTexture = std::make_shared<CTexture>();
-        if (!g_pTexture->LoadFromFile(L"res/Textures/test-texture.png"))
-        {
-            // 如果加载失败，使用资源管理器里的兜底纹理
-            g_pTexture = CGameEngine::GetInstance().GetResourceManager()->GetDefaultTexture();
-        }
-    }
-
-    glPushMatrix();
-    glTranslatef(4.0f, 1.0f, 0.0f);
-
-    glEnable(GL_TEXTURE_2D);
-    g_pTexture->Bind(GL_TEXTURE0);
-
-    // 设置纹理环境
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-    // 绘制立方体（固定管线方式）
-    glBegin(GL_QUADS);
-    {
-
-        // 前面
-        glNormal3f(0.0f, 0.0f, 1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, 1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, 1.0f);
-
-        // 后面
-        glNormal3f(0.0f, 0.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, -1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, -1.0f);
-
-        // 顶面
-        glNormal3f(0.0f, 1.0f, 0.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(-1.0f, 1.0f, 1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(1.0f, 1.0f, 1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, -1.0f);
-
-        // 底面
-        glNormal3f(0.0f, -1.0f, 0.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(-1.0f, -1.0f, -1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(1.0f, -1.0f, -1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, 1.0f);
-
-        // 右面
-        glNormal3f(1.0f, 0.0f, 0.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, -1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, 1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 1.0f);
-
-        // 左面
-        glNormal3f(-1.0f, 0.0f, 0.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, 1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, -1.0f);
-    }
-    glEnd();
-
-    g_pTexture->Unbind(GL_TEXTURE0);
-    glDisable(GL_TEXTURE_2D);
-    glPopMatrix();
-}
 
 // ======================================================================
 // =========================== 公有方法 ==================================
-// ======================================================================
 CSceneManager::CSceneManager()
     : m_CurrentScene(nullptr),                  //
       m_NextScene(nullptr),                     //
@@ -170,7 +51,7 @@ BOOL CSceneManager::Initialize()
     m_TransitionAlpha = 0.0f;
 
     // 测试场景
-    InitTestResources();
+    // InitTestResources();
 
     m_Initialized = TRUE;
 
@@ -642,62 +523,62 @@ BOOL CSceneManager::LoadSavedSceneState()
     return TRUE;
 }
 
-void CSceneManager::InitTestResources()
-{
-    // 如果模型已经加载过，直接返回，避免重复加载
-    if (g_bModelLoaded)
-        return;
+// void CSceneManager::InitTestResources()
+// {
+//     // 如果模型已经加载过，直接返回，避免重复加载
+//     if (g_bModelLoaded)
+//         return;
 
-    auto resMgr = CGameEngine::GetInstance().GetResourceManager();
-    if (!resMgr)
-    {
-        LogError(L"资源管理器未初始化，无法加载模型\n");
-        return;
-    }
+//     auto resMgr = CGameEngine::GetInstance().GetResourceManager();
+//     if (!resMgr)
+//     {
+//         LogError(L"资源管理器未初始化，无法加载模型\n");
+//         return;
+//     }
 
-    g_pTestModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
-    // g_pTestModel = resMgr->GetModel(L"Teapot/teapot.obj");
+//     g_pTestModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
+//     // g_pTestModel = resMgr->GetModel(L"Teapot/teapot.obj");
 
-    if (!g_pTestModel)
-    {
-        LogError(L"模型加载完全失败\n");
-        g_bModelLoaded = FALSE;
-        return;
-    }
+//     if (!g_pTestModel)
+//     {
+//         LogError(L"模型加载完全失败\n");
+//         g_bModelLoaded = FALSE;
+//         return;
+//     }
 
-    auto defaultModel = resMgr->GetDefaultModel();
-    if (defaultModel && (g_pTestModel == defaultModel))
-    {
-        LogWarning(L"鸭子模型不存在，已自动使用默认立方体模型\n");
-        LogWarning(L"请检查文件是否存在: res/Models/Duck/glTF/Duck.gltf\n");
+//     auto defaultModel = resMgr->GetDefaultModel();
+//     if (defaultModel && (g_pTestModel == defaultModel))
+//     {
+//         LogWarning(L"鸭子模型不存在，已自动使用默认立方体模型\n");
+//         LogWarning(L"请检查文件是否存在: res/Models/Duck/glTF/Duck.gltf\n");
 
-        // 调整默认模型的显示
-        g_modelScale = 1.0f;
-    }
-    else
-    {
-        LogInfo(L"鸭子模型加载成功\n");
-    }
+//         // 调整默认模型的显示
+//         g_modelScale = 1.0f;
+//     }
+//     else
+//     {
+//         LogInfo(L"鸭子模型加载成功\n");
+//     }
 
-    // 设置模型变换
-    g_pTestModel->SetPosition(g_modelPosition);
-    g_pTestModel->SetScale(Vector3(g_modelScale, g_modelScale, g_modelScale));
+//     // 设置模型变换
+//     g_pTestModel->SetPosition(g_modelPosition);
+//     g_pTestModel->SetScale(Vector3(g_modelScale, g_modelScale, g_modelScale));
 
-    g_bModelLoaded = TRUE;
-}
+//     g_bModelLoaded = TRUE;
+// }
 
-void CSceneManager::RenderTestModel()
-{
-    if (!g_bModelLoaded || !g_pTestModel)
-        return;
+// void CSceneManager::RenderTestModel()
+// {
+//     if (!g_bModelLoaded || !g_pTestModel)
+//         return;
 
-    glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
+//     glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
+//     glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
 
-    glPushMatrix();
+//     glPushMatrix();
 
-    g_pTestModel->Draw();
-    g_pTestModel->DrawBoundingBox();
+//     g_pTestModel->Draw();
+//     g_pTestModel->DrawBoundingBox();
 
-    glPopMatrix();
-}
+//     glPopMatrix();
+// }

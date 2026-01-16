@@ -5,12 +5,15 @@
 #include "Resources/Texture.h"
 #include "Resources/Model.h"
 #include "Utils/StringUtils.h"
+#include "Utils/stb_image.h"
 // ======================================================================
 
 BOOL CResourceManager::Initialize(const ResourceConfig &config)
 {
     // 存储配置
     m_Config = config;
+
+    m_SkyboxPath = config.GetSkyboxPath();
 
     // 预先清空容器
     m_Textures.clear();
@@ -354,4 +357,88 @@ std::shared_ptr<CModel> CResourceManager::CreateCubeModel()
     model->SetName(L"DefaultCube");
 
     return model;
+}
+
+GLuint CResourceManager::LoadTextureToCubeMapFace(const std::wstring &filePath, GLenum face)
+{
+    std::string narrowPath = CStringUtils::WStringToString(filePath, CP_UTF8);
+
+    int width, height, channels;
+    // 天空盒不需要 Y 轴翻转，否则接缝会错位
+    stbi_set_flip_vertically_on_load(false);
+
+    unsigned char *data = stbi_load(narrowPath.c_str(), &width, &height, &channels, 0);
+    if (!data)
+        return FALSE;
+
+    GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
+
+    // 直接上传到 Cubemap 的对应面
+    glTexImage2D(face, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+    stbi_image_free(data);
+    return TRUE;
+}
+
+GLuint CResourceManager::LoadCubemapTexture(const std::vector<std::wstring> &facePaths)
+{
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    // 立方体贴图的六个面
+    GLenum faces[] = {
+        GL_TEXTURE_CUBE_MAP_POSITIVE_X, // 右
+        GL_TEXTURE_CUBE_MAP_NEGATIVE_X, // 左
+        GL_TEXTURE_CUBE_MAP_POSITIVE_Y, // 上
+        GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, // 下
+        GL_TEXTURE_CUBE_MAP_POSITIVE_Z, // 前
+        GL_TEXTURE_CUBE_MAP_NEGATIVE_Z  // 后
+    };
+
+    for (int i = 0; i < 6; i++)
+    {
+        if (!LoadTextureToCubeMapFace(facePaths[i], faces[i]))
+        {
+            LogError(L"加载天空盒面失败: %ls. \n", facePaths[i].c_str());
+
+            glDeleteTextures(1, &textureID);
+            return 0;
+        }
+    }
+
+    // 设置纹理参数
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    LogInfo(L"天空盒加载成功: %ls. \n", facePaths[0].c_str());
+    return textureID;
+}
+
+// exp: day
+GLuint CResourceManager::LoadSkybox(const std::wstring &skyboxName)
+{
+    // 天空盒六个面的文件名约定
+    std::vector<std::wstring> faceFiles = {
+        L"px.png", // + positive X
+        L"nx.png", // - negtive X
+        L"py.png", // + positive Y
+        L"ny.png", // - negtive Y
+        L"pz.png", // + positive Z
+        L"nz.png"  // - negtive Z
+    };
+
+    std::wstring skyboxFolder = GetFullSkyboxPath(skyboxName + L"/");
+
+    std::vector<std::wstring> fullPaths;
+
+    for (const auto &face : faceFiles)
+    {
+        fullPaths.push_back(skyboxFolder + face);
+    }
+
+    return LoadCubemapTexture(fullPaths);
 }

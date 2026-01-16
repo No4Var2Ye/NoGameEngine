@@ -33,9 +33,14 @@ tmp/**/*
 *.cache
 *.ipch
 
-**/res/Models/*
-!**/res/Models/Duck
-!**/res/Models/Teapot
+# 构建
+build/**/*
+
+# 资源文件
+**/assets/Models/*
+!**/assets/Models/Duck
+!**/assets/Models/Teapot
+Resources/**/*
 
 
 
