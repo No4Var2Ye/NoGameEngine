@@ -17,9 +17,12 @@ public:
     virtual void Update(float deltaTime) override;
     virtual void Render() override;
 
+    void SetupGlobalLighting();
+
 private:
     GLuint LoadSkybox();
     void DrawGrid();
+    void SetupFog();
 };
 
 #endif // __DEMO_SCENE_H__

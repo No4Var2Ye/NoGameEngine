@@ -100,6 +100,32 @@ void CEntity::InternalRemoveChild(unsigned int uID)
     }
 }
 
+std::shared_ptr<CEntity> CEntity::GetChild(size_t index) const
+{
+    if (index < m_children.size())
+        return m_children[index];
+    return nullptr;
+}
+// 递归查找子实体
+std::shared_ptr<CEntity> CEntity::FindChildByName(const std::wstring &name)
+{
+    // 1. 检查自己是不是
+    if (m_name == name)
+    {
+        return shared_from_this();
+    }
+
+    // 2. 递归查找子节点
+    for (auto &child : m_children)
+    {
+        auto found = child->FindChildByName(name);
+        if (found)
+            return found;
+    }
+
+    return nullptr;
+}
+
 void CEntity::Update(float deltaTime)
 {
     if (!m_bVisible)

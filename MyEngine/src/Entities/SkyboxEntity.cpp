@@ -45,6 +45,7 @@ void CSkyboxEntity::Render()
     glDisable(GL_DEPTH_TEST); // 禁用深度测试
     glDepthMask(GL_FALSE);    // 禁用深度写入
     glDisable(GL_LIGHTING);   // 禁用光照
+    glDisable(GL_FOG);        // 禁用雾化
     glDisable(GL_CULL_FACE);  // 禁用背面剔除
 
     // 启用纹理

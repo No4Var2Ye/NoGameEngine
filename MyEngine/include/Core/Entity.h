@@ -29,12 +29,9 @@ public:
     void AddChild(std::shared_ptr<CEntity> pChild);
     BOOL RemoveChild(unsigned int uID);
     const std::vector<std::shared_ptr<CEntity>> &GetChildren() const { return m_children; }
-    std::shared_ptr<CEntity> GetChild(size_t index) const
-    {
-        if (index < m_children.size())
-            return m_children[index];
-        return nullptr;
-    }
+    std::shared_ptr<CEntity> GetChild(size_t index) const;
+    // 递归查找子实体
+    std::shared_ptr<CEntity> FindChildByName(const std::wstring &name);
 
     template <typename... Args>
     static std::shared_ptr<CEntity> Create(Args &&...args)
@@ -63,8 +60,14 @@ public:
 
     // 变换操作
     void SetPosition(const Vector3 &pos);
+    const Vector3 &GetPosition() const { return m_position; }
+
     void SetRotation(const Vector3 &euler);
+    const Quaternion &GetRotation() const { return m_rotation; }
+
     void SetScale(const Vector3 &scale);
+    const Vector3 &GetScale() const { return m_scale; }
+
     Vector3 GetWorldPosition() const;
     Matrix4 GetWorldMatrix() const;
 

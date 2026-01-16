@@ -7,6 +7,8 @@
 #include "Resources/ResourceManager.h"
 #include "Entities/ModelEntity.h"
 #include "Entities/SkyboxEntity.h"
+#include "Entities/GridEntity.h"
+#include "Entities/TerrainEntity.h"
 // ======================================================================
 #include "Resources/Texture.h"
 #include "Resources/Model.h"
@@ -39,7 +41,7 @@ void DrawTexturedCube()
     }
 
     glPushMatrix();
-    glTranslatef(2.0f, 0.0f, 0.0f);
+    glTranslatef(2.0f, 1.0f, 0.0f);
 
     glEnable(GL_TEXTURE_2D);
     g_pTexture->Bind(GL_TEXTURE0);
@@ -128,7 +130,7 @@ void DrawColorCube()
     glPushMatrix();
     {
         // 将立方体稍微抬高一点，放在坐标原点上方
-        glTranslatef(-2.0f, 0.0f, 0.0f);
+        glTranslatef(-2.0f, 1.0f, 0.0f);
 
         // 让立方体自己旋转，方便观察 3D 效果
         // static float rotation = 0.0f;
@@ -185,6 +187,8 @@ void DrawColorCube()
 
 BOOL CDemoScene::Initialize()
 {
+    auto resMgr = CGameEngine::GetInstance().GetResourceManager();
+
     // 1. 创建根实体 (使用之前设计的工厂方法)
     m_pRootEntity = CEntity::Create();
     m_pRootEntity->SetName(L"SceneRoot");
@@ -194,6 +198,7 @@ BOOL CDemoScene::Initialize()
     if (skyboxTexture != 0)
     {
         auto pSkybox = CSkyboxEntity::Create(skyboxTexture);
+        pSkybox->SetName(L"WorldSkybox");
         pSkybox->SetSize(500.0f);        // 设置天空盒大小
         pSkybox->EnableRotation(TRUE);   // 启用旋转
         pSkybox->SetRotationSpeed(2.0f); // 设置旋转速度
@@ -207,11 +212,36 @@ BOOL CDemoScene::Initialize()
     }
 
     // 3. 添加地形
-    // auto terrain = CModelEntity::Create(pTerrainModel);
-    // m_pRootEntity->AddChild(terrain);
+    auto pTerrain = CTerrainEntity::Create(L"assets/Textures/Terrain/heightmap1.png", 200.0f, 5.0f);
+    if (pTerrain)
+    {
+        pTerrain->SetName(L"WorldTerrain");
+
+        // 加载并设置纹理
+        // std::wstring grassPath = L"Terrain/grass.jpg";
+        // auto pTex = resMgr->GetTexture(grassPath); // 确保路径正确
+        // if (pTex)
+        // {
+        //     pTerrain->SetTexture(pTex->GetID());
+        //     LogInfo(L"地形纹理加载成功: %ls, ID: %d", grassPath.c_str(), pTex->GetID());
+        // }
+        // else
+        // {
+        //     LogWarning(L"地形纹理加载失败: %s", grassPath.c_str());
+        //     // 使用默认颜色
+        //     pTerrain->SetColor(Vector4(0.3f, 0.6f, 0.3f, 1.0f));
+        // }
+
+        m_pRootEntity->AddChild(pTerrain);
+    }
+
+    // 4. 创建网格实体
+    auto pGrid = CGridEntity::Create(100.0f, 1.0f);
+    pGrid->SetPosition(Vector3(0, 0.01f, 0));
+
+    m_pRootEntity->AddChild(pGrid);
 
     // 2. 加载鸭子模型资源
-    auto resMgr = CGameEngine::GetInstance().GetResourceManager();
     auto pDuckModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
 
     if (pDuckModel)
@@ -227,6 +257,9 @@ BOOL CDemoScene::Initialize()
         m_pRootEntity->AddChild(pDuckEntity);
     }
 
+    // 启用雾化
+    SetupFog();
+
     m_bInitialized = TRUE;
     return TRUE;
 }
@@ -236,15 +269,44 @@ void CDemoScene::Update(float deltaTime)
     // 驱动层级系统更新（计算矩阵等）
     if (m_pRootEntity && !m_bIsPaused)
     {
-        auto children = m_pRootEntity->GetChildren(); // 你需要公开这个接口或存下指针
-        if (!children.empty())
+        m_pRootEntity->Update(deltaTime);
+
+        static std::weak_ptr<CTerrainEntity> pTerrainCache;
+        auto pTerrain = pTerrainCache.lock();
+
+        if (!pTerrain)
         {
-            static float rotationY = 0.0f;
-            rotationY += deltaTime * 10.0f;
-            children[0]->SetRotation(Vector3(0, rotationY, 0));
+            // 通过名字查找实体
+            auto pEntity = m_pRootEntity->FindChildByName(L"WorldTerrain");
+            // 将基类指针安全转换为地形类指针
+            pTerrain = std::dynamic_pointer_cast<CTerrainEntity>(pEntity);
+            pTerrainCache = pTerrain;
         }
 
-        m_pRootEntity->Update(deltaTime);
+        static std::weak_ptr<CModelEntity> pDuckCache;
+        auto pDuck = pDuckCache.lock();
+
+        if (!pDuck)
+        {
+            // 通过名字查找实体
+            auto pEntity = m_pRootEntity->FindChildByName(L"MainDuck");
+            // 将基类指针安全转换为地形类指针
+            pDuck = std::dynamic_pointer_cast<CModelEntity>(pEntity);
+            pDuckCache = pDuck;
+        }
+
+        if (pTerrain && pDuck)
+        {
+            Vector3 duckPos = pDuck->GetPosition();
+
+            // 1. 根据当前 XZ 坐标获取高度
+            float groundHeight = pTerrain->GetHeightAt(duckPos.x, duckPos.z);
+
+            // 2. 将鸭子设置到该高度
+            // 注意：如果鸭子的原点在中心而非脚底，你可能需要加上偏移：groundHeight + offset
+            duckPos.y = groundHeight;
+            pDuck->SetPosition(duckPos);
+        }
     }
 }
 
@@ -259,15 +321,17 @@ void CDemoScene::Render()
         pCamera->ApplyViewMatrix(); // 这里内部通常执行 glLoadMatrix 或 gluLookAt
     }
 
-    DrawGrid();         // 场景底部的网格
-    DrawColorCube();    // 测试渲染
-    DrawTexturedCube(); // 测试贴图
+    SetupGlobalLighting();
 
     // 驱动层级系统渲染
     if (m_pRootEntity)
     {
+        // 建议在 CSkyboxEntity::Render 内部手动关闭和开启雾
         m_pRootEntity->Render();
     }
+
+    DrawColorCube();    // 测试渲染
+    DrawTexturedCube(); // 测试贴图
 }
 
 GLuint CDemoScene::LoadSkybox()
@@ -279,6 +343,9 @@ GLuint CDemoScene::LoadSkybox()
     {
         return pResMgr->LoadSkybox(skyboxName);
     }
+
+    LogWarning(L"ResourceManager 不可用，无法加载天空盒\n");
+    return 0;
 }
 
 void CDemoScene::DrawGrid()
@@ -331,6 +398,27 @@ void CDemoScene::DrawGrid()
     glPopMatrix();
 }
 
+void CDemoScene::SetupFog()
+{
+    glEnable(GL_FOG); // 1. 开启雾化
+
+    // 2. 设置雾的颜色。建议与天空盒底部的颜色（或者背景清除色）完全一致
+    // 这样物体在远方会逐渐消失在背景中，产生无限深度的错觉
+    GLfloat fogColor[4] = {0.5f, 0.6f, 0.7f, 1.0f}; // 这是一个偏浅蓝的天空色
+    glFogfv(GL_FOG_COLOR, fogColor);
+
+    // 3. 设置雾的模式
+    // GL_LINEAR: 线性雾，需要设置开始和结束距离
+    // GL_EXP 或 GL_EXP2: 指数雾，更真实，只需设置密度 (Density)
+    glFogi(GL_FOG_MODE, GL_EXP2);
+
+    // 4. 设置密度。这个值通常很小，建议在 0.001 到 0.05 之间尝试
+    glFogf(GL_FOG_DENSITY, 0.01f);
+
+    // 5. 设置计算质量（可选）
+    glHint(GL_FOG_HINT, GL_NICEST); // 基于像素计算，效果最好
+}
+
 void CDemoScene::Shutdown()
 {
     if (m_pRootEntity)
@@ -338,4 +426,29 @@ void CDemoScene::Shutdown()
         // 递归清理实体持有的资源或断开连接
         m_pRootEntity = nullptr;
     }
+}
+
+void CDemoScene::SetupGlobalLighting()
+{
+    // 全局光照设置
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    
+    // 光源位置（跟随相机）
+    Vector3 camPos = CGameEngine::GetInstance().GetMainCamera()->GetPosition();
+    GLfloat lightPosition[] = { camPos.x, camPos.y + 10.0f, camPos.z, 1.0f };
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    
+    // 光源属性
+    GLfloat lightAmbient[] = { 0.4f, 0.4f, 0.4f, 1.0f };
+    GLfloat lightDiffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+    GLfloat lightSpecular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+    
+    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
+    
+    // 全局材质
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 }
