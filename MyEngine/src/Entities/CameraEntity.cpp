@@ -17,7 +17,7 @@ CCameraEntity::CCameraEntity()
       m_ShakeEnabled(FALSE),        //
       m_ShakeTimer(0.0f),           //
       m_ShakeIntensity(0.0f),       //
-      m_MouseSensitivity(0.1f),     //
+      m_MouseSensitivity(0.1f),     // 鼠标灵敏度
       m_CurrentYaw(-90.0f),         // 初始化：看向-Z方向
       m_CurrentPitch(0.0f),         // 初始化：水平
       m_MaxPitchAngle(89.0f)        //
@@ -36,15 +36,39 @@ CCameraEntity::CCameraEntity()
 Matrix4 CCameraEntity::GetViewMatrix() const
 {
     // 核心逻辑：View矩阵 = 相机世界变换矩阵的逆
-    Matrix4 view = GetWorldMatrix();
-    view.Inverse();
+    // 传统方法：直接求逆世界矩阵
+    // Matrix4 view = GetWorldMatrix();
+    // view.Inverse();
 
-    // 叠加震动偏移（仅影响视图，不修改实体实际位置）
+    // 优化方法：显式分解为旋转和平移的逆，性能更好且数值稳定
+    // 1. 旋转逆 = 旋转矩阵的转置（对于正交矩阵）
+    Matrix4 rotInv = Matrix4::Rotation(m_rotation).Transposed();
+
+    // 2. 平移逆 = 反向平移（取反位置向量）
+    Matrix4 transInv = Matrix4::Translation(-GetWorldPosition());
+
+    // 3. 视图矩阵组合：先进行旋转逆，再进行平移逆
+    // 数学原理：View = (T * R)^-1 = R^-1 * T^-1 = R^T * (-translation)
+    Matrix4 view = rotInv * transInv;
+
+    // 4. 叠加震动偏移效果（仅影响视图，不修改实体实际位置）
+    // 震动在视图空间应用，模拟相机抖动效果
     if (m_ShakeEnabled)
     {
+        // 创建震动平移矩阵
         Matrix4 shake = Matrix4::Translation(m_ShakeOffset);
+        // 将震动变换应用到视图矩阵（后乘，在相机变换后应用震动）
         view = shake * view;
+
+        // 注意：震动偏移是在相机本地空间应用的
+        // 这会产生屏幕抖动效果，但不会实际移动相机在世界中的位置
     }
+
+    // 5. 可选的缩放逆（如果需要处理非均匀缩放）
+    // 对于相机视图，通常不需要处理缩放，因为相机应该是单位缩放的
+    // 但如果需要支持相机缩放，可以添加：
+    // Matrix4 scaleInv = Matrix4::Scaling(Vector3::One / GetWorldScale());
+    // view = scaleInv * view;  // 注意顺序：缩放逆应该在旋转逆之前？
 
     return view;
 }
@@ -53,6 +77,7 @@ void CCameraEntity::ApplyViewMatrix() const
 {
     Matrix4 view = GetViewMatrix();
     glMatrixMode(GL_MODELVIEW);
+
     glLoadMatrixf(view.m);
 }
 
@@ -82,6 +107,8 @@ void CCameraEntity::ApplyProjectionMatrix() const
     // CAUTION
     // glLoadIdentity();
     glLoadMatrixf(proj.m);
+
+    glMatrixMode(GL_MODELVIEW);
 
 // 检查 OpenGL 错误 (保持你原来的调试风格)
 #ifdef _DEBUG
@@ -232,9 +259,11 @@ void CCameraEntity::ProcessMouseMovement(INT dx, INT dy)
     if (m_Mode != CameraMode::FreeLook && m_Mode != CameraMode::Orbital)
         return; // 只有自由视角和轨道视角需要鼠标控制
 
+const float kSensitivityScale = 0.05f;
+
     // 1. 直接修改持久化的 float 变量
-    m_CurrentYaw += static_cast<float>(dx) * m_MouseSensitivity;
-    m_CurrentPitch -= static_cast<float>(dy) * m_MouseSensitivity;
+    m_CurrentYaw -= static_cast<float>(dx) * m_MouseSensitivity * kSensitivityScale;
+    m_CurrentPitch -= static_cast<float>(dy) * m_MouseSensitivity * kSensitivityScale;
     m_CurrentPitch = Math::Clamp(m_CurrentPitch, -m_MaxPitchAngle, m_MaxPitchAngle);
 
     // 2. 合成四元数 (单一源头)

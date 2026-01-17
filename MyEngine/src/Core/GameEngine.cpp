@@ -249,8 +249,8 @@ INT CGameEngine::Run()
             case EngineState::Running:
             {
                 // 渲染主场景
-                // m_pMainCamera->ApplyProjectionMatrix();
-                // m_pMainCamera->ApplyViewMatrix();
+                m_pMainCamera->ApplyProjectionMatrix();
+                m_pMainCamera->ApplyViewMatrix();
                 m_SceneManager->Render();
 
                 // 渲染UI
