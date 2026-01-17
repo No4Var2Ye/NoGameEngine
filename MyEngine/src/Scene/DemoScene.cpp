@@ -1,8 +1,12 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
+#include <functional>
+#include "EngineConfig.h"
 #include "Scene/DemoScene.h"
 #include "Core/GameEngine.h"
+#include "Core/InputManager.h"
+#include "Core/Entity.h"
 #include "Graphics/Camera/Camera.h"
 #include "Resources/ResourceManager.h"
 #include "Entities/ModelEntity.h"
@@ -10,6 +14,7 @@
 #include "Entities/GridEntity.h"
 #include "Entities/TerrainEntity.h"
 // ======================================================================
+// 测试
 #include "Resources/Texture.h"
 #include "Resources/Model.h"
 // ======================================================================
@@ -185,8 +190,18 @@ void DrawColorCube()
     glPopMatrix();
 }
 
+CDemoScene::CDemoScene()
+    : CScene("DemoScene"),       //
+      m_PossessedEntityYaw(0.0f) //
+{
+}
+
+// ======================================================================
+// 1. 初始化阶段
+// ======================================================================
 BOOL CDemoScene::Initialize()
 {
+
     // ======================================================================
     // 0. 获取资源管理器实例
     auto resMgr = CGameEngine::GetInstance().GetResourceManager();
@@ -194,57 +209,53 @@ BOOL CDemoScene::Initialize()
     // ======================================================================
     // 1. 创建根实体
     m_pRootEntity = CEntity::Create();
-    m_pRootEntity->SetName(L"SceneRoot");
-    
+    m_pRootEntity->SetName(L"DemoSceneRoot");
+
     // ======================================================================
     // 2. 添加天空盒
     GLuint skyboxTexture = LoadSkybox();
     if (skyboxTexture != 0)
     {
-        auto pSkybox = CSkyboxEntity::Create(skyboxTexture);
-        pSkybox->SetName(L"WorldSkybox");
-        pSkybox->SetSize(500.0f);        // 设置天空盒大小
-        pSkybox->EnableRotation(TRUE);   // 启用旋转
-        pSkybox->SetRotationSpeed(2.0f); // 设置旋转速度
+        m_pSkybox = CSkyboxEntity::Create(skyboxTexture);
+        m_pSkybox->SetName(L"WorldSkybox");
+        m_pSkybox->SetSize(500.0f);        // 设置天空盒大小
+        m_pSkybox->EnableRotation(TRUE);   // 启用旋转
+        m_pSkybox->SetRotationSpeed(2.0f); // 设置旋转速度
 
-        m_pRootEntity->AddChild(pSkybox);
+        m_pRootEntity->AddChild(m_pSkybox);
         LogInfo(L"天空盒创建成功\n");
-    }
-    else
-    {
-        LogWarning(L"天空盒纹理加载失败\n");
     }
 
     // ======================================================================
     // 3. 添加地形
-    auto pTerrain = CTerrainEntity::Create(L"assets/Textures/Terrain/terrain_heightmap4.png",
-                                           L"assets/Textures/Terrain/grass.jpg",
-                                           300.0f, 15.0f);
-    if (pTerrain)
+    m_pTerrain = CTerrainEntity::Create(L"Terrain/terrain_heightmap4.png",
+                                        L"Terrain/grass.jpg",
+                                        300.0f, 15.0f);
+    if (m_pTerrain)
     {
-        pTerrain->SetName(L"WorldTerrain");
-        pTerrain->SetColor(Vector4(0.6f, 0.8f, 0.9f, 1.0f));
+        m_pTerrain->SetName(L"WorldTerrain");
+        m_pTerrain->SetColor(Vector4(0.6f, 0.8f, 0.9f, 1.0f));
 
-        pTerrain->SetNormalScale(1.0f);
-        pTerrain->SetNormalStep(100);
-        pTerrain->SetDrawNormals(TRUE);
+        m_pTerrain->SetNormalScale(1.0f);
+        m_pTerrain->SetNormalStep(100);
+        m_pTerrain->SetDrawNormals(TRUE);
 
-        pTerrain->SetPosition(Vector3(0, 0, 0));
+        m_pTerrain->SetPosition(Vector3(0, 0, 0));
 
-        m_pRootEntity->AddChild(pTerrain);
-    }
-    else
-    {
-        LogError(L"地形创建失败.\n");
+        m_pRootEntity->AddChild(m_pTerrain);
+        LogInfo(L"地形创建成功\n");
     }
 
     // ======================================================================
-    // 4. 创建网格实体
-    auto pGrid = CGridEntity::Create(100.0f, 1.0f);
-    if (pGrid)
+    // 4. 创建网格坐标实体
+    m_pGrid = CGridEntity::Create(500.0f, 1.0f);
+    if (m_pGrid)
     {
-        pGrid->SetPosition(Vector3(0, -0.01f, 0));
-        m_pRootEntity->AddChild(pGrid);
+        m_pGrid->SetPosition(Vector3(0, -0.01f, 0));
+        m_pGrid->SetFadeDist(50.0f, 200.0f);
+        m_pGrid->SetShowAxes(TRUE);
+
+        m_pRootEntity->AddChild(m_pGrid);
         LogInfo(L"网格创建成功\n");
     }
 
@@ -255,8 +266,9 @@ BOOL CDemoScene::Initialize()
     {
         auto pDuckEntity = CModelEntity::Create(pDuckModel);
         pDuckEntity->SetName(L"MainDuck");
-        pDuckEntity->SetPosition(Vector3(0.0f, 0.0f, 0.0f)); // 确保在视野内
+        pDuckEntity->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
         pDuckEntity->SetScale(Vector3(0.01f, 0.01f, 0.01f));
+        // pDuckEntity->SetRotation(Vector3(0.0f, -90.0f, 0.0f));
 
         // 调试：输出模型信息
         // LogInfo(L"鸭子模型位置: (0, 1, 0), 缩放: 0.01.\n");
@@ -266,80 +278,68 @@ BOOL CDemoScene::Initialize()
         pDuckEntity->SetNormalStep(10);
         pDuckEntity->SetDrawNormals(TRUE);
 
+        pDuckEntity->SetSnapToTerrain(TRUE, 0.0f);
+
         m_pRootEntity->AddChild(pDuckEntity);
+
+        RegisterEntityForSnapping(pDuckEntity, TRUE);
+        m_pPossessedEntity = pDuckEntity;
     }
 
-    // 启用雾化
-    SetupFog();
+    // ======================================================================
+    // 场景配置
+    SetupFog(); // 启用雾化
 
     m_bInitialized = TRUE;
     return TRUE;
 }
 
+// ======================================================================
+// 2. 更新阶段
+// ======================================================================
 void CDemoScene::Update(float deltaTime)
 {
-    // 驱动层级系统更新（计算矩阵等）
-    if (m_pRootEntity && !m_bIsPaused)
-    {
-        m_pRootEntity->Update(deltaTime);
+    if (!m_pRootEntity || m_bIsPaused)
+        return;
 
-        static std::weak_ptr<CTerrainEntity> pTerrainCache;
-        auto pTerrain = pTerrainCache.lock();
+    // 1. 处理输入
+    ProcessInput(deltaTime);
 
-        if (!pTerrain)
-        {
-            // 通过名字查找实体
-            auto pEntity = m_pRootEntity->FindChildByName(L"WorldTerrain");
-            // 将基类指针安全转换为地形类指针
-            pTerrain = std::dynamic_pointer_cast<CTerrainEntity>(pEntity);
-            pTerrainCache = pTerrain;
-        }
+    // 2. 驱动层更新
+    m_pRootEntity->Update(deltaTime);
 
-        static std::weak_ptr<CModelEntity> pDuckCache;
-        auto pDuck = pDuckCache.lock();
-
-        if (!pDuck)
-        {
-            // 通过名字查找实体
-            auto pEntity = m_pRootEntity->FindChildByName(L"MainDuck");
-            // 将基类指针安全转换为地形类指针
-            pDuck = std::dynamic_pointer_cast<CModelEntity>(pEntity);
-            pDuckCache = pDuck;
-        }
-
-        if (pTerrain && pDuck)
-        {
-            Vector3 duckPos = pDuck->GetPosition();
-
-            // 1. 根据当前 XZ 坐标获取高度
-            float groundHeight = pTerrain->GetHeightAt(duckPos.x, duckPos.z);
-
-            // 2. 将鸭子设置到该高度
-            // 注意：如果鸭子的原点在中心而非脚底，你可能需要加上偏移：groundHeight + offset
-            duckPos.y = groundHeight;
-            pDuck->SetPosition(duckPos);
-        }
-    }
+    // 3.实体更新逻辑
+    UpdateLogic(deltaTime);
 }
 
+// ======================================================================
+// 3. 渲染阶段
+// ======================================================================
 void CDemoScene::Render()
 {
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    // glMatrixMode(GL_MODELVIEW);
+    // glLoadIdentity();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    static CCamera *s_pLastCamera = nullptr;
     CCamera *pCamera = CGameEngine::GetInstance().GetMainCamera();
-    if (pCamera)
+    if (pCamera != s_pLastCamera)
     {
-        pCamera->ApplyViewMatrix(); // 这里内部通常执行 glLoadMatrix 或 gluLookAt
+        s_pLastCamera = pCamera;
+        if (pCamera)
+        {
+            pCamera->ApplyViewMatrix();
+        }
     }
 
-    // 在渲染前清理纹理状态
-    glDisable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    CleanupTextureState();
-
-    SetupGlobalLighting();
+    // 3. 优化光照设置 - 只在变化时更新
+    static Vector3 s_lastCamPos;
+    Vector3 camPos = pCamera ? pCamera->GetPosition() : Vector3::Zero();
+    if ((camPos - s_lastCamPos).LengthSquared() > 1.0f) // 相机移动超过1单位才更新
+    {
+        SetupGlobalLighting();
+        s_lastCamPos = camPos;
+    }
 
     // 驱动层级系统渲染
     if (m_pRootEntity)
@@ -348,10 +348,17 @@ void CDemoScene::Render()
         m_pRootEntity->Render();
     }
 
-    CleanupTextureState();
-
     // DrawColorCube();    // 测试渲染
     // DrawTexturedCube(); // 测试贴图
+}
+
+void CDemoScene::Shutdown()
+{
+    if (m_pRootEntity)
+    {
+        // 递归清理实体持有的资源或断开连接
+        m_pRootEntity = nullptr;
+    }
 }
 
 GLuint CDemoScene::LoadSkybox()
@@ -366,56 +373,6 @@ GLuint CDemoScene::LoadSkybox()
 
     LogWarning(L"ResourceManager 不可用，无法加载天空盒\n");
     return 0;
-}
-
-void CDemoScene::DrawGrid()
-{
-    glPushMatrix();
-
-    // ========================================================
-    // 1. 绘制参考地平面 (Grid)
-    // ========================================================
-
-    glDisable(GL_LIGHTING); // 调试阶段关闭光照，确保颜色准确
-
-    float size = 100.0f; // 地面大小
-    float step = 1.0f;   // 网格间距
-
-    glBegin(GL_LINES);
-    for (float i = -size; i <= size; i += step)
-    {
-        // 颜色：深灰色，中心轴可以用深白色区分
-        if (i == 0)
-            glColor3f(0.8f, 0.8f, 0.8f);
-        else
-            glColor3f(0.4f, 0.4f, 0.4f);
-
-        // 绘制横线 (平行于 Z 轴)
-        glVertex3f(i, 0.0f, -size);
-        glVertex3f(i, 0.0f, size);
-
-        // 绘制纵线 (平行于 X 轴)
-        glVertex3f(-size, 0.0f, i);
-        glVertex3f(size, 0.0f, i);
-    }
-    glEnd();
-
-    // 绘制世界坐标轴 (X-红, Y-绿, Z-蓝)
-    glLineWidth(2.0f);
-    glBegin(GL_LINES);
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(5, 0.1f, 0); // X轴
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(0, 5.1f, 0); // Y轴
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glVertex3f(0, 0.1f, 0);
-    glVertex3f(0, 0.1f, 5); // Z轴
-    glEnd();
-    glLineWidth(1.0f);
-
-    glPopMatrix();
 }
 
 void CDemoScene::SetupFog()
@@ -439,38 +396,43 @@ void CDemoScene::SetupFog()
     glHint(GL_FOG_HINT, GL_NICEST); // 基于像素计算，效果最好
 }
 
-void CDemoScene::Shutdown()
-{
-    if (m_pRootEntity)
-    {
-        // 递归清理实体持有的资源或断开连接
-        m_pRootEntity = nullptr;
-    }
-}
-
 void CDemoScene::SetupGlobalLighting()
 {
-    // 全局光照设置
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
+    static BOOL s_bInitialized = FALSE;
+    static GLfloat s_lightPosition[4];
 
-    // 光源位置（跟随相机）
-    Vector3 camPos = CGameEngine::GetInstance().GetMainCamera()->GetPosition();
-    GLfloat lightPosition[] = {camPos.x, camPos.y + 10.0f, camPos.z, 1.0f};
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    if (!s_bInitialized)
+    {
+        // 一次性设置不变的光照属性
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
 
-    // 光源属性
-    GLfloat lightAmbient[] = {0.4f, 0.4f, 0.4f, 1.0f};
-    GLfloat lightDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
-    GLfloat lightSpecular[] = {0.5f, 0.5f, 0.5f, 1.0f};
+        GLfloat lightAmbient[] = {0.4f, 0.4f, 0.4f, 1.0f};
+        GLfloat lightDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
+        GLfloat lightSpecular[] = {0.5f, 0.5f, 0.5f, 1.0f};
 
-    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
+        glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
+        glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
 
-    // 全局材质
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+        glEnable(GL_COLOR_MATERIAL);
+        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
+        s_bInitialized = TRUE;
+    }
+
+    // 只更新变化的光源位置
+    CCamera *pCamera = CGameEngine::GetInstance().GetMainCamera();
+    if (pCamera)
+    {
+        Vector3 camPos = pCamera->GetPosition();
+        s_lightPosition[0] = camPos.x;
+        s_lightPosition[1] = camPos.y + 10.0f;
+        s_lightPosition[2] = camPos.z;
+        s_lightPosition[3] = 1.0f;
+
+        glLightfv(GL_LIGHT0, GL_POSITION, s_lightPosition);
+    }
 }
 
 void CDemoScene::CleanupTextureState()
@@ -495,5 +457,174 @@ void CDemoScene::CleanupTextureState()
     if (currentTexture != 0)
     {
         LogWarning(L"纹理清理失败，当前绑定纹理: %d", currentTexture);
+    }
+}
+
+void CDemoScene::ProcessInput(float deltaTime)
+{
+    auto inputMgr = CGameEngine::GetInstance().GetInputManager();
+    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+
+    CameraMode mode = pCamera->GetMode();
+
+    // CAUTION: 只有在第三人称模式下，WASD 才控制模型实体
+    if (m_pPossessedEntity && mode == CameraMode::ThirdPerson)
+    {
+        UpdateEntities(deltaTime);
+    }
+
+    // if (inputMgr->IsKeyPressed('M'))
+    // {
+    //     // 示例：按一下 M 键，生成一个新的鸭子
+    //     // auto pNewModel = CreateExtraDuck();
+    //     // m_pRootEntity->AddChild(pNewModel);
+    //     LogInfo(L"按下 M 键：成功添加一个新实体，且不会由于按住而导致重复创建。\n");
+    // }
+
+    // 示例：按 'L' 键切换地形线框模式
+    // if (inputMgr->IsKeyPressed('L'))
+    // {
+    //     if (m_pTerrain)
+    //     {
+    //         m_pTerrain->SetWireframe(!m_pTerrain->IsWireframe());
+    //     }
+    // }
+
+    // 示例：按 'B' 键切换包围盒显示
+    // if (inputMgr->IsKeyPressed('B'))
+    // {
+    //     if (m_pPossessedEntity)
+    //     {
+    //         m_pPossessedEntity->SetDrawBoundingBox(!m_pPossessedEntity->IsDrawBoundingBox());
+    //     }
+    // }
+}
+
+void CDemoScene::UpdateLogic(float deltaTime)
+{
+    UpdateAutoSnapping();
+}
+
+void CDemoScene::UpdateEntities(float deltaTime)
+{
+    // 获取引擎子系统
+    auto inputMgr = CGameEngine::GetInstance().GetInputManager();
+    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+
+    if (!m_pPossessedEntity || !pCamera)
+        return;
+
+    Vector3 inputDir(0, 0, 0);
+
+    if (inputMgr->IsKeyDown('W'))
+        inputDir.z += 1.0f;
+    if (inputMgr->IsKeyDown('S'))
+        inputDir.z -= 1.0f;
+    if (inputMgr->IsKeyDown('A'))
+        inputDir.x += 1.0f;
+    if (inputMgr->IsKeyDown('D'))
+        inputDir.x -= 1.0f;
+
+    if (inputDir.Length() > 0.01f)
+    {
+        inputDir.Normalize();
+
+        // 1. 核心：计算相机参考系下的世界向量
+        Vector3 camForward = pCamera->GetForward();
+        camForward.y = 0; // 抹平高度差，确保只在地面移动
+        camForward.Normalize();
+
+        Vector3 camRight = pCamera->GetRight();
+        camRight.y = 0;
+        camRight.Normalize();
+
+        // 这里的 moveVec 就是鸭子在世界坐标系中该走的方向
+        Vector3 moveVec = (camForward * inputDir.z) + (camRight * inputDir.x);
+        moveVec.Normalize();
+
+        // 2. 旋转逻辑：计算目标偏航角 (Yaw)
+        // atan2f(x, z) 得到的弧度：0是正Z, PI/2是正X
+        float targetRad = atan2f(moveVec.x, moveVec.z);
+        float targetYaw = targetRad * 57.29578f; // Rad to Deg
+
+        // 模型偏置修正：如果鸭子“横着走”，改这个值 (-90, 0, 90, 180)
+        float finalTargetYaw = targetYaw - 90.0f;
+
+        // 3. 角度插值（处理 180 度跳转问题）
+        float angleDiff = finalTargetYaw - m_PossessedEntityYaw;
+        while (angleDiff > 180.0f)
+            angleDiff -= 360.0f;
+        while (angleDiff < -180.0f)
+            angleDiff += 360.0f;
+
+        // 平滑旋转：lerpFactor 越大，转向越灵敏
+        float lerpFactor = 12.0f;
+        m_PossessedEntityYaw += angleDiff * lerpFactor * deltaTime;
+
+        // 4. 应用变换：强制 X=0, Z=0
+        // 这行代码解决了“鸭子乱偏”到地下的问题
+        m_pPossessedEntity->SetRotation(Vector3(0.0f, m_PossessedEntityYaw, 0.0f));
+
+        // 5. 移动位置
+        float moveSpeed = 2.0f;
+        Vector3 currentPos = m_pPossessedEntity->GetPosition();
+        m_pPossessedEntity->SetPosition(currentPos + (moveVec * moveSpeed * deltaTime));
+    }
+}
+
+void CDemoScene::RegisterEntityForSnapping(std::shared_ptr<CEntity> pEntity, BOOL isDynamic)
+{
+    if (!pEntity || !m_pTerrain)
+        return;
+
+    if (isDynamic)
+    {
+        auto it = std::find(m_DynamicSnapEntities.begin(), m_DynamicSnapEntities.end(), pEntity);
+        if (it == m_DynamicSnapEntities.end())
+        {
+            m_DynamicSnapEntities.push_back(pEntity);
+            // LogInfo(L"已注册动态贴地实体: %s\n", pEntity->GetName().c_str());
+        }
+    }
+    else
+    {
+        // 静态物体：直接执行一次贴地，后续不再计算
+        Vector3 pos = pEntity->GetPosition();
+        float h = m_pTerrain->GetGroundHeight(pos);
+        pEntity->SetPosition(Vector3(pos.x, h + pEntity->GetGroundOffset(), pos.z));
+    }
+}
+
+void CDemoScene::UpdateAutoSnapping()
+{
+    if (!m_pTerrain || m_DynamicSnapEntities.empty())
+        return;
+
+    const float moveThresholdSq = 0.1f * 0.1f;
+
+    for (auto &pEntity : m_DynamicSnapEntities)
+    {
+        if (pEntity && pEntity->IsAutoSnapEnabled())
+        {
+            Vector3 currentPos = pEntity->GetPosition();
+            Vector3 lastPos = pEntity->GetLastSnapPos();
+
+            // 计算水平面(X,Z)上的位移平方
+            float dx = currentPos.x - lastPos.x;
+            float dz = currentPos.z - lastPos.z;
+            float distSq = dx * dx + dz * dz;
+
+            // 位移阈值判断
+            if (distSq > moveThresholdSq)
+            {
+                float h = m_pTerrain->GetGroundHeight(currentPos);
+
+                // 更新位置（Y轴为高度 + 偏移）
+                pEntity->SetPosition(Vector3(currentPos.x, h + pEntity->GetGroundOffset(), currentPos.z));
+
+                // 【关键修复】：更新最后记录的位置，防止下一帧重复进入
+                pEntity->SetLastSnapPos(currentPos);
+            }
+        }
     }
 }

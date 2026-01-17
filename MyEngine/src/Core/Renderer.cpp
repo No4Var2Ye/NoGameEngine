@@ -893,8 +893,9 @@ BOOL CRenderer::CheckGLError(const char *function)
             errorMsg = "Unknown error";
             break;
         }
-
-        LogError(L"OpenGL错误: %s\n函数: %s\n", errorMsg.c_str(), function);
+        std::wstring wErrorMsg = std::wstring(errorMsg.begin(), errorMsg.end());
+        std::wstring wFunction = std::wstring(function, function + strlen(function));
+        LogError(L"OpenGL错误: %ls. 函数: %ls\n", wErrorMsg.c_str(), wFunction.c_str());
 
         return TRUE;
     }

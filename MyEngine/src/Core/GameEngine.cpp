@@ -450,7 +450,7 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
     // 4. 移动处理 (键盘)
     // 获取相机当前模式，决定 WASD 是移动相机还是移动目标
 
-    if (mode == CameraMode::FirstPerson || mode == CameraMode::FreeLook)
+    if (mode == CameraMode::FreeLook)
     {
         FLOAT fwd = 0.0f, right = 0.0f, up = 0.0f;
 
@@ -485,16 +485,11 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
             m_pMainCamera->Move(fwd * deltaTime, right * deltaTime, up * deltaTime);
         }
     }
+    else if (mode == CameraMode::FirstPerson)
+    {
+    }
     else if (mode == CameraMode::ThirdPerson)
     {
-        // 在第三人称下，键盘通常用来移动“玩家对象”或“目标点”
-        // 这里我们直接控制相机的 Target 偏移，或者你可以直接控制你的角色类
-        Vector3 targetMove(0, 0, 0);
-        if (m_InputManager->IsKeyDown('W'))
-            targetMove.z -= 1.0f;
-        if (m_InputManager->IsKeyDown('S'))
-            targetMove.z += 1.0f;
-        // ... 应用到你的角色或 camera->SetThirdPersonTarget()
     }
 
     m_InputManager->ClearDelta();

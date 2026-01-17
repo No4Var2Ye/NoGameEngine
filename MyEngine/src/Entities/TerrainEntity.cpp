@@ -20,7 +20,7 @@ CTerrainEntity::CTerrainEntity()
       m_maxHeight(15.0f),                     // 最大高度
       m_bWireframe(FALSE),                    //
       m_iLODLevel(1),                         //
-      m_bUseVBO(FALSE),                       //
+      m_bUseVBO(TRUE),                        //
       m_vertexBuffer(0),                      //
       m_indexBuffer(0),                       //
       m_terrainColor(0.5f, 0.5f, 0.5f, 1.0f), // 地形颜色灰色
@@ -45,20 +45,23 @@ CTerrainEntity::~CTerrainEntity()
 
 std::shared_ptr<CTerrainEntity> CTerrainEntity::Create(const std::wstring &heightmapPath, const std::wstring &texturePath, float size, float maxHeight)
 {
+    ResourceConfig conofig;
+
     auto entity = std::shared_ptr<CTerrainEntity>(new CTerrainEntity());
     entity->m_uID = ++s_nextID;
 
-    if (entity->LoadHeightmap(heightmapPath, size, maxHeight))
+    std::wstring fullHeightmapPath = conofig.GetTexturePath() + heightmapPath;
+    std::wstring fullTexturePath = conofig.GetTexturePath() + texturePath;
+
+    if (entity->LoadHeightmap(fullHeightmapPath, size, maxHeight))
     {
-        if (!texturePath.empty())
+        if (!fullTexturePath.empty())
         {
-            // 通过游戏引擎单例获取资源管理器
             auto pResMgr = CGameEngine::GetInstance().GetResourceManager();
             if (pResMgr)
             {
-                // 改为调用 GetTexture 获取 shared_ptr
-                auto pTex = pResMgr->GetTexture(texturePath, CResourceManager::PathType::Absolute);
-                entity->SetTexture(pTex); // SetTexture 参数也需同步修改
+                auto pTex = pResMgr->GetTexture(fullTexturePath, CResourceManager::PathType::Absolute);
+                entity->SetTexture(pTex);
             }
         }
         return entity;
@@ -266,7 +269,7 @@ void CTerrainEntity::CreateVBO()
     const char *versionStr = (const char *)glGetString(GL_VERSION);
     if (!versionStr)
     {
-        m_bUseVBO = false;
+        m_bUseVBO = FALSE;
         LogWarning(L"无法获取OpenGL版本信息\n");
         return;
     }
@@ -275,7 +278,7 @@ void CTerrainEntity::CreateVBO()
     int major = 0, minor = 0;
     if (sscanf_s(versionStr, "%d.%d", &major, &minor) != 2)
     {
-        m_bUseVBO = false;
+        m_bUseVBO = FALSE;
 
         // 将char*转换为wchar_t*用于日志输出
         int wideLen = MultiByteToWideChar(CP_UTF8, 0, versionStr, -1, nullptr, 0);
@@ -295,12 +298,12 @@ void CTerrainEntity::CreateVBO()
     // OpenGL 1.5+ 支持VBO
     if (major > 1 || (major == 1 && minor >= 5))
     {
-        m_bUseVBO = true;
-        // LogInfo(L"OpenGL版本 %d.%d 支持VBO\n", major, minor);
+        m_bUseVBO = TRUE;
+        LogInfo(L"OpenGL版本 %d.%d 支持VBO\n", major, minor);
     }
     else
     {
-        m_bUseVBO = false;
+        m_bUseVBO = FALSE;
         LogWarning(L"OpenGL版本过低 (%d.%d), VBO不可用", major, minor);
         return;
     }
@@ -322,7 +325,7 @@ void CTerrainEntity::CreateVBO()
     if (error != GL_NO_ERROR)
     {
         LogError(L"创建VBO时发生OpenGL错误: %d", error);
-        m_bUseVBO = false;
+        m_bUseVBO = FALSE;
 
         // 清理已创建的缓冲区
         if (m_vertexBuffer)
@@ -381,7 +384,7 @@ void CTerrainEntity::Render()
     // TODO: 设置地形材质
     GLfloat matAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};  // 环境光反射
     GLfloat matDiffuse[] = {0.6f, 0.6f, 0.6f, 1.0f};  // 漫反射
-    GLfloat matSpecular[] = {0.9f, 0.9f, 0.9f, 1.0f}; // 镜面反射
+    GLfloat matSpecular[] = {0.3f, 0.3f, 0.3f, 1.0f}; // 镜面反射
     GLfloat matShininess[] = {100.0f};                // 光泽度
 
     // 塑料质感
@@ -422,20 +425,20 @@ void CTerrainEntity::Render()
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
         // 检查纹理绑定状态
-        GLint boundTexture;
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
+        // GLint boundTexture;
+        // glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
         // LogDebug(L"当前绑定的纹理: %d.\n", boundTexture);
     }
     else
     {
-        glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
         LogWarning(L"地形纹理ID为0, 使用颜色渲染\n");
     }
 
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
-    if (m_bUseVBO && m_iLODLevel == 1)
+    if (m_bUseVBO && m_vertexBuffer != 0 && m_indexBuffer != 0)
     {
         // 使用VBO渲染（最高质量）
         glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
@@ -465,6 +468,13 @@ void CTerrainEntity::Render()
     }
     else
     {
+        static bool warned = false;
+        if (!warned)
+        {
+            LogWarning(L"警告：地形正在使用低效率的立即模式渲染！");
+            warned = true;
+        }
+
         // 使用立即模式渲染（支持LOD）
         glBegin(GL_TRIANGLES);
         for (size_t i = 0; i < m_indices.size(); ++i)
@@ -500,13 +510,17 @@ void CTerrainEntity::Render()
 
 float CTerrainEntity::GetHeightAt(float worldX, float worldZ) const
 {
-    // 获取地形当前的位置（假设没有旋转和缩放）
+    // 获取地形当前的位置
     Vector3 terrainPos = GetPosition();
+    Vector3 terrainScale = GetScale();
+
+    // 缩放后的有效CellSize
+    float scaledCellSize = m_cellSize * terrainScale.x;
 
     // 将世界坐标转为相对于地形左上角的局部坐标
     // 这里的逻辑要和你生成顶点时的 (x - m_width * 0.5f) * m_cellSize 对应
-    float localX = (worldX - terrainPos.x) / m_cellSize + (m_width - 1) * 0.5f;
-    float localZ = (worldZ - terrainPos.z) / m_cellSize + (m_height - 1) * 0.5f;
+    float localX = (worldX - terrainPos.x) / (m_cellSize * terrainScale.x) + (m_width * 0.5f);
+    float localZ = (worldZ - terrainPos.z) / (m_cellSize * terrainScale.z) + (m_height * 0.5f);
 
     int x0 = (int)floor(localX);
     int z0 = (int)floor(localZ);
@@ -530,7 +544,12 @@ float CTerrainEntity::GetHeightAt(float worldX, float worldZ) const
               (1 - dx) * dz * h01 +
               dx * dz * h11;
 
-    return h + terrainPos.y; // 加上地形本身的 Y 轴位移
+    return h * terrainScale.y + terrainPos.y; // 加上地形本身的 Y 轴位移
+}
+
+float CTerrainEntity::GetGroundHeight(const Vector3 &worldPos) const
+{
+    return GetHeightAt(worldPos.x, worldPos.z);
 }
 
 void CTerrainEntity::RenderSimpleGeometry()

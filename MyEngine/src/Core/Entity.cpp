@@ -16,7 +16,9 @@ CEntity::CEntity()
       m_rotation(Quaternion::Identity()), //
       m_scale(1.0f, 1.0f, 1.0f),          //
       m_bWorldDirty(TRUE),                //
-      m_bVisible(TRUE)                    //
+      m_bVisible(TRUE),                   //
+      m_bSnapToTerrain(FALSE),            //
+      m_fTerrainOffset(0.0f)              //
 {
     m_cachedWorldMatrix = Matrix4::Identity();
 }
@@ -219,4 +221,10 @@ void CEntity::MarkDirty()
                     queue.push(child.get());
         }
     }
+}
+
+void CEntity::SetSnapToTerrain(BOOL enable, float offset)
+{
+    m_bSnapToTerrain = enable;
+    m_fTerrainOffset = offset;
 }

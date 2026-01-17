@@ -61,10 +61,8 @@ public:
     // 变换操作
     void SetPosition(const Vector3 &pos);
     const Vector3 &GetPosition() const { return m_position; }
-
     void SetRotation(const Vector3 &euler);
     const Quaternion &GetRotation() const { return m_rotation; }
-
     void SetScale(const Vector3 &scale);
     const Vector3 &GetScale() const { return m_scale; }
 
@@ -74,6 +72,13 @@ public:
     // 可见性控制
     void SetVisible(BOOL visible) { m_bVisible = visible; }
     BOOL IsVisible() const { return m_bVisible; }
+
+    // 自动贴地
+    void SetSnapToTerrain(BOOL enable, float offset = 0.0f);
+    BOOL IsAutoSnapEnabled() const { return m_bSnapToTerrain; }
+    float GetGroundOffset() const { return m_fTerrainOffset; }
+    void SetLastSnapPos(const Vector3 &pos) { m_LastSnapPos = pos; }
+    Vector3 GetLastSnapPos() const { return m_LastSnapPos; }
 
 protected:
     unsigned int m_uID = 0;
@@ -93,10 +98,14 @@ protected:
     Quaternion m_rotation;
     Vector3 m_scale;
 
+    BOOL m_bVisible;
+
+    BOOL m_bSnapToTerrain;                                         // 是否开启自动贴地
+    float m_fTerrainOffset;                                        // 高度偏移
+    Vector3 m_LastSnapPos = Vector3(99999.0f, 99999.0f, 99999.0f); // 初始给个极大值确保第一次必执行
+
     mutable Matrix4 m_cachedWorldMatrix;
     mutable BOOL m_bWorldDirty;
-
-    BOOL m_bVisible;
 
     void ApplyTransform() const;
     void MarkDirty();

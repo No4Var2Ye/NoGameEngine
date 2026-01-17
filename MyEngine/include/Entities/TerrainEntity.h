@@ -7,7 +7,8 @@
 #include "Core/Entity.h"
 #include "Resources/Texture.h"
 // ======================================================================
-
+class Vector3;
+// ======================================================================
 class CTerrainEntity : public CEntity
 {
 private:
@@ -27,6 +28,7 @@ public:
 
     // 地形查询功能
     float GetHeightAt(float worldX, float worldZ) const;
+    float GetGroundHeight(const Vector3& worldPos) const;
     Vector3 GetNormalAt(float worldX, float worldZ) const;
     bool IsPositionOnTerrain(float worldX, float worldZ) const;
 

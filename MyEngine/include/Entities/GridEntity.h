@@ -5,6 +5,14 @@
 #include "Core/Entity.h"
 #include "Math/Vector3.h"
 // ======================================================================
+struct GridVertex
+{
+    float x, y, z;
+    unsigned char r, g, b, a;
+
+    GridVertex(float x, float y, float z, unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255)
+        : x(x), y(y), z(z), r(r), g(g), b(b), a(a) {}
+};
 
 class CGridEntity : public CEntity
 {
@@ -34,17 +42,52 @@ public:
 
     virtual void Update(float deltaTime) override;
     virtual void Render() override;
-    void DrawFadingLine(float coord, BOOL isParallelToZ, const Vector3& camPos, const Vector3& color, float maxDist);
+    void DrawFadingLine(float coord, BOOL isParallelToZ, const Vector3 &camPos, const Vector3 &color, float maxDist);
 
+    // 世界坐标
+    void SetFadeDist(float minor, float major)
+    {
+        m_fMinorFadeDist = minor;
+        m_fMajorFadeDist = major;
+    }
+    void SetShowAxes(BOOL bShow) { m_bShowAxes = bShow; }
+    void SetGridColors(Vector3 main, Vector3 sub)
+    {
+        m_MainColor = main;
+        m_SubColor = sub;
+    }
 
 protected:
     CGridEntity(FLOAT size = 100.0f, FLOAT step = 1.0f);
 
 private:
+    std::vector<GridVertex> m_gridVertices;
+    std::vector<GridVertex> m_MainGridVertices; // 粗网格 (Major)
+    std::vector<GridVertex> m_SubGridVertices;  // 细网格 (Minor)
+
     FLOAT m_fSize;
     FLOAT m_fStep;
     Vector3 m_MainColor; // 轴线颜色
     Vector3 m_SubColor;  // 普通网格颜色
+
+    // 世界坐标
+    BOOL m_bShowAxes;       // 是否显示 XYZ 轴
+    BOOL m_bEnableFade;     // 是否启用距离淡出
+    float m_fMinorFadeDist; // 细网格消失距离
+    float m_fMajorFadeDist; // 粗网格消失距离
+
+    Vector3 m_AxisColorX = Vector3(1.0f, 0.2f, 0.2f);
+    Vector3 m_AxisColorY = Vector3(0.2f, 1.0f, 0.2f);
+    Vector3 m_AxisColorZ = Vector3(0.2f, 0.2f, 1.0f);
+
+    void InitGrid();
+    void BuildGeometry();
+    void BuildGeometryWithLOD();
+    int CalculateLODLevel() const;
+    BOOL ShouldRebuildLOD() const;
+    void SetupDistanceFog();
+    void RenderGridWithVertexArrays();
+    void RenderCoordinateAxes();
 };
 
 #endif // __GRID_ENTITY_H__

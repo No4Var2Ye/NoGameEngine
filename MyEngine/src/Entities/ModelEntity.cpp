@@ -18,7 +18,7 @@ void CModelEntity::Update(FLOAT deltaTime)
     // 调用基类 Update 以确保子节点的递归更新
     CEntity::Update(deltaTime);
 
-    // 此处可添加模型特有逻辑，例如骨骼动画更新等
+    // TODO: 此处可添加模型特有逻辑，例如骨骼动画更新等
 }
 
 void CModelEntity::Render()
