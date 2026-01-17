@@ -1,4 +1,5 @@
-﻿// ======================================================================
+﻿
+// ======================================================================
 #include "stdafx.h"
 #include "EngineConfig.h"
 #include "Entities/TerrainEntity.h"
@@ -7,13 +8,12 @@
 #include "Resources/ResourceManager.h"
 #include "Utils/StringUtils.h"
 #include "Utils/stb_image.h"
-
 // ======================================================================
 
 unsigned int CTerrainEntity::s_nextID = 3000;
 
 CTerrainEntity::CTerrainEntity()
-    : m_uTextureID(0),
+    : m_pTexture(nullptr),                    // 纹理
       m_width(0),                             // 宽度
       m_height(0),                            // 高度
       m_cellSize(0.0f),                       //
@@ -43,12 +43,24 @@ CTerrainEntity::~CTerrainEntity()
     }
 }
 
-std::shared_ptr<CTerrainEntity> CTerrainEntity::Create(const std::wstring &heightmapPath, float size, float maxHeight)
+std::shared_ptr<CTerrainEntity> CTerrainEntity::Create(const std::wstring &heightmapPath, const std::wstring &texturePath, float size, float maxHeight)
 {
     auto entity = std::shared_ptr<CTerrainEntity>(new CTerrainEntity());
     entity->m_uID = ++s_nextID;
+
     if (entity->LoadHeightmap(heightmapPath, size, maxHeight))
     {
+        if (!texturePath.empty())
+        {
+            // 通过游戏引擎单例获取资源管理器
+            auto pResMgr = CGameEngine::GetInstance().GetResourceManager();
+            if (pResMgr)
+            {
+                // 改为调用 GetTexture 获取 shared_ptr
+                auto pTex = pResMgr->GetTexture(texturePath, CResourceManager::PathType::Absolute);
+                entity->SetTexture(pTex); // SetTexture 参数也需同步修改
+            }
+        }
         return entity;
     }
     return nullptr;
@@ -212,10 +224,10 @@ void CTerrainEntity::CalculateNormals()
         v.normal.Normalize();
     }
 
-    for (int i = 0; i < 5 && i < m_vertices.size(); ++i)
-    {
-        LogDebug(L"Vertex %d Normal: %.2f, %.2f, %.2f.\n", i, m_vertices[i].normal.x, m_vertices[i].normal.y, m_vertices[i].normal.z);
-    }
+    // for (int i = 0; i < 5 && i < m_vertices.size(); ++i)
+    // {
+    //     LogDebug(L"Vertex %d Normal: %.2f, %.2f, %.2f.\n", i, m_vertices[i].normal.x, m_vertices[i].normal.y, m_vertices[i].normal.z);
+    // }
 }
 
 void CTerrainEntity::GenerateIndices()
@@ -320,8 +332,8 @@ void CTerrainEntity::CreateVBO()
         return;
     }
 
-    LogInfo(L"地形VBO创建成功, 顶点数: %d, 三角形数: %d.\n",
-            m_vertices.size(), m_indices.size() / 3);
+    LogDebug(L"地形VBO创建成功, 顶点数: %d, 三角形数: %d.\n",
+             m_vertices.size(), m_indices.size() / 3);
 }
 
 void CTerrainEntity::Update(float deltaTime)
@@ -335,16 +347,18 @@ void CTerrainEntity::Render()
     if (!m_bVisible || m_vertices.empty())
         return;
 
-    glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
+    // GLint currentTexture;
+    // glGetIntegerv(GL_TEXTURE_BINDING_2D, &currentTexture);
+    // LogDebug(L"地形渲染前强制清理纹理: %d -> 0.\n", currentTexture);
+
+    glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_TEXTURE_BIT);
 
     // 设置渲染状态
     glEnable(GL_DEPTH_TEST);
-
     glEnable(GL_LIGHTING);
     // ?: 测试光源
     // glEnable(GL_LIGHT0); // 启用默认光源
     // glDisable(GL_LIGHTING);  // 先关闭光照, 看地形是否显示
-
     glEnable(GL_COLOR_MATERIAL); // CAUTION: 关键：让顶点颜色生效
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
@@ -365,13 +379,10 @@ void CTerrainEntity::Render()
 
     // 设置材质
     // TODO: 设置地形材质
-    // 设置材质属性 - 关键部分！
-    // GLfloat matAmbient[] = {1.0f, 1.0f, 1.0f, 1.0f};  // 环境光反射
     GLfloat matAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};  // 环境光反射
     GLfloat matDiffuse[] = {0.6f, 0.6f, 0.6f, 1.0f};  // 漫反射
     GLfloat matSpecular[] = {0.9f, 0.9f, 0.9f, 1.0f}; // 镜面反射
-    GLfloat matShininess[] = {100.0f};                 // 光泽度
-
+    GLfloat matShininess[] = {100.0f};                // 光泽度
 
     // 塑料质感
     // GLfloat matAmbient[] = {0.1f, 0.1f, 0.1f, 1.0f};    // 减少环境光
@@ -392,22 +403,37 @@ void CTerrainEntity::Render()
     // GLfloat matShininess[] = {5.0f};                    // 非常粗糙
 
     glMaterialfv(GL_FRONT, GL_AMBIENT, matAmbient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse); // 漫反射必须设置！
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse);
     glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular);
     glMaterialfv(GL_FRONT, GL_SHININESS, matShininess);
 
     // 绑定纹理
-    if (m_uTextureID)
+    glActiveTexture(GL_TEXTURE0);
+    if (m_pTexture && m_pTexture->GetID() != 0)
     {
-        // LogInfo(L"绑定地形纹理: %d.\n", m_uTextureID);
+        // LogDebug(L"绑定地形纹理: %d.\n", m_uTextureID);
+
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, m_uTextureID);
+        glBindTexture(GL_TEXTURE_2D, m_pTexture->GetID());
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
         // 检查纹理绑定状态
         GLint boundTexture;
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
-        // LogInfo(L"当前绑定的纹理: %d.\n", boundTexture);
+        // LogDebug(L"当前绑定的纹理: %d.\n", boundTexture);
     }
+    else
+    {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+        LogWarning(L"地形纹理ID为0, 使用颜色渲染\n");
+    }
+
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     if (m_bUseVBO && m_iLODLevel == 1)
     {
@@ -459,7 +485,7 @@ void CTerrainEntity::Render()
     }
 
     // 解绑纹理
-    if (m_uTextureID)
+    if (m_pTexture && m_pTexture->GetID() != 0)
     {
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);

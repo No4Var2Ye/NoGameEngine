@@ -11,7 +11,7 @@ CSkyboxEntity::CSkyboxEntity(GLuint textureID)
     : m_uCubemapID(textureID),
       m_fSize(100.0f),          // 默认大小
       m_bEnableRotation(FALSE), // 默认不旋转
-      m_fRotationSpeed(5.0f),   // 默认旋转速度
+      m_fRotationSpeed(2.0f),   // 默认旋转速度
       m_fCurrentRotation(0.0f)  // 初始旋转角度
 {
     SetName(L"Skybox_Day");

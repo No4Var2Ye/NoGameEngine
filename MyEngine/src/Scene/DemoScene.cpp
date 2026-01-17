@@ -187,14 +187,18 @@ void DrawColorCube()
 
 BOOL CDemoScene::Initialize()
 {
+    // ======================================================================
+    // 0. 获取资源管理器实例
     auto resMgr = CGameEngine::GetInstance().GetResourceManager();
 
-    // 1. 创建根实体 (使用之前设计的工厂方法)
+    // ======================================================================
+    // 1. 创建根实体
     m_pRootEntity = CEntity::Create();
     m_pRootEntity->SetName(L"SceneRoot");
-
+    
+    // ======================================================================
     // 2. 添加天空盒
-    GLuint skyboxTexture = LoadSkybox(); // 需要实现这个函数
+    GLuint skyboxTexture = LoadSkybox();
     if (skyboxTexture != 0)
     {
         auto pSkybox = CSkyboxEntity::Create(skyboxTexture);
@@ -211,8 +215,11 @@ BOOL CDemoScene::Initialize()
         LogWarning(L"天空盒纹理加载失败\n");
     }
 
+    // ======================================================================
     // 3. 添加地形
-    auto pTerrain = CTerrainEntity::Create(L"assets/Textures/Terrain/terrain_heightmap4.png", 300.0f, 15.0f);
+    auto pTerrain = CTerrainEntity::Create(L"assets/Textures/Terrain/terrain_heightmap4.png",
+                                           L"assets/Textures/Terrain/grass.jpg",
+                                           300.0f, 15.0f);
     if (pTerrain)
     {
         pTerrain->SetName(L"WorldTerrain");
@@ -224,33 +231,26 @@ BOOL CDemoScene::Initialize()
 
         pTerrain->SetPosition(Vector3(0, 0, 0));
 
-        // 加载并设置纹理
-        // std::wstring grassPath = L"Terrain/grass.jpg";
-        // auto pTex = resMgr->GetTexture(grassPath); // 确保路径正确
-        // if (pTex)
-        // {
-        //     pTerrain->SetTexture(pTex->GetID());
-        //     LogInfo(L"地形纹理加载成功: %ls, ID: %d", grassPath.c_str(), pTex->GetID());
-        // }
-        // else
-        // {
-        //     LogWarning(L"地形纹理加载失败: %s", grassPath.c_str());
-        //     // 使用默认颜色
-        //     pTerrain->SetColor(Vector4(0.3f, 0.6f, 0.3f, 1.0f));
-        // }
-
         m_pRootEntity->AddChild(pTerrain);
     }
+    else
+    {
+        LogError(L"地形创建失败.\n");
+    }
 
+    // ======================================================================
     // 4. 创建网格实体
     auto pGrid = CGridEntity::Create(100.0f, 1.0f);
-    pGrid->SetPosition(Vector3(0, -0.01f, 0));
+    if (pGrid)
+    {
+        pGrid->SetPosition(Vector3(0, -0.01f, 0));
+        m_pRootEntity->AddChild(pGrid);
+        LogInfo(L"网格创建成功\n");
+    }
 
-    m_pRootEntity->AddChild(pGrid);
-
-    // 2. 加载鸭子模型资源
+    // ======================================================================
+    // 5. 加载鸭子模型资源
     auto pDuckModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
-
     if (pDuckModel)
     {
         auto pDuckEntity = CModelEntity::Create(pDuckModel);
@@ -259,7 +259,7 @@ BOOL CDemoScene::Initialize()
         pDuckEntity->SetScale(Vector3(0.01f, 0.01f, 0.01f));
 
         // 调试：输出模型信息
-        LogInfo(L"鸭子模型位置: (0, 1, 0), 缩放: 0.01.\n");
+        // LogInfo(L"鸭子模型位置: (0, 1, 0), 缩放: 0.01.\n");
 
         pDuckEntity->SetDrawBoundingBox(TRUE);
         pDuckEntity->SetNormalScale(10.0f);
@@ -333,6 +333,12 @@ void CDemoScene::Render()
         pCamera->ApplyViewMatrix(); // 这里内部通常执行 glLoadMatrix 或 gluLookAt
     }
 
+    // 在渲染前清理纹理状态
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    CleanupTextureState();
+
     SetupGlobalLighting();
 
     // 驱动层级系统渲染
@@ -341,6 +347,8 @@ void CDemoScene::Render()
         // 建议在 CSkyboxEntity::Render 内部手动关闭和开启雾
         m_pRootEntity->Render();
     }
+
+    CleanupTextureState();
 
     // DrawColorCube();    // 测试渲染
     // DrawTexturedCube(); // 测试贴图
@@ -463,4 +471,29 @@ void CDemoScene::SetupGlobalLighting()
     // 全局材质
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+}
+
+void CDemoScene::CleanupTextureState()
+{
+    // 清理所有纹理单元
+    GLint maxTextureUnits;
+    glGetIntegerv(GL_MAX_TEXTURE_UNITS, &maxTextureUnits);
+
+    for (int i = 0; i < maxTextureUnits; i++)
+    {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+    }
+
+    // 激活默认纹理单元
+    glActiveTexture(GL_TEXTURE0);
+
+    // 检查清理结果
+    GLint currentTexture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &currentTexture);
+    if (currentTexture != 0)
+    {
+        LogWarning(L"纹理清理失败，当前绑定纹理: %d", currentTexture);
+    }
 }

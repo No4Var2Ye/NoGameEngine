@@ -5,6 +5,7 @@
 // ======================================================================
 #include <vector>
 #include "Core/Entity.h"
+#include "Resources/Texture.h"
 // ======================================================================
 
 class CTerrainEntity : public CEntity
@@ -16,7 +17,9 @@ public:
     virtual ~CTerrainEntity();
 
     // 创建地形
-    static std::shared_ptr<CTerrainEntity> Create(const std::wstring &heightmapPath, float size, float maxHeight);
+    static std::shared_ptr<CTerrainEntity> Create(const std::wstring &heightmapPath,
+                                                  const std::wstring &texturePath,
+                                                  float size, float maxHeight);
     static std::shared_ptr<CTerrainEntity> CreateProcedural(int width, int height, float size, float maxHeight);
 
     virtual void Update(float deltaTime) override;
@@ -28,10 +31,13 @@ public:
     bool IsPositionOnTerrain(float worldX, float worldZ) const;
 
     // 设置地形属性
-    void SetTexture(GLuint textureID)
+    void SetTexture(std::shared_ptr<CTexture> pTexture)
     {
-        LogInfo(L"设置地形纹理ID: %d", textureID);
-        m_uTextureID = textureID;
+        if (pTexture)
+        {
+            LogDebug(L"设置地形纹理ID: %u.\n", pTexture->GetID()); // 假设 CTexture 有 GetID() 方法
+        }
+        m_pTexture = pTexture;
     }
     void SetColor(const Vector4 &color) { m_terrainColor = color; }
 
@@ -69,7 +75,7 @@ private:
 
     std::vector<Vertex> m_vertices;
     std::vector<unsigned int> m_indices;
-    GLuint m_uTextureID;
+    std::shared_ptr<CTexture> m_pTexture;
     Vector4 m_terrainColor;
 
     int m_width, m_height; // 宽高

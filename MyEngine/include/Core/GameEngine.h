@@ -76,7 +76,7 @@ private:
     // 成员变量
     EngineState m_State = EngineState::FadeIn;
     FLOAT m_SplashTimer = 0.0f;         // 动画计时器
-    const FLOAT FadeInDuration = 3.0f;  // 淡入
+    const FLOAT FadeInDuration = 1.0f;  // 淡入
     const FLOAT FadeOutDuration = 1.0f; // 淡出
 
     // ======================================================================

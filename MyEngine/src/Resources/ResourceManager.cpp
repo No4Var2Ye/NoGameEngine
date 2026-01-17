@@ -114,9 +114,9 @@ BOOL CResourceManager::CreateDefaultResources()
     // }
 
     LogInfo(L"默认资源创建成功！\n");
-    LogInfo(L"  - 默认纹理: %dx%d\n",
+    LogDebug(L"  - 默认纹理: %dx%d\n",
             m_DefaultTexture->GetWidth(), m_DefaultTexture->GetHeight());
-    LogInfo(L"  - 默认模型: 顶点数=%u, 三角形数=%u\n",
+    LogDebug(L"  - 默认模型: 顶点数=%u, 三角形数=%u\n",
             (unsigned int)m_DefaultModel->GetVertexCount(), (unsigned int)m_DefaultModel->GetTriangleCount());
 
     return TRUE;
@@ -226,13 +226,24 @@ std::shared_ptr<CTexture> CResourceManager::GetTexture(const std::wstring &filep
     // 3. 执行加载
     if (newTex->LoadFromFile(fullPath))
     {
-        m_Textures[fileName] = newTex;
+        m_Textures[fullPath] = newTex;
         return newTex;
     }
 
     LogWarning(L"加载纹理失败: %ls. 使用默认样式. \n", fileName.c_str());
 
     return m_DefaultTexture;
+}
+
+GLuint CResourceManager::LoadTexture(const std::wstring& filepath)
+{
+
+    auto pTex = GetTexture(filepath, PathType::Absolute);
+    if (pTex)
+    {
+        return pTex->GetID(); // 假设 CTexture 有 GetID() 方法返回 GLuint
+    }
+    return 0;
 }
 
 std::shared_ptr<CModel> CResourceManager::GetModel(const std::wstring &filepath, PathType pathType)
@@ -414,7 +425,7 @@ GLuint CResourceManager::LoadCubemapTexture(const std::vector<std::wstring> &fac
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    LogInfo(L"天空盒加载成功: %ls. \n", facePaths[0].c_str());
+    LogDebug(L"天空盒加载成功: %ls. \n", facePaths[0].c_str());
     return textureID;
 }
 

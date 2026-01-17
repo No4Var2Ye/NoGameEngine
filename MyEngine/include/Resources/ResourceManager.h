@@ -41,6 +41,7 @@ public:
     std::shared_ptr<CTexture> GetTexture(const std::wstring &filepath, PathType pathType = PathType::Relative);
     std::shared_ptr<CModel> GetModel(const std::wstring &filepath, PathType pathType = PathType::Relative);
     // std::shared_ptr<CShader> GetShader(const std::wstring &name, const std::wstring &vPath, const std::wstring &fPath);
+    GLuint LoadTexture(const std::wstring& filepath);
 
     // 创建 兜底资源
     BOOL CreateDefaultResources();

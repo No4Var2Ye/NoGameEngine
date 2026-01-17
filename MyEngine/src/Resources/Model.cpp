@@ -89,7 +89,7 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
     else
         m_name = fullPath;
 
-    LogInfo(L"模型加载成功: %ls, 网格数: %d.\n", m_name.c_str(), (int)m_meshes.size());
+    LogDebug(L"模型加载成功: %ls, 网格数: %d.\n", m_name.c_str(), (int)m_meshes.size());
 
     return TRUE;
 }
@@ -365,6 +365,9 @@ void CModel::Draw() const
     if (m_meshes.empty())
         return;
 
+    // 保存所有相关状态
+    glPushAttrib(GL_TEXTURE_BIT | GL_ENABLE_BIT | GL_CURRENT_BIT);
+
     // 保存当前矩阵
     glPushMatrix();
 
@@ -374,11 +377,23 @@ void CModel::Draw() const
 
     for (const auto &mesh : m_meshes)
     {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
         mesh->Draw();
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
     }
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
 
     // 恢复矩阵
     glPopMatrix();
+    glPopAttrib(); // 恢复纹理状态
 }
 
 void CModel::SetPosition(const Vector3 &position)
@@ -542,9 +557,9 @@ void CModel::DrawNormals(float scale, unsigned int step)
 {
     glPushMatrix();
     // 假设你的 CModel 有应用变换的逻辑，或者在 Entity 层处理
-    // ApplyTransform(); 
+    // ApplyTransform();
 
-    for (auto& mesh : m_meshes)
+    for (auto &mesh : m_meshes)
     {
         mesh->DrawNormals(scale, step);
     }

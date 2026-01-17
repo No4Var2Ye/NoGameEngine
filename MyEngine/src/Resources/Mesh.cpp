@@ -30,6 +30,12 @@ CMesh::~CMesh()
 
 void CMesh::Draw() const
 {
+    if (m_vertices.empty() || m_indices.empty())
+        return;
+
+    // 保存当前OpenGL状态
+    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_CURRENT_BIT);
+
     // 0. 应用材质
     glMaterialfv(GL_FRONT, GL_AMBIENT, m_material.ambient.GetData());
     glMaterialfv(GL_FRONT, GL_DIFFUSE, m_material.diffuse.GetData());
@@ -56,14 +62,20 @@ void CMesh::Draw() const
     }
 
     // 1. 绑定纹理
-    if (m_pTexture)
+    if (m_pTexture && m_pTexture->IsValid())
     {
+        glActiveTexture(GL_TEXTURE0); // 明确指定纹理单元
         glEnable(GL_TEXTURE_2D);
-        m_pTexture->Bind();
+        m_pTexture->Bind(GL_TEXTURE0); // 传递纹理单元参数
+
+        // 设置纹理环境
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     }
     else
     {
+        glActiveTexture(GL_TEXTURE0);
         glDisable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0); // 确保解绑
     }
 
     // 2. 启用顶点数组状态
@@ -79,25 +91,32 @@ void CMesh::Draw() const
     glNormalPointer(GL_FLOAT, stride, &m_vertices[0].Normal);
     glTexCoordPointer(2, GL_FLOAT, stride, &m_vertices[0].TexCoords);
 
-    // 4. 绘图 (使用索引缓冲区)
+    // 4. 绘图
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()),
                    GL_UNSIGNED_INT, m_indices.data());
 
-    // 5. 关闭状态 (良好的编程习惯)
+    // 5. 关闭状态
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
 
+    // 6. 清理纹理状态
+    glActiveTexture(GL_TEXTURE0);
+    if (m_pTexture)
+    {
+        m_pTexture->Unbind(GL_TEXTURE0); // 解绑纹理
+    }
+    glBindTexture(GL_TEXTURE_2D, 0); // 双重保险
+    glDisable(GL_TEXTURE_2D);
+
+    
     // 6. 关闭混合（如果开启了）
     if (m_material.opacity < 1.0f)
     {
         glDisable(GL_BLEND);
     }
-
-    if (m_pTexture)
-    {
-        glDisable(GL_TEXTURE_2D);
-    }
+    
+    glPopAttrib();
 }
 
 void CMesh::CalculateBoundingBox()

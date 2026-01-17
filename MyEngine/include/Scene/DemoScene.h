@@ -18,6 +18,7 @@ public:
     virtual void Render() override;
 
     void SetupGlobalLighting();
+    void CleanupTextureState();
 
 private:
     GLuint LoadSkybox();
