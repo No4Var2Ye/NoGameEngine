@@ -10,13 +10,6 @@
 // ======================================================================
 
 // 摄像机模式枚举
-enum class CameraMode
-{
-    FirstPerson, // 第一人称
-    ThirdPerson, // 第三人称
-    FreeLook,    // 自由视角
-    Orbital      // 轨道视角
-};
 
 // ======================================================================
 class Vector3;
@@ -25,6 +18,15 @@ class Matrix4;
 // ======================================================================
 class CCamera
 {
+public:
+	enum class CameraMode
+	{
+		FirstPerson, // 第一人称
+		ThirdPerson, // 第三人称
+		FreeLook,    // 自由视角
+		Orbital      // 轨道视角
+	};
+
 private:
     // 摄像机位置和方向
     Vector3 m_Position; // 摄像机位置

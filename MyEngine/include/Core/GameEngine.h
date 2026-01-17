@@ -13,7 +13,8 @@
 class CWindow;
 class CRenderer;
 class CInputManager;
-class CCamera;
+// class CCamera;
+class CCameraEntity;
 class CResourceManager;
 class CSceneManager;
 class CUIManager;
@@ -52,7 +53,7 @@ public:
     CWindow *GetWindow() const { return m_Window.get(); } // 使用 get() 返回原始指针
     CRenderer *GetRenderer() const { return m_Renderer.get(); }
     CInputManager *GetInputManager() const { return m_InputManager.get(); }
-    CCamera *GetMainCamera() const { return m_pMainCamera.get(); }
+    CCameraEntity *GetMainCamera() const { return m_pMainCamera.get(); }
     CResourceManager *GetResourceManager() const { return m_ResourceManager.get(); }
     CUIManager *GetUIManager() const { return m_UIManager.get(); }
 
@@ -88,7 +89,7 @@ private:
 
     // 逻辑系统
     std::unique_ptr<CInputManager> m_InputManager;
-    std::unique_ptr<CCamera> m_pMainCamera;
+    std::shared_ptr<CCameraEntity> m_pMainCamera;
     std::unique_ptr<CResourceManager> m_ResourceManager;
     std::unique_ptr<CSceneManager> m_SceneManager;
 

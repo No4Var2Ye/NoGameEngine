@@ -2,7 +2,8 @@
 #include "stdafx.h"
 #include "Entities/GridEntity.h"
 #include "Core/GameEngine.h"
-#include "Graphics/Camera/Camera.h"
+// #include "Graphics/Camera/Camera.h"
+#include "Entities/CameraEntity.h"
 // ======================================================================
 
 unsigned int CGridEntity::s_nextID = 2000; // 网格实体起始ID段
@@ -43,38 +44,26 @@ void CGridEntity::BuildGeometry()
     m_SubGridVertices.clear();
 
     const float majorStep = m_fStep * 10.0f;
-    const int expectedVertices = static_cast<int>((m_fSize * 2 / m_fStep + 1) * 4);
-
-    // 预分配内存
-    m_MainGridVertices.reserve(expectedVertices / 10); // 粗网格大约1/10
-    m_SubGridVertices.reserve(expectedVertices);
 
     for (float i = -m_fSize; i <= m_fSize; i += m_fStep)
     {
-        // 跳过接近0的线（为坐标轴留空间）
-        // if (fabs(i) < m_fStep * 0.5f)
-        //     continue;
-
-        BOOL isMajor = (fmod(fabs(i), majorStep) < m_fStep * 0.5f);
+        // 核心修复 2: 提高浮点数判定鲁棒性
+        BOOL isMajor = (fmod(fabs(i) + 0.001f, majorStep) < m_fStep);
         const Vector3 &color = isMajor ? m_MainColor : m_SubColor;
         auto &targetVec = isMajor ? m_MainGridVertices : m_SubGridVertices;
 
-        // 转换为字节颜色（0-255）
         unsigned char r = static_cast<unsigned char>(color.x * 255);
         unsigned char g = static_cast<unsigned char>(color.y * 255);
         unsigned char b = static_cast<unsigned char>(color.z * 255);
         unsigned char a = 255;
 
-        // X方向的线 (平行于X轴，Z坐标固定)
         targetVec.push_back({-m_fSize, 0.0f, i, r, g, b, a});
         targetVec.push_back({m_fSize, 0.0f, i, r, g, b, a});
-
-        // Z方向的线 (平行于Z轴，X坐标固定)
         targetVec.push_back({i, 0.0f, -m_fSize, r, g, b, a});
         targetVec.push_back({i, 0.0f, m_fSize, r, g, b, a});
     }
 
-    LogDebug(L"网格几何构建完成: 粗网格顶点=%d, 细网格顶点=%d",
+    LogDebug(L"网格几何构建完成: 粗网格顶点=%d, 细网格顶点=%d.\n",
              m_MainGridVertices.size(), m_SubGridVertices.size());
 }
 
@@ -119,7 +108,7 @@ void CGridEntity::BuildGeometryWithLOD()
 
 int CGridEntity::CalculateLODLevel() const
 {
-    CCamera *pCamera = CGameEngine::GetInstance().GetMainCamera();
+    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
     if (!pCamera)
         return 1;
 
@@ -159,7 +148,7 @@ void CGridEntity::Render()
         return;
 
     // 1. 距离裁剪 - 如果网格太远就不渲染
-    CCamera *pCamera = CGameEngine::GetInstance().GetMainCamera();
+    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
     if (pCamera)
     {
         Vector3 camPos = pCamera->GetPosition();
@@ -277,15 +266,17 @@ void CGridEntity::RenderCoordinateAxes()
 
     glBegin(GL_LINES);
     {
+        float bias = 0.01f;
+
         // X轴 - 红色
         glColor3f(m_AxisColorX.x, m_AxisColorX.y, m_AxisColorX.z);
-        glVertex3f(-m_fSize, 0.01f, 0.0f);
-        glVertex3f(m_fSize, 0.0f, 0.0f);
+        glVertex3f(-m_fSize, bias, 0.0f);
+        glVertex3f(m_fSize, bias, 0.0f);
 
         // Z轴 - 蓝色
         glColor3f(m_AxisColorZ.x, m_AxisColorZ.y, m_AxisColorZ.z);
-        glVertex3f(0.0f, 0.0f, -m_fSize);
-        glVertex3f(0.0f, 0.0f, m_fSize);
+        glVertex3f(0.0f, bias, -m_fSize);
+        glVertex3f(0.0f, bias, m_fSize);
 
         // Y轴 - 绿色（垂直向上，短一些）
         glColor3f(m_AxisColorY.x, m_AxisColorY.y, m_AxisColorY.z);

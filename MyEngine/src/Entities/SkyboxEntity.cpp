@@ -3,13 +3,14 @@
 #include "stdafx.h"
 #include "Entities/SkyboxEntity.h"
 #include "Core/GameEngine.h"
+#include "Entities/CameraEntity.h"
 // ======================================================================
 
 unsigned int CSkyboxEntity::s_nextID = 0;
 
 CSkyboxEntity::CSkyboxEntity(GLuint textureID)
     : m_uCubemapID(textureID),
-      m_fSize(100.0f),          // 默认大小
+      m_fSize(1.0f),            // 默认大小
       m_bEnableRotation(FALSE), // 默认不旋转
       m_fRotationSpeed(2.0f),   // 默认旋转速度
       m_fCurrentRotation(0.0f)  // 初始旋转角度
@@ -19,18 +20,24 @@ CSkyboxEntity::CSkyboxEntity(GLuint textureID)
 
 void CSkyboxEntity::Update(float deltaTime)
 {
-    // 调用基类更新
-    CEntity::Update(deltaTime);
+    // 1. 核心逻辑：让天空盒实体的位置始终等于相机位置
+    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+    if (pCamera)
+    {
+        // 直接设置实体位置，基类Update会将其合成进 m_worldMatrix
+        SetPosition(pCamera->GetPosition());
+    }
 
-    // 更新天空盒旋转
+    // 2. 更新自定义旋转角度
     if (m_bEnableRotation)
     {
         m_fCurrentRotation += m_fRotationSpeed * deltaTime;
         if (m_fCurrentRotation >= 360.0f)
-        {
             m_fCurrentRotation -= 360.0f;
-        }
     }
+
+    // 3. 调用基类更新（重要：这会重新计算包含相机位置的世界矩阵）
+    CEntity::Update(deltaTime);
 }
 
 void CSkyboxEntity::Render()
@@ -42,11 +49,11 @@ void CSkyboxEntity::Render()
     glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT | GL_LIGHTING_BIT);
 
     // 1. 状态设置
-    glDisable(GL_DEPTH_TEST); // 禁用深度测试
+    glDisable(GL_DEPTH_TEST); // 确保天空盒不被任何东西遮挡（渲染顺序也很重要）
     glDepthMask(GL_FALSE);    // 禁用深度写入
-    glDisable(GL_LIGHTING);   // 禁用光照
-    glDisable(GL_FOG);        // 禁用雾化
-    glDisable(GL_CULL_FACE);  // 禁用背面剔除
+    glDisable(GL_LIGHTING);   // 天空盒自发光，不需要光照计算
+    glDisable(GL_FOG);        // 天空盒不应受雾化影响
+    glDisable(GL_CULL_FACE);  // 渲染立方体内部，通常关闭剔除
 
     // 启用纹理
     glEnable(GL_TEXTURE_CUBE_MAP);
@@ -60,33 +67,29 @@ void CSkyboxEntity::Render()
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     glPushMatrix();
-
-    // 2. 核心逻辑：跟随相机
-    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
-    if (pCamera)
     {
-        Vector3 camPos = pCamera->GetPosition();
-        // 将天空盒平移到相机位置
-        glTranslatef(camPos.x, camPos.y, camPos.z);
+        // 4. 手动处理位移：直接从 Engine 获取相机位置
+        auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+        if (pCamera)
+        {
+            Vector3 camPos = pCamera->GetPosition();
+            // 将当前坐标系移动到相机所在位置
+            glTranslatef(camPos.x, camPos.y, camPos.z);
+        }
+
+        // 5. 应用自转 (绕Y轴)
+        if (m_bEnableRotation)
+        {
+            glRotatef(m_fCurrentRotation, 0.0f, 1.0f, 0.0f);
+        }
+
+        // 6. 应用缩放 (确保天空盒足够大)
+        glScalef(m_fSize, m_fSize, m_fSize);
+
+        // 7. 渲染立方体
+        DrawCube();
     }
-
-    // 3. 应用旋转
-    if (m_bEnableRotation)
-    {
-        glRotatef(m_fCurrentRotation, 0.0f, 1.0f, 0.0f); // 绕Y轴旋转
-    }
-
-    // 4. 应用缩放
-    glScalef(m_fSize, m_fSize, m_fSize);
-
-    // 5. 渲染立方体
-    DrawCube();
-
     glPopMatrix();
-
-    // 6. 恢复 OpenGL 状态
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-    glDisable(GL_TEXTURE_CUBE_MAP);
 
     glPopAttrib();
 }

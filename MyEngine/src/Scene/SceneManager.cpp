@@ -50,9 +50,6 @@ BOOL CSceneManager::Initialize()
     m_TransitionState = TransitionState::None;
     m_TransitionAlpha = 0.0f;
 
-    // 测试场景
-    // InitTestResources();
-
     m_Initialized = TRUE;
 
     LogInfo(L"------------------- 场景管理器初始化成功 ----------------------\n");
@@ -337,6 +334,7 @@ void CSceneManager::ReloadCurrentScene()
     // m_CurrentScene->Reload();
 }
 
+// TODO: 更新场景
 void CSceneManager::Update(FLOAT deltaTime)
 {
     if (!m_Initialized || m_Paused || !m_UpdateEnabled)
@@ -522,63 +520,3 @@ BOOL CSceneManager::LoadSavedSceneState()
     // 子类可以重写此函数来实现具体的状态加载逻辑
     return TRUE;
 }
-
-// void CSceneManager::InitTestResources()
-// {
-//     // 如果模型已经加载过，直接返回，避免重复加载
-//     if (g_bModelLoaded)
-//         return;
-
-//     auto resMgr = CGameEngine::GetInstance().GetResourceManager();
-//     if (!resMgr)
-//     {
-//         LogError(L"资源管理器未初始化，无法加载模型\n");
-//         return;
-//     }
-
-//     g_pTestModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
-//     // g_pTestModel = resMgr->GetModel(L"Teapot/teapot.obj");
-
-//     if (!g_pTestModel)
-//     {
-//         LogError(L"模型加载完全失败\n");
-//         g_bModelLoaded = FALSE;
-//         return;
-//     }
-
-//     auto defaultModel = resMgr->GetDefaultModel();
-//     if (defaultModel && (g_pTestModel == defaultModel))
-//     {
-//         LogWarning(L"鸭子模型不存在，已自动使用默认立方体模型\n");
-//         LogWarning(L"请检查文件是否存在: res/Models/Duck/glTF/Duck.gltf\n");
-
-//         // 调整默认模型的显示
-//         g_modelScale = 1.0f;
-//     }
-//     else
-//     {
-//         LogInfo(L"鸭子模型加载成功\n");
-//     }
-
-//     // 设置模型变换
-//     g_pTestModel->SetPosition(g_modelPosition);
-//     g_pTestModel->SetScale(Vector3(g_modelScale, g_modelScale, g_modelScale));
-
-//     g_bModelLoaded = TRUE;
-// }
-
-// void CSceneManager::RenderTestModel()
-// {
-//     if (!g_bModelLoaded || !g_pTestModel)
-//         return;
-
-//     glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
-//     glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
-
-//     glPushMatrix();
-
-//     g_pTestModel->Draw();
-//     g_pTestModel->DrawBoundingBox();
-
-//     glPopMatrix();
-// }

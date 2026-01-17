@@ -78,6 +78,22 @@ public:
     void ProcessMouseMovement(INT dx, INT dy);
     void ProcessMouseWheel(INT delta);
 
+    // 添加移动控制方法
+    void Move(FLOAT forward, FLOAT right, FLOAT up)
+    {
+        Vector3 movement(forward, up, right); // 根据坐标系调整
+        SetPosition(GetPosition() + movement);
+    }
+
+    // 或者更精细的控制
+    void MoveRelative(FLOAT forward, FLOAT right, FLOAT up)
+    {
+        Vector3 movement = GetForward() * forward +
+                           GetRight() * right +
+                           GetUp() * up;
+        SetPosition(GetPosition() + movement);
+    }
+
 protected:
     CCameraEntity();
 

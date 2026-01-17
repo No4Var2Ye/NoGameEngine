@@ -22,11 +22,23 @@ Matrix4::Matrix4(float _m00, float _m01, float _m02, float _m03,
                  float _m20, float _m21, float _m22, float _m23,
                  float _m30, float _m31, float _m32, float _m33)
 {
-    m00 = _m00;m01 = _m01;m02 = _m02;m03 = _m03; //
-    m10 = _m10;m11 = _m11;m12 = _m12;m13 = _m13; //
-    m20 = _m20;m21 = _m21;m22 = _m22;m23 = _m23; //
-    m30 = _m30;m31 = _m31;m32 = _m32;m33 = _m33; //
-    }
+    m00 = _m00;
+    m01 = _m01;
+    m02 = _m02;
+    m03 = _m03; //
+    m10 = _m10;
+    m11 = _m11;
+    m12 = _m12;
+    m13 = _m13; //
+    m20 = _m20;
+    m21 = _m21;
+    m22 = _m22;
+    m23 = _m23; //
+    m30 = _m30;
+    m31 = _m31;
+    m32 = _m32;
+    m33 = _m33; //
+}
 
 // 矩阵运算
 Matrix4 Matrix4::operator+(const Matrix4 &other) const
@@ -385,12 +397,12 @@ Matrix4 Matrix4::LookAt(const Vector3 &eye, const Vector3 &target, const Vector3
 }
 
 // TRS 矩阵（平移*旋转*缩放）
-Matrix4 Matrix4::TRS(const Vector3& translation, const Quaternion& rotation, const Vector3& scale)
+Matrix4 Matrix4::TRS(const Vector3 &translation, const Quaternion &rotation, const Vector3 &scale)
 {
     Matrix4 s = Scale(scale);
     Matrix4 r = Rotation(rotation);
     Matrix4 t = Translation(translation);
-    return t * r * s;  // OpenGL: 先缩放，再旋转，最后平移
+    return t * r * s; // OpenGL: 先缩放，再旋转，最后平移
 }
 
 // 投影矩阵
@@ -431,6 +443,66 @@ Matrix4 Matrix4::Perspective(float fovY, float aspect, float nearClip, float far
     //     0.0f, 0.0f, (2.0f * farClip * nearClip) * rangeInv, 0.0f // 第四列
     // );
 }
+
+Quaternion Matrix4::GetRotation() const
+{
+    // 1. 提取基向量并剔除缩放影响
+    Vector3 vX(m00, m10, m20);
+    Vector3 vY(m01, m11, m21);
+    Vector3 vZ(m02, m12, m22);
+
+    vX.Normalize();
+    vY.Normalize();
+    vZ.Normalize();
+
+    // 2. 构造纯旋转矩阵分量
+    // 注意：在列优先存储中，这些分量对应 m00, m10, m20 等
+    float r00 = vX.x, r10 = vX.y, r20 = vX.z;
+    float r01 = vY.x, r11 = vY.y, r21 = vY.z;
+    float r02 = vZ.x, r12 = vZ.y, r22 = vZ.z;
+
+    Quaternion q;
+    float trace = r00 + r11 + r22;
+
+    if (trace > 0.0f)
+    {
+        float s = 0.5f / sqrtf(trace + 1.0f);
+        q.w = 0.25f / s;
+        q.x = (r21 - r12) * s;
+        q.y = (r02 - r20) * s;
+        q.z = (r10 - r01) * s;
+    }
+    else
+    {
+        if (r00 > r11 && r00 > r22)
+        {
+            float s = 2.0f * sqrtf(1.0f + r00 - r11 - r22);
+            q.w = (r21 - r12) / s;
+            q.x = 0.25f * s;
+            q.y = (r01 + r10) / s;
+            q.z = (r02 + r20) / s;
+        }
+        else if (r11 > r22)
+        {
+            float s = 2.0f * sqrtf(1.0f + r11 - r00 - r22);
+            q.w = (r02 - r20) / s;
+            q.x = (r01 + r10) / s;
+            q.y = 0.25f * s;
+            q.z = (r12 + r21) / s;
+        }
+        else
+        {
+            float s = 2.0f * sqrtf(1.0f + r22 - r00 - r11);
+            q.w = (r10 - r01) / s;
+            q.x = (r02 + r20) / s;
+            q.y = (r12 + r21) / s;
+            q.z = 0.25f * s;
+        }
+    }
+
+    return q;
+}
+
 
 // 分解矩阵
 Vector3 Matrix4::GetTranslation() const

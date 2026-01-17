@@ -7,14 +7,15 @@
 #include "Core/GameEngine.h"
 #include "Core/InputManager.h"
 #include "Core/Entity.h"
-#include "Graphics/Camera/Camera.h"
 #include "Resources/ResourceManager.h"
+#include "Entities/CameraEntity.h"
 #include "Entities/ModelEntity.h"
 #include "Entities/SkyboxEntity.h"
 #include "Entities/GridEntity.h"
 #include "Entities/TerrainEntity.h"
 // ======================================================================
 // 测试
+#include "Graphics/Camera/Camera.h"
 #include "Resources/Texture.h"
 #include "Resources/Model.h"
 // ======================================================================
@@ -321,8 +322,8 @@ void CDemoScene::Render()
     // glLoadIdentity();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    static CCamera *s_pLastCamera = nullptr;
-    CCamera *pCamera = CGameEngine::GetInstance().GetMainCamera();
+    static CCameraEntity *s_pLastCamera = nullptr;
+    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
     if (pCamera != s_pLastCamera)
     {
         s_pLastCamera = pCamera;
@@ -422,16 +423,20 @@ void CDemoScene::SetupGlobalLighting()
     }
 
     // 只更新变化的光源位置
-    CCamera *pCamera = CGameEngine::GetInstance().GetMainCamera();
+    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
     if (pCamera)
     {
-        Vector3 camPos = pCamera->GetPosition();
-        s_lightPosition[0] = camPos.x;
-        s_lightPosition[1] = camPos.y + 10.0f;
-        s_lightPosition[2] = camPos.z;
-        s_lightPosition[3] = 1.0f;
+        // 关键点：在固定管线中设置光源位置前，通常需要 LoadIdentity
+        // 否则光源会随着相机的平移而发生错误的相对位移
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
 
-        glLightfv(GL_LIGHT0, GL_POSITION, s_lightPosition);
+        Vector3 camPos = pCamera->GetPosition();
+        GLfloat lightPos[] = {camPos.x, camPos.y + 50.0f, camPos.z, 1.0f};
+        glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+
+        glPopMatrix();
     }
 }
 
@@ -464,22 +469,14 @@ void CDemoScene::ProcessInput(float deltaTime)
 {
     auto inputMgr = CGameEngine::GetInstance().GetInputManager();
     auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+    if (!pCamera)
+        return;
 
     CameraMode mode = pCamera->GetMode();
 
-    // CAUTION: 只有在第三人称模式下，WASD 才控制模型实体
-    if (m_pPossessedEntity && mode == CameraMode::ThirdPerson)
-    {
-        UpdateEntities(deltaTime);
-    }
-
-    // if (inputMgr->IsKeyPressed('M'))
-    // {
-    //     // 示例：按一下 M 键，生成一个新的鸭子
-    //     // auto pNewModel = CreateExtraDuck();
-    //     // m_pRootEntity->AddChild(pNewModel);
-    //     LogInfo(L"按下 M 键：成功添加一个新实体，且不会由于按住而导致重复创建。\n");
-    // }
+    // ======================================================================
+    // 1. 场景全局快捷键
+    // ======================================================================
 
     // 示例：按 'L' 键切换地形线框模式
     // if (inputMgr->IsKeyPressed('L'))
@@ -497,6 +494,23 @@ void CDemoScene::ProcessInput(float deltaTime)
     //     {
     //         m_pPossessedEntity->SetDrawBoundingBox(!m_pPossessedEntity->IsDrawBoundingBox());
     //     }
+    // }
+
+    // ======================================================================
+    // 2. 实体控制逻辑 (仅在第三人称模式下受控)
+    // ======================================================================
+    // CAUTION: 只有在第三人称模式下，WASD 才控制模型实体
+    if (m_pPossessedEntity && mode == CameraMode::ThirdPerson)
+    {
+        UpdateEntities(deltaTime);
+    }
+
+    // if (inputMgr->IsKeyPressed('M'))
+    // {
+    //     // 示例：按一下 M 键，生成一个新的鸭子
+    //     // auto pNewModel = CreateExtraDuck();
+    //     // m_pRootEntity->AddChild(pNewModel);
+    //     LogInfo(L"按下 M 键：成功添加一个新实体，且不会由于按住而导致重复创建。\n");
     // }
 }
 
@@ -565,8 +579,11 @@ void CDemoScene::UpdateEntities(float deltaTime)
         // 这行代码解决了“鸭子乱偏”到地下的问题
         m_pPossessedEntity->SetRotation(Vector3(0.0f, m_PossessedEntityYaw, 0.0f));
 
-        // 5. 移动位置
-        float moveSpeed = 2.0f;
+        // 3. 应用位移
+        float moveSpeed = 5.0f; // 基础速度
+        if (inputMgr->IsKeyDown(VK_SHIFT))
+            moveSpeed *= 2.0f; // 鸭子加速
+
         Vector3 currentPos = m_pPossessedEntity->GetPosition();
         m_pPossessedEntity->SetPosition(currentPos + (moveVec * moveSpeed * deltaTime));
     }

@@ -6,8 +6,7 @@
 #include "Core/Window.h"
 #include "Core/Renderer.h"
 #include "Core/InputManager.h"
-// #include "Graphics/Camera/Camera.h"
-#include "Entities/CameraEntity.h"
+#include "Graphics/Camera/Camera.h"
 #include "Graphics/UI/UIManager.h"
 #include "Resources/ResourceManager.h"
 #include "Scene/SceneManager.h"
@@ -36,7 +35,7 @@ CGameEngine::CGameEngine()
     m_Window = std::make_unique<CWindow>(); // 智能指针, 自动删除
     m_Renderer = std::make_unique<CRenderer>();
     m_InputManager = std::make_unique<CInputManager>();
-    m_pMainCamera = nullptr;
+    m_pMainCamera = std::make_unique<CCamera>();
     m_ResourceManager = std::make_unique<CResourceManager>();
     m_SceneManager = std::make_unique<CSceneManager>();
     m_UIManager = std::make_unique<CUIManager>();
@@ -81,14 +80,16 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     }
 
     // 4. 初始化相机
-    m_pMainCamera = CCameraEntity::Create();
-    if (m_pMainCamera)
-    {
-        m_pMainCamera->SetPosition(Vector3(0.0f, 0.0f, 10.0f));
-        FLOAT aspect = (startH > 0) ? (FLOAT)startW / (FLOAT)startH : 1.0f;
-        m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
-        m_pMainCamera->SetMode(CameraMode::FreeLook);
-    }
+    m_pMainCamera->SetMode(CameraMode::FreeLook);
+    // 设置初始位置
+    Vector3 position(0.0f, 0.0f, 10.0f);
+    Vector3 target(0.0f, 0.0f, 0.0f); // 看向原点
+    Vector3 up(0.0f, 1.0f, 0.0f);
+    m_pMainCamera->Initialize(position, target, up);
+
+    // 获取当前窗口宽高比
+    FLOAT aspect = (startH > 0) ? (FLOAT)startW / (FLOAT)startH : 1.0f;
+    m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
 
     // 5. 初始化资源管理器
     // TODO: Shader 纹理 默认字体
@@ -151,8 +152,8 @@ INT CGameEngine::Run()
     //         m_InputManager->HideCursor();
     // }
 
-    // m_pMainCamera->EnableMouseLook(TRUE);
-    // m_pMainCamera->SetMoveSpeed(2.0f);
+    m_pMainCamera->EnableMouseLook(TRUE);
+    m_pMainCamera->SetMoveSpeed(2.0f);
 
     // 跟踪上一次的窗口尺寸，用于检测变化
     INT lastWindowWidth = m_Window->GetClientWidth();
@@ -201,8 +202,24 @@ INT CGameEngine::Run()
             // 更新相机投影矩阵
             if (m_pMainCamera)
             {
+                // 重新计算宽高比
                 FLOAT newAspect = (FLOAT)safeW / (FLOAT)safeH;
-                m_pMainCamera->SetProjection(m_pMainCamera->GetFOV(), newAspect, m_pMainCamera->GetNear(), m_pMainCamera->GetFar());
+
+                // 调用 SetProjection 更新相机内部的 m_AspectRatio
+                m_pMainCamera->SetProjection(
+                    m_pMainCamera->GetFOV(),
+                    newAspect,
+                    m_pMainCamera->GetNear(),
+                    m_pMainCamera->GetFar());
+
+                // 强制重新计算投影矩阵
+                m_pMainCamera->ApplyProjectionMatrix();
+
+                // 打印调试信息
+                // sprintf_s(debugMsg,
+                //           "相机投影矩阵更新: 宽高比=%.4f, FOV=%.1f\n",
+                //           newAspect, m_pMainCamera->GetFOV());
+                // OutputDebugStringA(debugMsg);
             }
 
             // TODO: 更新UI系统
@@ -249,8 +266,8 @@ INT CGameEngine::Run()
             case EngineState::Running:
             {
                 // 渲染主场景
-                // m_pMainCamera->ApplyProjectionMatrix();
-                // m_pMainCamera->ApplyViewMatrix();
+                m_pMainCamera->ApplyProjectionMatrix();
+                m_pMainCamera->ApplyViewMatrix();
                 m_SceneManager->Render();
 
                 // 渲染UI
@@ -313,7 +330,7 @@ void CGameEngine::Shutdown()
     m_SceneManager->Shutdown();
     // m_ResourceManager->Shutdown();
 
-    // m_pMainCamera->Reset();
+    m_pMainCamera->Reset();
     m_InputManager->Shutdown();
 
     m_Renderer->Shutdown();
@@ -358,17 +375,11 @@ void CGameEngine::ProcessInput(FLOAT deltaTime)
 
 void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 {
-    if (!m_pMainCamera)
-        return;
-
-    // ======================================================================
     // 0. 基础重置
-    // ======================================================================
     if (m_InputManager->IsKeyPressed('0') || m_InputManager->IsKeyDown(VK_NUMPAD0))
     {
-        // 重置相机到默认位置和旋转
-        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 15.0f));
-        m_pMainCamera->SetRotation(Vector3(0.0f, -90.0f, 0.0f));
+        // OutputDebugStringA("DEBUG: Reset Key Pressed!\n");
+        m_pMainCamera->Reset();
     }
 
     // 相机模式快速切换
@@ -389,85 +400,102 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
     CameraMode mode = m_pMainCamera->GetMode();
 
-    // ======================================================================
-    // 1. 旋转与观察
-    // ======================================================================
-    // 通常点击左键时才允许相机旋转，这样左键可以留给 UI 或 游戏内交互
-    // 无论是否按下，都先获取 Delta，防止数据积压
+    // 1. 鼠标状态切换
     if (m_InputManager->IsMouseButtonPressed(MouseButton::Left))
     {
+        m_pMainCamera->StartMouseLook();
         m_InputManager->HideCursor();
         m_InputManager->LockMouse(); // 限制光标在窗口内
     }
 
-    if (m_InputManager->IsMouseButtonDown(MouseButton::Left))
+    if (m_InputManager->IsMouseButtonReleased(MouseButton::Left))
+    {
+        m_pMainCamera->StopMouseLook();
+        m_InputManager->ShowCursor(); // 恢复鼠标显示
+        m_InputManager->UnlockMouse();
+    }
+
+    // 2. 旋转与观察
+    // 通常点击左键时才允许相机旋转，这样左键可以留给 UI 或 游戏内交互
+    // 无论是否按下，都先获取 Delta，防止数据积压
+    long dx = m_InputManager->GetMouseDeltaX();
+    long dy = m_InputManager->GetMouseDeltaY();
+
+    if (m_pMainCamera->IsMouseLookActive())
     {
         POINT delta = m_InputManager->GetMouseDelta();
 
         if (delta.x != 0 || delta.y != 0)
         {
-            // 调用优化后的四元数合成链路
-            m_pMainCamera->ProcessMouseMovement(delta.x, delta.y);
+            // 注意：dy 取反，因为鼠标向上移动应该是抬头
+            m_pMainCamera->ProcessMouseMovement(delta.x, -delta.y);
         }
     }
 
-    if (m_InputManager->IsMouseButtonReleased(MouseButton::Left))
-    {
-        m_InputManager->ShowCursor(); // 恢复鼠标显示
-        m_InputManager->UnlockMouse();
-    }
-
-    // ======================================================================
-    // 2. 缩放处理
-    // ======================================================================
+    // 3. 缩放处理
     INT wheelDelta = m_InputManager->GetMouseWheelDelta();
     if (wheelDelta != 0)
     {
+        // std::cout << "[鼠标控制] 滚轮滚动: delta=" << wheelDelta;
+        // if (wheelDelta > 0)
+        // {
+        //     std::cout << " (向上滚动/放大)" << std::endl;
+        // }
+        // else
+        // {
+        //     std::cout << " (向下滚动/缩小)" << std::endl;
+        // }
+
         m_pMainCamera->ProcessMouseWheel(wheelDelta);
+        m_InputManager->ResetMouseWheel();
     }
 
-    // ======================================================================
-    // 3. 移动处理
-    // ======================================================================
+    // 4. 移动处理 (键盘)
+    // 获取相机当前模式，决定 WASD 是移动相机还是移动目标
 
     if (mode == CameraMode::FreeLook)
     {
-        float moveSpeed = 10.0f * deltaTime; // 基础移动速度
-        if (m_InputManager->IsKeyDown(VK_SHIFT))
-            moveSpeed *= 2.5f; // 按住Shift加速
-
-        Vector3 currentPos = m_pMainCamera->GetPosition();
-        Vector3 moveVec(0, 0, 0);
-
         FLOAT fwd = 0.0f, right = 0.0f, up = 0.0f;
 
-        // 利用四元数计算出的局部坐标轴进行位移
         if (m_InputManager->IsKeyDown('W'))
-            moveVec += m_pMainCamera->GetForward();
+            fwd += 1.0f;
         if (m_InputManager->IsKeyDown('S'))
-            moveVec -= m_pMainCamera->GetForward();
+            fwd -= 1.0f;
         if (m_InputManager->IsKeyDown('D'))
-            moveVec += m_pMainCamera->GetRight();
+            right += 1.0f;
         if (m_InputManager->IsKeyDown('A'))
-            moveVec -= m_pMainCamera->GetRight();
+            right -= 1.0f;
         if (m_InputManager->IsKeyDown('E') || m_InputManager->IsKeyDown(VK_SPACE))
-            moveVec += Vector3(0, 1, 0); // 世界空间向上
+            up += 1.0f; // 上升
         if (m_InputManager->IsKeyDown('Q'))
-            moveVec -= Vector3(0, 1, 0); // 世界空间向下
+            up -= 1.0f; // 下降
 
-        if (moveVec.LengthSquared() > 0.0f)
+        // 应用移动 (乘以 deltaTime 保证速度恒定)
+        if (fwd != 0 || right != 0 || up != 0)
         {
-            moveVec.Normalize();
-            m_pMainCamera->SetPosition(currentPos + moveVec * moveSpeed);
+            FLOAT length = sqrtf(fwd * fwd + right * right + up * up);
+
+            if (length > 0.0f)
+            {
+                fwd /= length;
+                right /= length;
+                up /= length;
+            }
+
+            // std::cout << deltaTime << std::endl;
+            // std::cout << "移动向量: fwd=" << fwd << ", right=" << right << ", up=" << up << std::endl;
+
+            m_pMainCamera->Move(fwd * deltaTime, right * deltaTime, up * deltaTime);
         }
     }
     else if (mode == CameraMode::FirstPerson)
     {
-        // 玩家控制
     }
     else if (mode == CameraMode::ThirdPerson)
     {
     }
+
+    m_InputManager->ClearDelta();
 }
 
 void CGameEngine::ProcessUIInput(FLOAT deltaTime)

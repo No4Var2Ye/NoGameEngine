@@ -214,7 +214,7 @@ void CCameraEntity::LookAt(const Vector3 &target)
         Matrix4 lookAtMatrix = Matrix4::LookAt(position, target, worldUp);
 
         // 1. 更新四元数缓存
-        m_rotation = lookAtMatrix.GetRotation();
+        m_rotation = lookAtMatrix.Matrix4::GetRotation();
 
         // 2. 关键优化：反向同步 Euler 状态，确保鼠标接管时平滑过渡
         // 注意：只有在这里（由程序控制视角时）才允许调用 ToEuler
