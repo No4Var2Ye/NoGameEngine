@@ -109,7 +109,6 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
         m_SceneManager->Initialize();
 
         // 2. 创建并注册 DemoScene
-        // 使用 std::make_shared，因为 SceneManager 内部使用 shared_ptr 管理场景列表
         auto pDemoScene = std::make_shared<CDemoScene>();
         m_SceneManager->RegisterScene(pDemoScene);
 
@@ -163,8 +162,6 @@ INT CGameEngine::Run()
     // 主游戏循环
     while (m_Running)
     {
-        // debugFrame++;
-
         // 1. 处理Windows消息
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
@@ -268,14 +265,17 @@ INT CGameEngine::Run()
             }
             case EngineState::Running:
             {
-
+                // 渲染主场景
                 m_pMainCamera->ApplyProjectionMatrix();
                 m_pMainCamera->ApplyViewMatrix();
                 m_SceneManager->Render();
 
+                // 渲染UI
                 m_Renderer->PushState();
-                if (m_ShowDebugInfo)
-                    DisplayDebugInfo();
+                {
+                    if (m_ShowDebugInfo)
+                        DisplayDebugInfo();
+                }
                 m_Renderer->PopState();
 
                 // 检测退出按键切换到 FadeOut
@@ -312,6 +312,7 @@ INT CGameEngine::Run()
     return static_cast<INT>(msg.wParam);
 }
 
+// ======================================================================
 // TODO: 引擎停止
 void CGameEngine::Shutdown()
 {
@@ -340,7 +341,9 @@ void CGameEngine::Shutdown()
     LogInfo(L"=--=--=--=--=--=--=--= 引擎已完全关闭 =--=--=--=--=--=--=--=\n");
     Sleep(1000);
 }
+// ======================================================================
 
+// TODO: 未来解耦
 void CGameEngine::ProcessInput(FLOAT deltaTime)
 {
     // 1. 全局快捷键处理
@@ -619,29 +622,6 @@ void CGameEngine::DisplayDebugInfo()
     m_Renderer->RenderText2D("2: 第三人称视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
     m_Renderer->RenderText2D("3: 自由视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
     m_Renderer->RenderText2D("4: 轨道视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
-}
-
-void CGameEngine::TestFontRendering()
-{
-    // OutputDebugStringA("开始字体渲染测试...\n");
-
-    FLOAT colors[][4] = {
-        {1.0f, 0.0f, 0.0f, 1.0f}, // 红
-        {0.0f, 1.0f, 0.0f, 1.0f}, // 绿
-        {0.0f, 0.0f, 1.0f, 1.0f}, // 蓝
-    };
-
-    // 测试1：简单文字
-    m_Renderer->RenderText2D("字体测试 - 红色", 50, 50, colors[0], 1.0f);
-    m_Renderer->RenderText2D("字体测试 - 绿色", 50, 70, colors[1], 1.0f);
-    m_Renderer->RenderText2D("字体测试 - 蓝色", 50, 90, colors[2], 1.0f);
-
-    // 测试2：不同大小
-    m_Renderer->RenderText2D("大号字体", 50, 120, colors[0], 1.5f);
-    m_Renderer->RenderText2D("中号字体", 50, 150, colors[1], 1.0f);
-    m_Renderer->RenderText2D("小号字体", 50, 170, colors[2], 0.7f);
-
-    // OutputDebugStringA("字体渲染测试完成\n");
 }
 
 void CGameEngine::SetState(EngineState newState)

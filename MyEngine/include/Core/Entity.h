@@ -62,6 +62,7 @@ public:
     void SetPosition(const Vector3 &pos);
     const Vector3 &GetPosition() const { return m_position; }
     void SetRotation(const Vector3 &euler);
+    void SetRotation(const Quaternion &quat);
     const Quaternion &GetRotation() const { return m_rotation; }
     void SetScale(const Vector3 &scale);
     const Vector3 &GetScale() const { return m_scale; }

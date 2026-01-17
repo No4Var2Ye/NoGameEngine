@@ -156,6 +156,12 @@ void CEntity::SetRotation(const Vector3 &euler)
     MarkDirty();
 }
 
+void CEntity::SetRotation(const Quaternion &quat)
+{
+    m_rotation = quat;
+    MarkDirty();
+}
+
 void CEntity::SetScale(const Vector3 &scale)
 {
     m_scale = scale;
