@@ -719,7 +719,7 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
         if (wParam == VK_ESCAPE)
         {
             // ESC键 - 退出程序
-            LogInfo(L"ESC 键被按下，退出程序\n");
+            // LogDebug(L"ESC 键被按下，退出程序\n");
             // PostMessage(hWnd, WM_CLOSE, 0, 0);
             if (CGameEngine::GetInstance().GetState() == CGameEngine::EngineState::Running)
             {

@@ -375,6 +375,11 @@ Vector3 CEntity::GetWorldPosition() const
     return GetWorldMatrix().GetTranslation();
 }
 
+Quaternion CEntity::GetWorldRotation() const
+{
+    return GetWorldMatrix().GetRotation();
+}
+
 Matrix4 CEntity::GetWorldMatrix() const
 {
     if (m_bWorldDirty)
@@ -483,6 +488,7 @@ void CEntity::SetDebugVisualizer(BOOL bShow, std::shared_ptr<CModel> pDebugModel
     std::shared_ptr<CModel> pModelToUse = pDebugModel;
     if (!pModelToUse)
     {
+        // TODO: 有空改模型
         pModelToUse = CGameEngine::GetInstance().GetResourceManager()->GetDefaultModel();
     }
 

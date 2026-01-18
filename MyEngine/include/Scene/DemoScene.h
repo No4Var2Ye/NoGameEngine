@@ -6,13 +6,13 @@
 #include <memory>
 #include <vector>
 #include "Scene/Scene.h"
+#include "Entities/CameraEntity.h"
 // ======================================================================
 class CRenderer;
 class CSkyboxEntity;
 class CTerrainEntity;
 class CGridEntity;
 class CModelEntity;
-class CCameraEntity;
 // ======================================================================
 
 class CDemoScene : public CScene
@@ -45,7 +45,7 @@ private:
     void SetupFog();
 
     float m_PossessedEntityYaw;
-    
+
     // ======================================================================
     // 更新逻辑
     void UpdateLogic(float deltaTime);
@@ -60,8 +60,16 @@ private:
     void ProcessInput(float deltaTime);
     void ProcessGlobalHotkeys(float deltaTime);
     void ProcessCameraInput(float deltaTime);
-    void UpdateOrbitalCamera(float deltaTime);
 
+    void ResetCameraToDefault();
+    void SwitchCameraMode(CameraMode newMode);
+    void SetupFirstPersonCamera();
+    void SetupThirdPersonCamera();
+    void SetupOrbitalCamera();
+    float m_OrbitalRadius = 10.0f;
+    float m_OrbitalHeight = 5.0f;
+    float m_OrbitalAngle = 0.0f;
+    void SetupFreeLookCamera(const Vector3 &worldPos, const Quaternion &worldRot);
 };
 
-#endif // __DEMO_SCENE_H__
+#endif // __DEMO_SCENE_H__void CDemoScene::SwitchCameraMode(CameraMode newMode)

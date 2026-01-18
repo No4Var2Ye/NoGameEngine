@@ -110,9 +110,14 @@ public:
     const Quaternion &GetRotation() const { return m_rotation; }
     void SetScale(const Vector3 &scale);
     const Vector3 &GetScale() const { return m_scale; }
-    void SetInheritScale(BOOL bInherit) { m_bInheritScale = bInherit; MarkDirty(); }
+    void SetInheritScale(BOOL bInherit)
+    {
+        m_bInheritScale = bInherit;
+        MarkDirty();
+    }
 
     Vector3 GetWorldPosition() const;
+    Quaternion GetWorldRotation() const;
     Matrix4 GetWorldMatrix() const;
 
     // 可见性控制
@@ -154,7 +159,7 @@ protected:
     Vector3 m_position;
     Quaternion m_rotation;
     Vector3 m_scale;
-    BOOL m_bInheritScale = TRUE; // 是否继承缩放
+    BOOL m_bInheritScale = FALSE; // 是否继承缩放, 默认不继承
 
     BOOL m_bVisible;
 
@@ -170,7 +175,6 @@ protected:
 
     BOOL m_bShowDebugVisualizer = FALSE;
     std::shared_ptr<CEntity> m_pDebugHelperEntity = nullptr;
-
 };
 
 #endif // __ENTITY_H__

@@ -46,11 +46,11 @@ BOOL CDemoScene::Initialize()
         // m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
         m_pMainCamera->SetMode(CameraMode::FreeLook);
 
-        // CAUTION: 不要一开始就 AddChild 到 Root，因为我们可能要动态绑定到鸭子
-        // TODO: 后续修改逻辑
         m_pRootEntity->AddChild(m_pMainCamera);
         LogInfo(L"场景相机加载成功\n");
     }
+    
+    CGameEngine::GetInstance().SetMainCamera(m_pMainCamera);
 
     // ======================================================================
     // 3. 添加天空盒
@@ -114,6 +114,8 @@ BOOL CDemoScene::Initialize()
         pDuckEntity->SetScale(Vector3(0.01f, 0.01f, 0.01f));
         pDuckEntity->SetRotation(Vector3(0.0f, 0.0f, 0.0f));
 
+        pDuckEntity->SetDebugVisualizer(TRUE);
+
         pDuckEntity->SetSnapToTerrain(TRUE, 0.0f);
 
         // 6.2 注册到场景树
@@ -122,27 +124,29 @@ BOOL CDemoScene::Initialize()
         m_pPossessedEntity = pDuckEntity;
 
         // 6.3 虚拟锚点优化
-        // 创建一个不可见的 Dummy 实体作为“随从位置点”
-        auto pFollowerAnchor = CEntity::Create();
-        pFollowerAnchor->SetName(L"FollowerAnchor");
-        pFollowerAnchor->SetPosition(Vector3(-100.0f, 0.0f, 0.0f)); // 这里是本地坐标
-        pDuckEntity->AddChild(pFollowerAnchor);
+        // 第一人称锚点 First Person Anchor
+        auto pFPAnchor = CEntity::Create();
+        pFPAnchor->SetName(L"FP_Anchor");
+        pFPAnchor->SetPosition(Vector3(1.0f, 1.5f, 0.0f));
+        pFPAnchor->SetDebugVisualizer(TRUE);
+        pDuckEntity->AddChild(pFPAnchor);
 
-        // 测试 加入可视化锚点
-        pFollowerAnchor->SetDebugVisualizer(TRUE);
+        // 第三人称锚点 Third Person Anchor
+        auto pTPAnchor = CEntity::Create();
+        pTPAnchor->SetName(L"TP_Anchor");
+        pTPAnchor->SetPosition(Vector3(-2.0f, 2.5f, 0.0f));
+        pTPAnchor->SetDebugVisualizer(TRUE);
+        pDuckEntity->AddChild(pTPAnchor);
 
         // 5.1 添加子鸭子
         // ======================================================================
-        auto pChildDuckEntity = CModelEntity::Create(pDuckModel); // 复用同一个模型资源
+        auto pChildDuckEntity = CModelEntity::Create(pDuckModel);
         if (pChildDuckEntity)
         {
-            pChildDuckEntity->SetName(L"FollowerDuck");
-            // CAUTION：这里的变换是相对于父鸭子 (pDuckEntity) 的本地空间
-            // 父鸭子缩放是 0.01，子鸭子如果设为 0.5，则实际世界缩放是 0.005
-            pChildDuckEntity->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-            pChildDuckEntity->SetPosition(Vector3(100.0f, 0.0f, 0.0f));
+            pChildDuckEntity->SetName(L"FollowerDuck1");
+            pChildDuckEntity->SetScale(Vector3(0.005f, 0.005f, 0.005f));
+            pChildDuckEntity->SetPosition(Vector3(1.0f, 0.0f, 0.0f));
             pChildDuckEntity->SetRotation(Vector3(0.0f, 0.0f, 0.0f));
-
             pDuckEntity->AddChild(pChildDuckEntity);
             // LogDebug(L"子鸭子创建成功，已挂载到主鸭子下\n");
         }
@@ -193,6 +197,12 @@ void CDemoScene::Render()
     {
         m_pMainCamera->ApplyViewMatrix(); // 内部应使用 GetWorldPosition()
         m_pMainCamera->ApplyProjectionMatrix();
+    }
+    else
+    {
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        gluLookAt(0, 5, 10, 0, 0, 0, 0, 1, 0);
     }
 
     // 3. 优化光照设置 - 只在变化时更新
@@ -416,21 +426,22 @@ void CDemoScene::ProcessCameraInput(float deltaTime)
     // ======================================================================
     if (inputMgr->IsKeyPressed(Hotkeys::ResetCamera))
     {
-        // 重置相机到默认位置和旋转
-        m_pMainCamera->SetMode(CameraMode::FreeLook);
-        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
-        m_pMainCamera->ResetOrientation(0.0f, 0.0f);
+        ResetCameraToDefault();
+        return;
     }
 
-    // 相机模式切换
+    // 相机模式切换 (挂载父节点)
     if (inputMgr->IsKeyPressed(Hotkeys::CameraMode1))
-        m_pMainCamera->SetMode(CameraMode::FirstPerson);
+        SwitchCameraMode(CameraMode::FirstPerson);
+
     if (inputMgr->IsKeyPressed(Hotkeys::CameraMode2))
-        m_pMainCamera->SetMode(CameraMode::ThirdPerson);
+        SwitchCameraMode(CameraMode::ThirdPerson);
+
     if (inputMgr->IsKeyPressed(Hotkeys::CameraMode3))
-        m_pMainCamera->SetMode(CameraMode::FreeLook);
+        SwitchCameraMode(CameraMode::FreeLook);
+
     if (inputMgr->IsKeyPressed(Hotkeys::CameraMode4))
-        m_pMainCamera->SetMode(CameraMode::Orbital);
+        SwitchCameraMode(CameraMode::Orbital);
 
     // 相机震动测试
     if (inputMgr->IsKeyPressed(Hotkeys::CameraShakeTest))
@@ -454,11 +465,18 @@ void CDemoScene::ProcessCameraInput(float deltaTime)
     if (inputMgr->IsMouseButtonDown(MouseButton::Left))
     {
         POINT delta = inputMgr->GetMouseDelta();
-
         if (delta.x != 0 || delta.y != 0)
         {
-            // 调用优化后的四元数合成链路
-            m_pMainCamera->ProcessMouseMovement(delta.x, delta.y);
+            if (mode == CameraMode::Orbital)
+            {
+                // 轨道模式：鼠标左右移动 delta.x 改变围绕 Y 轴的角度
+                // 敏感度可根据手感调整，这里使用了 0.5f
+                m_OrbitalAngle += (float)delta.x / 120 * 0.5f * deltaTime;
+            }
+            else
+            {
+                m_pMainCamera->ProcessMouseMovement(delta.x, delta.y);
+            }
         }
     }
 
@@ -474,7 +492,15 @@ void CDemoScene::ProcessCameraInput(float deltaTime)
     INT wheelDelta = inputMgr->GetMouseWheelDelta();
     if (wheelDelta != 0)
     {
-        m_pMainCamera->ProcessMouseWheel(wheelDelta);
+        if (mode == CameraMode::Orbital)
+        {
+            m_OrbitalRadius -= (float)wheelDelta * 0.01f;
+            m_OrbitalRadius = Math::Max(2.0f, Math::Min(m_OrbitalRadius, 50.0f));
+        }
+        else
+        {
+            m_pMainCamera->ProcessMouseWheel(wheelDelta);
+        }
     }
 
     // ======================================================================
@@ -484,21 +510,163 @@ void CDemoScene::ProcessCameraInput(float deltaTime)
     if (!m_pPossessedEntity)
         return;
 
-    if (mode == CameraMode::FreeLook)
+    if (mode == CameraMode::Orbital)
     {
+        float heightSpeed = 10.0f * deltaTime;
+        // 使用你的 Hotkeys 定义或直接使用键码
+        if (inputMgr->IsKeyPressed(Hotkeys::MoveUp) || inputMgr->IsKeyPressed(Hotkeys::MoveUpAlt))
+            m_OrbitalHeight += heightSpeed;
+        if (inputMgr->IsKeyPressed(Hotkeys::MoveDown))
+            m_OrbitalHeight -= heightSpeed;
+
+        m_OrbitalHeight = Math::Max(0.5f, Math::Min(m_OrbitalHeight, 40.0f));
+    }
+
+    switch (mode)
+    {
+    case CameraMode::FreeLook:
         UpdateFreeLookCamera(deltaTime);
-    }
-    else if (mode == CameraMode::FirstPerson || mode == CameraMode::ThirdPerson)
-    {
+        break;
+    case CameraMode::FirstPerson:
+    case CameraMode::ThirdPerson:
+    case CameraMode::Orbital:
         UpdateEntities(deltaTime);
-        // SyncCameraToEntity(deltaTime);
-    }
-    else if (mode == CameraMode::Orbital)
-    {
-        // UpdateOrbitalCamera(deltaTime);
+        SyncCameraToEntity(deltaTime);
+        break;
     }
 }
 
+void CDemoScene::ResetCameraToDefault()
+{
+    if (!m_pMainCamera)
+        return;
+
+    m_pMainCamera->SetMode(CameraMode::FreeLook);
+    m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
+    m_pMainCamera->SetRotation(Quaternion::FromEuler(0.0f, 180.0f, 0.0f));
+    // m_pMainCamera->StopShake();
+
+    LogInfo(L"相机已重置到默认位置\n");
+}
+
+void CDemoScene::SwitchCameraMode(CameraMode newMode)
+{
+    if (!m_pMainCamera || !m_pPossessedEntity)
+        return;
+
+    CameraMode currentMode = m_pMainCamera->GetMode();
+    if (currentMode == newMode)
+        return; // 模式相同，无需切换
+
+    LogDebug(L"相机模式切换: %d -> %d\n", (int)currentMode, (int)newMode);
+
+    // 1. 保存当前世界位置（用于模式切换时的平滑过渡）
+    Vector3 worldPos = m_pMainCamera->GetWorldPosition();
+    Quaternion worldRot = m_pMainCamera->GetWorldRotation();
+
+    // 2. 先从当前父节点脱离
+    auto pCurrentParent = m_pMainCamera->GetParent();
+    if (pCurrentParent)
+    {
+        pCurrentParent->RemoveChild(m_pMainCamera->GetID());
+        LogDebug(L"场景相机已从父节点分离\n");
+    }
+
+    // 3. 根据新模式重新挂载
+    switch (newMode)
+    {
+    case CameraMode::FirstPerson:
+    {
+        SetupFirstPersonCamera();
+        break;
+    }
+    case CameraMode::ThirdPerson:
+    {
+        SetupThirdPersonCamera();
+        break;
+    }
+    case CameraMode::Orbital:
+    {
+        SetupOrbitalCamera();
+        break;
+    }
+    case CameraMode::FreeLook:
+    default:
+    {
+        SetupFreeLookCamera(worldPos, worldRot);
+        break;
+    }
+    }
+
+    // 设置相机模式
+    m_pMainCamera->SetMode(newMode);
+
+    LogInfo(L"Camera Mode Switched to: %d\n", (int)newMode);
+}
+
+void CDemoScene::SetupFirstPersonCamera()
+{
+    if (!m_pMainCamera || !m_pPossessedEntity)
+        return;
+
+    auto pFPAnchor = m_pPossessedEntity->FindChildByName(L"FP_Anchor");
+    if (pFPAnchor)
+    {
+        pFPAnchor->AddChild(m_pMainCamera);
+        m_pMainCamera->SetPosition(Vector3::Zero()); // 相对锚点归零
+        m_pMainCamera->ResetOrientation(0, 0);       // 重置视口朝向
+        LogDebug(L"相机已挂载至第一人称锚点\n");
+    }
+}
+
+void CDemoScene::SetupThirdPersonCamera()
+{
+    if (!m_pMainCamera || !m_pPossessedEntity)
+        return;
+
+    auto pTPAnchor = m_pPossessedEntity->FindChildByName(L"TP_Anchor");
+    if (pTPAnchor)
+    {
+        pTPAnchor->AddChild(m_pMainCamera);
+        // 设置初始偏移量：在锚点后方 5 个单位，上方 2 个单位
+        m_pMainCamera->SetPosition(Vector3(0.0f, 2.0f, -5.0f));
+        LogDebug(L"相机已挂载至第三人称锚点\n");
+    }
+}
+
+void CDemoScene::SetupOrbitalCamera()
+{
+    if (!m_pMainCamera || !m_pPossessedEntity)
+        return;
+
+    // 轨道相机直接挂在实体上，但其位置会由 SyncCameraToEntity 每帧重新计算
+    m_pPossessedEntity->AddChild(m_pMainCamera);
+
+    m_OrbitalRadius = 10.0f;
+    m_OrbitalHeight = 5.0f;
+    m_OrbitalAngle = 0.0f;
+
+    LogDebug(L"轨道相机模式启动\n");
+}
+
+void CDemoScene::SetupFreeLookCamera(const Vector3 &worldPos, const Quaternion &worldRot)
+{
+    if (!m_pMainCamera)
+        return;
+
+    // 自由视角：相机独立于任何实体
+    m_pRootEntity->AddChild(m_pMainCamera);
+
+    // 保持之前的世界变换
+    m_pMainCamera->SetPosition(worldPos);
+    m_pMainCamera->SetRotation(worldRot);
+
+    LogDebug(L"自由视角相机设置完成\n");
+}
+
+// ======================================================================
+// TODO: 更新逻辑
+// ======================================================================
 void CDemoScene::UpdateLogic(float deltaTime)
 {
     UpdateAutoSnapping();
@@ -668,100 +836,35 @@ void CDemoScene::UpdateFreeLookCamera(float deltaTime)
 // 第一人称, 第三人称 相机绑定实体
 void CDemoScene::SyncCameraToEntity(float deltaTime)
 {
-    // if (!m_pMainCamera || !m_pPossessedEntity)
-    //     return;
+    if (!m_pMainCamera || !m_pPossessedEntity)
+        return;
 
-    // CameraMode mode = m_pMainCamera->GetMode();
+    CameraMode mode = m_pMainCamera->GetMode();
 
-    // // 1. 确保相机的父子关系正确 (状态切换检测)
-    // if (m_pMainCamera->GetParent() != m_pPossessedEntity)
-    // {
-    //     // 先脱离原有的父节点
-    //     auto pCurrentParent = m_pMainCamera->GetParent();
-    //     if (pCurrentParent)
-    //     {
-    //         // 使用安全的方式移除子节点
-    //         pCurrentParent->RemoveChild(m_pMainCamera->GetID());
-    //         LogDebug(L"相机已从原父节点分离\n");
-    //     }
+    if (mode == CameraMode::FirstPerson)
+    {
+        // 挂载关系已经处理了位置同步
+    }
+    else if (mode == CameraMode::ThirdPerson)
+    {
+        // 始终看向鸭子头部
+        Vector3 target = m_pPossessedEntity->GetWorldPosition() + Vector3(0, 1.0f, 0);
+        m_pMainCamera->LookAt(target);
+    }
+    else if (mode == CameraMode::Orbital)
+    {
+        // 1. 计算相机在鸭子本地坐标系下的位置
+        // 极坐标转笛卡尔坐标：绕 Y 轴旋转
+        float x = sinf(m_OrbitalAngle) * m_OrbitalRadius;
+        float z = cosf(m_OrbitalAngle) * m_OrbitalRadius;
+        float y = m_OrbitalHeight;
 
-    //     // 绑定到被控实体
-    //     m_pPossessedEntity->AddChild(m_pMainCamera->shared_from_this());
-    //     LogInfo(L"相机已绑定到实体: %s\n", m_pPossessedEntity->GetName().c_str());
+        // 更新相机相对于鸭子的本地位置
+        m_pMainCamera->SetPosition(Vector3(x, y, z));
 
-    //     // 切换模式时的初始化设置
-    //     if (mode == CameraMode::FirstPerson)
-    //     {
-    //         m_pMainCamera->SetPosition(Vector3(0, 1.8f, 0)); // 眼睛高度
-    //         LogDebug(L"第一人称模式：设置相机高度为 1.8\n");
-    //     }
-    //     else if (mode == CameraMode::ThirdPerson)
-    //     {
-    //         m_pMainCamera->SetPosition(Vector3(0, 1.5f, 5.0f)); // 第三人称默认偏移
-    //         LogDebug(L"第三人称模式：设置相机初始位置\n");
-    //     }
-    // }
-
-    // // 2. 根据模式处理本地变换
-    // if (mode == CameraMode::ThirdPerson)
-    // {
-    //     // 第三人称：本地坐标位于父节点后上方
-    //     float dist = 5.0f; // 默认距离
-    //     float yawRad = m_pMainCamera->GetYaw() * 0.01745f;
-    //     float pitchRad = m_pMainCamera->GetPitch() * 0.01745f;
-
-    //     // 计算球坐标偏移
-    //     Vector3 localOffset(
-    //         sinf(yawRad) * cosf(pitchRad) * dist,
-    //         sinf(pitchRad) * dist + 1.5f, // 基础高度 1.5
-    //         cosf(yawRad) * cosf(pitchRad) * dist);
-
-    //     // 设置相机相对于父节点的位置
-    //     Vector3 desiredLocalPos = localOffset;
-
-    //     // 应用平滑位置 (防止相机瞬间跳变)
-    //     Vector3 currentPos = m_pMainCamera->GetPosition();
-    //     Vector3 newPos = Vector3::Lerp(currentPos, desiredLocalPos, deltaTime * 8.0f);
-    //     m_pMainCamera->SetPosition(newPos);
-
-    //     // 让相机看向父节点中心上方
-    //     Vector3 lookAtTarget(0, 1.5f, 0); // 看向父节点上方 1.5 单位处
-    //     m_pMainCamera->LookAt(lookAtTarget);
-    // }
-    // else if (mode == CameraMode::FirstPerson)
-    // {
-    //     // 第一人称：相机位置固定，旋转跟随父节点
-    //     // 相机位置已经在父子关系中确定，只需要同步旋转
-    //     Vector3 parentRotation = m_pPossessedEntity->GetRotation().ToEuler();
-    //     m_pMainCamera->SetRotation(Quaternion::FromEuler(0, parentRotation.y, 0));
-    // }
-    // else if (mode == CameraMode::Orbital)
-    // {
-    //     // 轨道模式：围绕父节点旋转
-    //     float dist = 8.0f; // 轨道距离
-    //     static float orbitAngle = 0.0f;
-    //     orbitAngle += deltaTime * 1.0f; // 每秒旋转 1 弧度
-
-    //     Vector3 orbitalOffset(
-    //         sinf(orbitAngle) * dist,
-    //         3.0f, // 轨道高度
-    //         cosf(orbitAngle) * dist);
-
-    //     m_pMainCamera->SetPosition(orbitalOffset);
-    //     m_pMainCamera->LookAt(Vector3(0, 1.5f, 0)); // 看向父节点中心
-    // }
-    // else if (mode == CameraMode::FreeLook)
-    // {
-    //     // 自由视角：解除父子关系，相机独立控制
-    //     auto pCurrentParent = m_pMainCamera->GetParent();
-    //     if (pCurrentParent)
-    //     {
-    //         pCurrentParent->RemoveChild(m_pMainCamera->GetID());
-    //         LogDebug(L"自由视角模式：解除相机父子关系\n");
-    //     }
-    // }
-}
-
-void CDemoScene::UpdateOrbitalCamera(float deltaTime)
-{
+        // 2. 更新朝向
+        // LookAt(Vector3::Zero()) 会看向鸭子脚底
+        // 建议看向 Vector3(0, 1.0f, 0) 即鸭子的身体中心
+        m_pMainCamera->LookAt(Vector3(0.0f, 1.0f, 0.0f));
+    }
 }

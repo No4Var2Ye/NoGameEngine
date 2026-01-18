@@ -58,6 +58,13 @@ public:
     CUIManager *GetUIManager() const { return m_UIManager.get(); }
 
     // ======================================================================
+    // 相机管理方法
+    void SetMainCamera(std::shared_ptr<CCameraEntity> pCamera);
+    BOOL HasMainCamera() const { return m_pMainCamera != nullptr; }
+    void ResetMainCamera();
+    void CreateDefaultCamera();
+
+    // ======================================================================
     // 测试
     void TestFontRendering();
 

@@ -99,7 +99,7 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     }
     if (!m_Renderer->InitializeFontSystem())
     {
-        LogWarning(L"字体系统初始化失败，将继续运行\n");
+        LogWarning(L"字体系统初始化失败, 将继续运行\n");
     }
 
     // 6. 初始化场景管理器
@@ -112,7 +112,7 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
         auto pDemoScene = std::make_shared<CDemoScene>();
         m_SceneManager->RegisterScene(pDemoScene);
 
-        // 3. 立即切换到该场景 (不带过渡效果，作为首个场景)
+        // 3. 立即切换到该场景 (不带过渡效果, 作为首个场景)
         m_SceneManager->ChangeSceneImmediate("DemoScene");
     }
 
@@ -138,12 +138,12 @@ INT CGameEngine::Run()
         return -1;
 
     m_Running = TRUE;
-    // MSG结构体是 Windows 消息系统的核心，用于在应用程序和操作系统之间传递消息。
+    // MSG结构体是 Windows 消息系统的核心, 用于在应用程序和操作系统之间传递消息。
     // 它是 Windows 事件驱动编程的基础。
     MSG msg = {};
 
     // 获取时间基准
-    // deltaTime用于使游戏速度与帧率无关，确保在不同性能的电脑上游戏体验一致
+    // deltaTime用于使游戏速度与帧率无关, 确保在不同性能的电脑上游戏体验一致
 
     // TODO: 初始输入状态
     // if (m_Config.lockMouse)
@@ -155,7 +155,7 @@ INT CGameEngine::Run()
     // m_pMainCamera->EnableMouseLook(TRUE);
     // m_pMainCamera->SetMoveSpeed(2.0f);
 
-    // 跟踪上一次的窗口尺寸，用于检测变化
+    // 跟踪上一次的窗口尺寸, 用于检测变化
     INT lastWindowWidth = m_Window->GetClientWidth();
     INT lastWindowHeight = m_Window->GetClientHeight();
 
@@ -170,7 +170,7 @@ INT CGameEngine::Run()
                 {
                     m_State = EngineState::FadeOut;
                     m_SplashTimer = 0.0f; // 重置计时器
-                    continue;             // 不设置 m_Running = FALSE，继续跑循环
+                    continue;             // 不设置 m_Running = FALSE, 继续跑循环
                 }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -330,7 +330,7 @@ void CGameEngine::ProcessInput(FLOAT deltaTime)
     // 1. 全局快捷键处理
     if (m_InputManager->IsKeyPressed(VK_ESCAPE))
     {
-        // 如果当前是运行状态，开启淡出
+        // 如果当前是运行状态, 开启淡出
         if (m_State == EngineState::Running)
         {
             m_State = EngineState::FadeOut;
@@ -372,6 +372,104 @@ void CGameEngine::ProcessUIInput(FLOAT deltaTime)
 {
 }
 
+void CGameEngine::SetMainCamera(std::shared_ptr<CCameraEntity> pCamera)
+{
+    if (pCamera == m_pMainCamera)
+        return;
+
+    LogDebug(L"设置主相机: %s\n", pCamera ? pCamera->GetName().c_str() : L"NULL");
+
+    std::shared_ptr<CCameraEntity> pOldCamera = m_pMainCamera;
+
+    m_pMainCamera = pCamera;
+
+    if (pOldCamera)
+    {
+        LogDebug(L"旧主相机已替换\n");
+    }
+
+    if (m_pMainCamera)
+    {
+        if (m_pMainCamera->GetPosition().LengthSquared() < 0.001f)
+        {
+            m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
+        }
+
+        // 设置默认投影矩阵
+        if (m_Window)
+        {
+            INT width = m_Window->GetClientWidth();
+            INT height = m_Window->GetClientHeight();
+            FLOAT aspect = (height > 0) ? (FLOAT)width / (FLOAT)height : 1.33f;
+
+            m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
+        }
+
+        LogInfo(L"主相机设置成功 - 位置: (%.1f, %.1f, %.1f)\n",
+                m_pMainCamera->GetPosition().x,
+                m_pMainCamera->GetPosition().y,
+                m_pMainCamera->GetPosition().z);
+    }
+    else
+    {
+        LogWarning(L"主相机设置为NULL, 将创建默认相机\n");
+        CreateDefaultCamera();
+    }
+}
+
+void CGameEngine::ResetMainCamera()
+{
+    LogDebug(L"重置主相机\n");
+
+    if (m_pMainCamera)
+    {
+        // 重置相机到默认位置和方向
+        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
+        m_pMainCamera->SetRotation(Quaternion::Identity());
+        m_pMainCamera->SetMode(CameraMode::FreeLook);
+        // m_pMainCamera->StopShake();
+
+        LogDebug(L"主相机已重置到默认位置\n");
+    }
+    else
+    {
+        CreateDefaultCamera();
+    }
+}
+
+void CGameEngine::CreateDefaultCamera()
+{
+    LogDebug(L"创建默认相机\n");
+
+    // 创建默认相机
+    m_pMainCamera = CCameraEntity::Create();
+    if (m_pMainCamera)
+    {
+        m_pMainCamera->SetName(L"DefaultCamera");
+
+        // 设置默认位置和方向
+        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
+        m_pMainCamera->SetRotation(Quaternion::FromEuler(0.0f, 180.0f, 0.0f));
+        m_pMainCamera->SetMode(CameraMode::FreeLook);
+
+        // 设置投影矩阵
+        if (m_Window)
+        {
+            INT width = m_Window->GetClientWidth();
+            INT height = m_Window->GetClientHeight();
+            FLOAT aspect = (height > 0) ? (FLOAT)width / (FLOAT)height : 1.33f;
+
+            m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
+        }
+
+        LogInfo(L"默认相机创建成功\n");
+    }
+    else
+    {
+        LogError(L"创建默认相机失败\n");
+    }
+}
+
 void CGameEngine::DisplayDebugInfo()
 {
     if (!m_ShowDebugInfo)
@@ -381,7 +479,7 @@ void CGameEngine::DisplayDebugInfo()
     INT startX = 30;
     INT startY = 40;
     INT lineHeight = 22; // 每一行的高度差
-    INT row = 0;         // 使用行倍数，方便排列
+    INT row = 0;         // 使用行倍数, 方便排列
 
     // 右侧：操作指南
     // 定义右侧边距和行高
@@ -423,9 +521,9 @@ void CGameEngine::DisplayDebugInfo()
 
     // ======================================================================
     // 3. 相机数据
-    std::string camParaText = "[主相机的参数]";
+    std::string camParaText = "[相机的参数]";
     m_Renderer->RenderText2D(camParaText, startX, startY + (lineHeight * row++), cyan, 1.0f);
-    
+
     Vector3 camPos = m_pMainCamera->GetPosition();
     std::string camText = "Pos: (" + std::to_string(camPos.x).substr(0, 5) + ", " +
                           std::to_string(camPos.y).substr(0, 5) + ", " +
@@ -437,10 +535,6 @@ void CGameEngine::DisplayDebugInfo()
                           std::to_string(forward.y).substr(0, 5) + ", " +
                           std::to_string(forward.z).substr(0, 5) + ")";
     m_Renderer->RenderText2D(dirText, startX, startY + (lineHeight * row++), cyan, 1.0f);
-
-    std::string tmpText = "[后续修补场景相机参数读取]";
-    m_Renderer->RenderText2D(tmpText, startX, startY + (lineHeight * row++), cyan, 1.0f);
-    
 
     // 相机模式处理
     CameraMode mode = m_pMainCamera->GetMode();
@@ -519,7 +613,7 @@ void CGameEngine::RenderSplashScreen(FLOAT deltaTime, BOOL isFadeOut)
     FLOAT currentDuration = isFadeOut ? FadeOutDuration : FadeInDuration;
 
     INT lineHeight = 22; // 每一行的高度差
-    INT row = 0;         // 使用行倍数，方便排列
+    INT row = 0;         // 使用行倍数, 方便排列
 
     m_SplashTimer += deltaTime;
 
@@ -528,14 +622,14 @@ void CGameEngine::RenderSplashScreen(FLOAT deltaTime, BOOL isFadeOut)
     if (alpha > 1.0f)
         alpha = 1.0f;
 
-    // 如果是退出动画，Alpha 取反
+    // 如果是退出动画, Alpha 取反
     FLOAT drawAlpha = isFadeOut ? (1.0f - alpha) : alpha;
 
-    // 清屏为纯黑 (这是关键，动画期间不显示场景)
+    // 清屏为纯黑 (这是关键, 动画期间不显示场景)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // 设置文字颜色（白色，带动态透明度）
+    // 设置文字颜色（白色, 带动态透明度）
     FLOAT textColor[] = {1.0f, 1.0f, 1.0f, drawAlpha};
 
     // 计算屏幕中心
