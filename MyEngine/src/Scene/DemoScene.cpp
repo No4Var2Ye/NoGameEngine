@@ -14,182 +14,6 @@
 #include "Entities/GridEntity.h"
 #include "Entities/TerrainEntity.h"
 // ======================================================================
-// 测试
-#include "Graphics/Camera/Camera.h"
-#include "Resources/Texture.h"
-#include "Resources/Model.h"
-// ======================================================================
-
-// TODO: 测试
-namespace
-{
-    // 测试贴图加载
-    std::shared_ptr<CTexture> g_pTexture = nullptr;
-    BOOL g_bTextureLoaded = FALSE;
-}
-
-void DrawTexturedCube()
-{
-    glDisable(GL_LIGHTING);            // 暂时关掉光照，排除光照干扰
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // 强制设为纯白，确保纹理 1:1 输出
-
-    static bool bAttempted = false;
-
-    if (!bAttempted)
-    {
-        bAttempted = true; // 无论成功失败，只试一次
-        g_pTexture = std::make_shared<CTexture>();
-        if (!g_pTexture->LoadFromFile(L"assets/Textures/test-texture.png"))
-        {
-            // 如果加载失败，使用资源管理器里的兜底纹理
-            g_pTexture = CGameEngine::GetInstance().GetResourceManager()->GetDefaultTexture();
-        }
-    }
-
-    glPushMatrix();
-    glTranslatef(2.0f, 1.0f, 0.0f);
-
-    glEnable(GL_TEXTURE_2D);
-    g_pTexture->Bind(GL_TEXTURE0);
-
-    // 设置纹理环境
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-    // 绘制立方体（固定管线方式）
-    glBegin(GL_QUADS);
-    {
-        // 前面
-        glNormal3f(0.0f, 0.0f, 1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, 1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, 1.0f);
-
-        // 后面
-        glNormal3f(0.0f, 0.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, -1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, -1.0f);
-
-        // 顶面
-        glNormal3f(0.0f, 1.0f, 0.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(-1.0f, 1.0f, 1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(1.0f, 1.0f, 1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, -1.0f);
-
-        // 底面
-        glNormal3f(0.0f, -1.0f, 0.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(-1.0f, -1.0f, -1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(1.0f, -1.0f, -1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, 1.0f);
-
-        // 右面
-        glNormal3f(1.0f, 0.0f, 0.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, -1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, -1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, 1.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 1.0f);
-
-        // 左面
-        glNormal3f(-1.0f, 0.0f, 0.0f);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, 1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, 1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, -1.0f);
-    }
-    glEnd();
-
-    g_pTexture->Unbind(GL_TEXTURE0);
-    glDisable(GL_TEXTURE_2D);
-    glPopMatrix();
-}
-
-void DrawColorCube()
-{
-    glPushMatrix();
-    {
-        // 将立方体稍微抬高一点，放在坐标原点上方
-        glTranslatef(-2.0f, 1.0f, 0.0f);
-
-        // 让立方体自己旋转，方便观察 3D 效果
-        // static float rotation = 0.0f;
-        // rotation += 0.5f;
-        // glRotatef(rotation, 0.0f, 1.0f, 0.0f);
-        glBegin(GL_QUADS);
-        {
-            // 前面 (Z+)
-            glColor3f(1.0f, 0.0f, 0.0f); // 红色
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-
-            // 后面 (Z-)
-            glColor3f(0.0f, 1.0f, 0.0f); // 绿色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, -1.0f);
-
-            // 顶面 (Y+)
-            glColor3f(0.0f, 0.0f, 1.0f); // 蓝色
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-
-            // 底面 (Y-)
-            glColor3f(1.0f, 1.0f, 0.0f); // 黄色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-
-            // 右面 (X+)
-            glColor3f(1.0f, 0.0f, 1.0f); // 紫色
-            glVertex3f(1.0f, -1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, -1.0f);
-            glVertex3f(1.0f, 1.0f, 1.0f);
-            glVertex3f(1.0f, -1.0f, 1.0f);
-
-            // 左面 (X-)
-            glColor3f(0.0f, 1.0f, 1.0f); // 青色
-            glVertex3f(-1.0f, -1.0f, -1.0f);
-            glVertex3f(-1.0f, -1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, 1.0f);
-            glVertex3f(-1.0f, 1.0f, -1.0f);
-        }
-        glEnd();
-    }
-    glPopMatrix();
-}
 
 CDemoScene::CDemoScene()
     : CScene("DemoScene"),       //
@@ -237,9 +61,9 @@ BOOL CDemoScene::Initialize()
         m_pTerrain->SetName(L"WorldTerrain");
         m_pTerrain->SetColor(Vector4(0.6f, 0.8f, 0.9f, 1.0f));
 
-        m_pTerrain->SetNormalScale(1.0f);
-        m_pTerrain->SetNormalStep(100);
-        m_pTerrain->SetDrawNormals(TRUE);
+        m_pTerrain->SetNormalScale(1.5f);
+        m_pTerrain->SetNormalStep(10);
+        m_pTerrain->SetDrawNormals(FALSE);
 
         m_pTerrain->SetPosition(Vector3(0, 0, 0));
 
@@ -249,12 +73,14 @@ BOOL CDemoScene::Initialize()
 
     // ======================================================================
     // 4. 创建网格坐标实体
-    m_pGrid = CGridEntity::Create(500.0f, 1.0f);
+    m_pGrid = CGridEntity::Create(500.0f, 2.0f);
     if (m_pGrid)
     {
-        m_pGrid->SetPosition(Vector3(0, -0.01f, 0));
-        m_pGrid->SetFadeDist(50.0f, 200.0f);
+        m_pGrid->SetPosition(Vector3(0, 3.3f, 0));
+        // m_pGrid->SetPosition(Vector3(0, -0.01f, 0));
+        m_pGrid->SetFadeDist(100.0f, 500.0f);
         m_pGrid->SetShowAxes(TRUE);
+        m_pGrid->SetVisible(TRUE);
 
         m_pRootEntity->AddChild(m_pGrid);
         LogInfo(L"网格创建成功\n");
@@ -267,17 +93,17 @@ BOOL CDemoScene::Initialize()
     {
         auto pDuckEntity = CModelEntity::Create(pDuckModel);
         pDuckEntity->SetName(L"MainDuck");
-        pDuckEntity->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
+        pDuckEntity->SetPosition(Vector3(0.0f, 0.0f, -5.0f));
         pDuckEntity->SetScale(Vector3(0.01f, 0.01f, 0.01f));
         // pDuckEntity->SetRotation(Vector3(0.0f, -90.0f, 0.0f));
 
         // 调试：输出模型信息
         // LogInfo(L"鸭子模型位置: (0, 1, 0), 缩放: 0.01.\n");
 
-        pDuckEntity->SetDrawBoundingBox(TRUE);
+        pDuckEntity->SetDrawBoundingBox(FALSE);
         pDuckEntity->SetNormalScale(10.0f);
         pDuckEntity->SetNormalStep(10);
-        pDuckEntity->SetDrawNormals(TRUE);
+        pDuckEntity->SetDrawNormals(FALSE);
 
         pDuckEntity->SetSnapToTerrain(TRUE, 0.0f);
 
@@ -322,15 +148,11 @@ void CDemoScene::Render()
     // glLoadIdentity();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    static CCameraEntity *s_pLastCamera = nullptr;
-    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
-    if (pCamera != s_pLastCamera)
+    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+    if (pCamera)
     {
-        s_pLastCamera = pCamera;
-        if (pCamera)
-        {
-            pCamera->ApplyViewMatrix();
-        }
+        pCamera->ApplyViewMatrix();
+        pCamera->ApplyProjectionMatrix();
     }
 
     // 3. 优化光照设置 - 只在变化时更新
@@ -348,9 +170,6 @@ void CDemoScene::Render()
         // 建议在 CSkyboxEntity::Render 内部手动关闭和开启雾
         m_pRootEntity->Render();
     }
-
-    // DrawColorCube();    // 测试渲染
-    // DrawTexturedCube(); // 测试贴图
 }
 
 void CDemoScene::Shutdown()
@@ -472,46 +291,77 @@ void CDemoScene::ProcessInput(float deltaTime)
     if (!pCamera)
         return;
 
-    CameraMode mode = pCamera->GetMode();
-
     // ======================================================================
     // 1. 场景全局快捷键
     // ======================================================================
 
-    // 示例：按 'L' 键切换地形线框模式
-    // if (inputMgr->IsKeyPressed('L'))
-    // {
-    //     if (m_pTerrain)
-    //     {
-    //         m_pTerrain->SetWireframe(!m_pTerrain->IsWireframe());
-    //     }
-    // }
+    // 按 F2 键切换地形线框模式
+    static BOOL s_lastF2 = FALSE;
+    BOOL isF2Down = inputMgr->IsKeyDown(Hotkeys::ToggleWireframe);
+    if (isF2Down && !s_lastF2)
+    {
+        if (m_pTerrain)
+        {
+            m_pTerrain->SetWireframe(!m_pTerrain->IsWireframe());
+            LogDebug(L"[线框模式] 切换至: %d\n", m_pTerrain->IsWireframe());
+        }
+        if (m_pPossessedEntity)
+        {
+            m_pPossessedEntity->SetWireframe(!m_pPossessedEntity->IsWireframe());
+            LogDebug(L"[线框模式] 切换至: %d\n", m_pPossessedEntity->IsWireframe());
+        }
+    }
+    s_lastF2 = isF2Down;
 
-    // 示例：按 'B' 键切换包围盒显示
-    // if (inputMgr->IsKeyPressed('B'))
-    // {
-    //     if (m_pPossessedEntity)
-    //     {
-    //         m_pPossessedEntity->SetDrawBoundingBox(!m_pPossessedEntity->IsDrawBoundingBox());
-    //     }
-    // }
+    static BOOL s_lastF3 = FALSE;
+    BOOL isF3Down = inputMgr->IsKeyDown(Hotkeys::ToggleNormals);
+    if (isF3Down && !s_lastF3)
+    {
+        if (m_pTerrain)
+        {
+            m_pTerrain->SetDrawNormals(!m_pTerrain->IsDrawNormals());
+            LogDebug(L"[法线模式] 切换至: %d\n", m_pTerrain->IsDrawNormals());
+        }
+        if (m_pPossessedEntity)
+        {
+            m_pPossessedEntity->SetDrawNormals(!m_pPossessedEntity->IsDrawNormals());
+            LogDebug(L"[法线模式] 切换至: %d\n", m_pPossessedEntity->IsDrawNormals());
+        }
+    }
+    s_lastF3 = isF3Down;
 
+    // 按 F4 键切换包围盒显示
+    static BOOL s_lastF4 = FALSE;
+    BOOL isF4Down = inputMgr->IsKeyDown(Hotkeys::ToggleBoundingBox);
+    if (isF4Down && !s_lastF4)
+    {
+        if (m_pPossessedEntity)
+        {
+            m_pPossessedEntity->SetDrawBoundingBox(!m_pPossessedEntity->IsDrawBoundingBox());
+            LogDebug(L"[法线模式] 切换至: %d\n", m_pPossessedEntity->IsDrawBoundingBox());
+        }
+    }
+    s_lastF4 = isF4Down;
     // ======================================================================
-    // 2. 实体控制逻辑 (仅在第三人称模式下受控)
+    // 2. 实体控制逻辑
     // ======================================================================
-    // CAUTION: 只有在第三人称模式下，WASD 才控制模型实体
-    if (m_pPossessedEntity && mode == CameraMode::ThirdPerson)
+    CameraMode mode = pCamera->GetMode();
+
+    if (!m_pPossessedEntity)
+        return;
+    if (mode == CameraMode::FreeLook)
+    {
+        UpdateFreeLookCamera(deltaTime);
+    }
+    else if (mode == CameraMode::FirstPerson || mode == CameraMode::ThirdPerson)
     {
         UpdateEntities(deltaTime);
+        // SyncCameraToEntity(deltaTime);
     }
-
-    // if (inputMgr->IsKeyPressed('M'))
-    // {
-    //     // 示例：按一下 M 键，生成一个新的鸭子
-    //     // auto pNewModel = CreateExtraDuck();
-    //     // m_pRootEntity->AddChild(pNewModel);
-    //     LogInfo(L"按下 M 键：成功添加一个新实体，且不会由于按住而导致重复创建。\n");
-    // }
+    else if (mode == CameraMode::Orbital)
+    {
+        // UpdateOrbitalCamera(deltaTime);
+    }
 }
 
 void CDemoScene::UpdateLogic(float deltaTime)
@@ -530,13 +380,13 @@ void CDemoScene::UpdateEntities(float deltaTime)
 
     Vector3 inputDir(0, 0, 0);
 
-    if (inputMgr->IsKeyDown('W'))
+    if (inputMgr->IsKeyDown(Hotkeys::MoveForward))
         inputDir.z += 1.0f;
-    if (inputMgr->IsKeyDown('S'))
+    if (inputMgr->IsKeyDown(Hotkeys::MoveBackward))
         inputDir.z -= 1.0f;
-    if (inputMgr->IsKeyDown('A'))
+    if (inputMgr->IsKeyDown(Hotkeys::MoveRight))
         inputDir.x += 1.0f;
-    if (inputMgr->IsKeyDown('D'))
+    if (inputMgr->IsKeyDown(Hotkeys::MoveLeft))
         inputDir.x -= 1.0f;
 
     if (inputDir.Length() > 0.01f)
@@ -576,7 +426,6 @@ void CDemoScene::UpdateEntities(float deltaTime)
         m_PossessedEntityYaw += angleDiff * lerpFactor * deltaTime;
 
         // 4. 应用变换：强制 X=0, Z=0
-        // 这行代码解决了“鸭子乱偏”到地下的问题
         m_pPossessedEntity->SetRotation(Vector3(0.0f, m_PossessedEntityYaw, 0.0f));
 
         // 3. 应用位移
@@ -642,6 +491,135 @@ void CDemoScene::UpdateAutoSnapping()
                 // 【关键修复】：更新最后记录的位置，防止下一帧重复进入
                 pEntity->SetLastSnapPos(currentPos);
             }
+        }
+    }
+}
+
+// ======================================================================
+// 相机更新逻辑
+void CDemoScene::UpdateFreeLookCamera(float deltaTime)
+{
+    auto inputMgr = CGameEngine::GetInstance().GetInputManager();
+    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+
+    float moveSpeed = 5.0f * deltaTime;
+    if (inputMgr->IsKeyDown(VK_SHIFT))
+        moveSpeed *= 2.5f;
+
+    Vector3 moveVec(0, 0, 0);
+    if (inputMgr->IsKeyDown(Hotkeys::MoveForward))
+        moveVec += pCamera->GetForward();
+    if (inputMgr->IsKeyDown(Hotkeys::MoveBackward))
+        moveVec -= pCamera->GetForward();
+    if (inputMgr->IsKeyDown(Hotkeys::MoveRight))
+        moveVec += pCamera->GetRight();
+    if (inputMgr->IsKeyDown(Hotkeys::MoveLeft))
+        moveVec -= pCamera->GetRight();
+    if (inputMgr->IsKeyDown(Hotkeys::MoveUp) || inputMgr->IsKeyDown(Hotkeys::MoveUpAlt))
+        moveVec += Vector3(0, 1, 0);
+    if (inputMgr->IsKeyDown(Hotkeys::MoveDown))
+        moveVec -= Vector3(0, 1, 0);
+
+    if (moveVec.LengthSquared() > 0.0f)
+    {
+        moveVec.Normalize();
+        pCamera->SetPosition(pCamera->GetPosition() + moveVec * moveSpeed);
+    }
+}
+
+void CDemoScene::SyncCameraToEntity(float deltaTime)
+{
+    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
+    if (!pCamera || !m_pPossessedEntity)
+        return;
+
+    CameraMode mode = pCamera->GetMode();
+
+    // 1. 确保相机的父子关系正确 (状态切换检测)
+    if (pCamera->GetParent() != m_pPossessedEntity)
+    {
+        // 先脱离原有的父节点
+        auto pCurrentParent = pCamera->GetParent();
+        if (pCurrentParent)
+        {
+            // 使用安全的方式移除子节点
+            pCurrentParent->RemoveChild(pCamera->GetID());
+            LogDebug(L"相机已从原父节点分离\n");
+        }
+
+        // 绑定到被控实体
+        m_pPossessedEntity->AddChild(pCamera->shared_from_this());
+        LogInfo(L"相机已绑定到实体: %s\n", m_pPossessedEntity->GetName().c_str());
+
+        // 切换模式时的初始化设置
+        if (mode == CameraMode::FirstPerson)
+        {
+            pCamera->SetPosition(Vector3(0, 1.8f, 0)); // 眼睛高度
+            LogDebug(L"第一人称模式：设置相机高度为 1.8\n");
+        }
+        else if (mode == CameraMode::ThirdPerson)
+        {
+            pCamera->SetPosition(Vector3(0, 1.5f, 5.0f)); // 第三人称默认偏移
+            LogDebug(L"第三人称模式：设置相机初始位置\n");
+        }
+    }
+
+    // 2. 根据模式处理本地变换
+    if (mode == CameraMode::ThirdPerson)
+    {
+        // 第三人称：本地坐标位于父节点后上方
+        float dist = 5.0f; // 默认距离
+        float yawRad = pCamera->GetYaw() * 0.01745f;
+        float pitchRad = pCamera->GetPitch() * 0.01745f;
+
+        // 计算球坐标偏移
+        Vector3 localOffset(
+            sinf(yawRad) * cosf(pitchRad) * dist,
+            sinf(pitchRad) * dist + 1.5f, // 基础高度 1.5
+            cosf(yawRad) * cosf(pitchRad) * dist);
+
+        // 设置相机相对于父节点的位置
+        Vector3 desiredLocalPos = localOffset;
+
+        // 应用平滑位置 (防止相机瞬间跳变)
+        Vector3 currentPos = pCamera->GetPosition();
+        Vector3 newPos = Vector3::Lerp(currentPos, desiredLocalPos, deltaTime * 8.0f);
+        pCamera->SetPosition(newPos);
+
+        // 让相机看向父节点中心上方
+        Vector3 lookAtTarget(0, 1.5f, 0); // 看向父节点上方 1.5 单位处
+        pCamera->LookAt(lookAtTarget);
+    }
+    else if (mode == CameraMode::FirstPerson)
+    {
+        // 第一人称：相机位置固定，旋转跟随父节点
+        // 相机位置已经在父子关系中确定，只需要同步旋转
+        Vector3 parentRotation = m_pPossessedEntity->GetRotation().ToEuler();
+        pCamera->SetRotation(Quaternion::FromEuler(0, parentRotation.y, 0));
+    }
+    else if (mode == CameraMode::Orbital)
+    {
+        // 轨道模式：围绕父节点旋转
+        float dist = 8.0f; // 轨道距离
+        static float orbitAngle = 0.0f;
+        orbitAngle += deltaTime * 1.0f; // 每秒旋转 1 弧度
+
+        Vector3 orbitalOffset(
+            sinf(orbitAngle) * dist,
+            3.0f, // 轨道高度
+            cosf(orbitAngle) * dist);
+
+        pCamera->SetPosition(orbitalOffset);
+        pCamera->LookAt(Vector3(0, 1.5f, 0)); // 看向父节点中心
+    }
+    else if (mode == CameraMode::FreeLook)
+    {
+        // 自由视角：解除父子关系，相机独立控制
+        auto pCurrentParent = pCamera->GetParent();
+        if (pCurrentParent)
+        {
+            pCurrentParent->RemoveChild(pCamera->GetID());
+            LogDebug(L"自由视角模式：解除相机父子关系\n");
         }
     }
 }

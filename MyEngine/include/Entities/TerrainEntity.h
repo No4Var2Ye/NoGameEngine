@@ -28,7 +28,7 @@ public:
 
     // 地形查询功能
     float GetHeightAt(float worldX, float worldZ) const;
-    float GetGroundHeight(const Vector3& worldPos) const;
+    float GetGroundHeight(const Vector3 &worldPos) const;
     Vector3 GetNormalAt(float worldX, float worldZ) const;
     bool IsPositionOnTerrain(float worldX, float worldZ) const;
 
@@ -43,7 +43,6 @@ public:
     }
     void SetColor(const Vector4 &color) { m_terrainColor = color; }
 
-    void EnableWireframe(bool enable) { m_bWireframe = enable; }
     void SetLODLevel(int lod) { m_iLODLevel = std::max(1, std::min(4, lod)); }
 
     // ======================================================================
@@ -58,6 +57,11 @@ public:
     void DrawNormals(float scale, unsigned int step);
 
     void RenderSimpleGeometry();
+
+    // ======================================================================
+    // 模式
+    BOOL IsWireframe() { return m_bWireframe; }
+    void SetWireframe(BOOL enable) { m_bWireframe = enable; }
 
 protected:
     CTerrainEntity();

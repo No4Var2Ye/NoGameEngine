@@ -40,6 +40,7 @@ public:
     // ======================================================================
     // 渲染应用
     // ======================================================================
+    virtual void Render() override { return;}
     Matrix4 GetViewMatrix() const;
     void ApplyViewMatrix() const;
 
@@ -69,6 +70,11 @@ public:
     Vector3 GetRight() const;
     Vector3 GetUp() const;
 
+    FLOAT GetYaw() const { return m_CurrentYaw; }
+    FLOAT GetPitch() const { return m_CurrentPitch; }
+    FLOAT GetDistance() const { return m_fDistance; }
+    void SetDistance(FLOAT dist) { m_fDistance = dist; }
+
     void SetPitchLimits(FLOAT maxPitch) { m_MaxPitchAngle = maxPitch; }
 
     void LookAt(const Vector3 &target);
@@ -77,6 +83,8 @@ public:
 
     void ProcessMouseMovement(INT dx, INT dy);
     void ProcessMouseWheel(INT delta);
+
+    void ResetOrientation(float yaw, float pitch);
 
     // 添加移动控制方法
     void Move(FLOAT forward, FLOAT right, FLOAT up)
@@ -115,6 +123,8 @@ protected:
     FLOAT m_MaxPitchAngle;
 
     FLOAT m_MouseSensitivity;
+
+    FLOAT m_fDistance;
 };
 
 #endif // __CAMERA_ENTITY_H__

@@ -1,9 +1,9 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
-
 #include <tchar.h>
 #include <cassert>
+#include "EngineConfig.h"
 #include <functional>
 #include "Core/Window.h"
 #include "Core/GameEngine.h"
@@ -729,7 +729,7 @@ LRESULT CWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             return 0; // 拦截消息，不让窗口立即关闭
                       // Sleep(1000);
         }
-        else if (wParam == VK_F11)
+        else if (wParam == Hotkeys::ToggleFullScreen)
         // else if (wParam == VK_F11 || (wParam == VK_RETURN && (HIWORD(lParam) & KF_ALTDOWN)))
         {
             // F11键 - 切换全屏

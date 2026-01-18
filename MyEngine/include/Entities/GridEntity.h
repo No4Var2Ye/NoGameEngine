@@ -88,6 +88,12 @@ private:
     void SetupDistanceFog();
     void RenderGridWithVertexArrays();
     void RenderCoordinateAxes();
+
+    void BuildAdaptiveGeometry();
+    void BuildFixedMainGrid();
+    float CalculateAdaptiveStep(float distance);
+    float CalculateVisibleRange(float distance, float fov);
+    void BuildDefaultGeometry();
 };
 
 #endif // __GRID_ENTITY_H__

@@ -18,10 +18,12 @@ CCameraEntity::CCameraEntity()
       m_ShakeTimer(0.0f),           //
       m_ShakeIntensity(0.0f),       //
       m_MouseSensitivity(0.1f),     // 鼠标灵敏度
-      m_CurrentYaw(-90.0f),         // 初始化：看向-Z方向
+      m_CurrentYaw(0.0f),           // 初始化：看向-Z方向
       m_CurrentPitch(0.0f),         // 初始化：水平
       m_MaxPitchAngle(89.0f)        //
 {
+    m_Type = EntityType::Camera;
+    m_bVisible = FALSE; // 相机默认不可见
     SetName(L"MainCamera");
 
     // 修正：正确初始化旋转（看向-Z方向）
@@ -254,12 +256,22 @@ void CCameraEntity::LookAt(const Vector3 &target)
     }
 }
 
+void CCameraEntity::ResetOrientation(float yaw, float pitch)
+{
+    m_CurrentYaw = yaw;
+    m_CurrentPitch = pitch;
+
+    // 立即根据新的偏航俯仰角更新四元数
+    m_rotation = Quaternion::FromEuler(m_CurrentPitch, m_CurrentYaw, 0.0f);
+    MarkDirty();
+}
+
 void CCameraEntity::ProcessMouseMovement(INT dx, INT dy)
 {
     if (m_Mode != CameraMode::FreeLook && m_Mode != CameraMode::Orbital)
         return; // 只有自由视角和轨道视角需要鼠标控制
 
-const float kSensitivityScale = 0.05f;
+    const float kSensitivityScale = 0.05f;
 
     // 1. 直接修改持久化的 float 变量
     m_CurrentYaw -= static_cast<float>(dx) * m_MouseSensitivity * kSensitivityScale;
@@ -276,21 +288,22 @@ const float kSensitivityScale = 0.05f;
 void CCameraEntity::ProcessMouseWheel(INT delta)
 {
     // 鼠标滚轮控制：自由视角调整FOV，轨道/第三人称调整距离
-    float zoomSpeed = 1.0f;
-    float zoomAmount = static_cast<float>(delta) * 0.1f * zoomSpeed;
+    FLOAT zoomSpeed = 1.0f;
+    FLOAT zoomAmount = static_cast<float>(delta) * 0.1f * zoomSpeed;
 
     switch (m_Mode)
     {
     case CameraMode::FreeLook:
+    case CameraMode::FirstPerson:
         // 自由视角：调整视野
         m_Fov -= zoomAmount;
-        m_Fov = Math::Clamp(m_Fov, 1.0f, 120.0f);
+        m_Fov = Math::Clamp(m_Fov, 10.0f, 120.0f);
         break;
 
     case CameraMode::ThirdPerson:
     case CameraMode::Orbital:
-        // TODO:: 这些模式通常有距离概念，这里可以添加距离控制逻辑
-        // 例如：m_Distance -= zoomAmount;
+        m_fDistance -= zoomAmount;
+        m_fDistance = Math::Clamp(m_fDistance, 1.5f, 50.0f); // 限制最近和最远距离
         break;
     }
 }

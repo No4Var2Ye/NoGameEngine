@@ -20,7 +20,7 @@ CGridEntity::CGridEntity(FLOAT size, FLOAT step)
 
 {
     SetName(L"WorldGrid");
-    BuildGeometry(); // 预计算顶点
+    BuildAdaptiveGeometry(); // 预计算顶点
 }
 
 void CGridEntity::InitGrid()
@@ -44,6 +44,7 @@ void CGridEntity::BuildGeometry()
     m_SubGridVertices.clear();
 
     const float majorStep = m_fStep * 10.0f;
+    const float segmentStep = 10.0f;
 
     for (float i = -m_fSize; i <= m_fSize; i += m_fStep)
     {
@@ -57,10 +58,21 @@ void CGridEntity::BuildGeometry()
         unsigned char b = static_cast<unsigned char>(color.z * 255);
         unsigned char a = 255;
 
-        targetVec.push_back({-m_fSize, 0.0f, i, r, g, b, a});
-        targetVec.push_back({m_fSize, 0.0f, i, r, g, b, a});
-        targetVec.push_back({i, 0.0f, -m_fSize, r, g, b, a});
-        targetVec.push_back({i, 0.0f, m_fSize, r, g, b, a});
+        // X方向线段：分段绘制
+        for (float x = -m_fSize; x < m_fSize; x += segmentStep)
+        {
+            float nextX = Math::Min(x + segmentStep, m_fSize);
+            targetVec.push_back({x, 0.0f, i, r, g, b, a});
+            targetVec.push_back({nextX, 0.0f, i, r, g, b, a});
+        }
+
+        // Z方向线段：分段绘制
+        for (float z = -m_fSize; z < m_fSize; z += segmentStep)
+        {
+            float nextZ = Math::Min(z + segmentStep, m_fSize);
+            targetVec.push_back({i, 0.0f, z, r, g, b, a});
+            targetVec.push_back({i, 0.0f, nextZ, r, g, b, a});
+        }
     }
 
     LogDebug(L"网格几何构建完成: 粗网格顶点=%d, 细网格顶点=%d.\n",
@@ -79,8 +91,8 @@ void CGridEntity::BuildGeometryWithLOD()
     float effectiveStep = m_fStep * lodLevel;
 
     // 确保步长合理
-    effectiveStep = std::max(effectiveStep, m_fStep);
-    effectiveStep = std::min(effectiveStep, m_fStep * 5.0f); // 最大5倍步长
+    effectiveStep = Math::Max(effectiveStep, m_fStep);
+    effectiveStep = Math::Min(effectiveStep, m_fStep * 5.0f); // 最大5倍步长
 
     for (float i = -m_fSize; i <= m_fSize; i += effectiveStep)
     {
@@ -136,16 +148,148 @@ BOOL CGridEntity::ShouldRebuildLOD() const
     return false;
 }
 
+void CGridEntity::BuildAdaptiveGeometry()
+{
+    m_MainGridVertices.clear();
+    m_SubGridVertices.clear();
+
+    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
+    if (!pCamera)
+        return;
+
+    Vector3 camPos = pCamera->GetPosition();
+    float distanceToGrid = fabs(camPos.y - GetPosition().y); // 相机到网格平面的垂直距离
+
+    // 动态调整网格密度：距离越远，网格越稀疏
+    float adaptiveStep = CalculateAdaptiveStep(distanceToGrid);
+    const float majorStep = adaptiveStep * 10.0f;
+    float visibleRange = CalculateVisibleRange(distanceToGrid, pCamera->GetFOV());
+
+    float startX = floor((camPos.x - visibleRange) / adaptiveStep) * adaptiveStep;
+    float endX = ceil((camPos.x + visibleRange) / adaptiveStep) * adaptiveStep;
+    float startZ = floor((camPos.z - visibleRange) / adaptiveStep) * adaptiveStep;
+    float endZ = ceil((camPos.z + visibleRange) / adaptiveStep) * adaptiveStep;
+
+    // 限制在总大小范围内（可选，如果你希望网格无限大则不限）
+    startX = Math::Max(startX, -m_fSize);
+    endX = Math::Min(endX, m_fSize);
+    startZ = Math::Max(startZ, -m_fSize);
+    endZ = Math::Min(endZ, m_fSize);
+
+    // 绘制平行于 Z 轴的线 (X 坐标变化)
+    for (float x = startX; x <= endX; x += adaptiveStep)
+    {
+        // 使用精确的 epsilon 检查，确保主网格位置固定
+        bool isMajor = (fmod(fabs(x) + 0.001f, majorStep) < adaptiveStep * 0.5f);
+        const Vector3 &color = isMajor ? m_MainColor : m_SubColor;
+        auto &targetVec = isMajor ? m_MainGridVertices : m_SubGridVertices;
+
+        unsigned char r = static_cast<unsigned char>(color.x * 255);
+        unsigned char g = static_cast<unsigned char>(color.y * 255);
+        unsigned char b = static_cast<unsigned char>(color.z * 255);
+
+        targetVec.push_back({x, 0.0f, startZ, r, g, b, 255});
+        targetVec.push_back({x, 0.0f, endZ, r, g, b, 255});
+    }
+
+    // 绘制平行于 X 轴的线 (Z 坐标变化)
+    for (float z = startZ; z <= endZ; z += adaptiveStep)
+    {
+        bool isMajor = (fmod(fabs(z) + 0.001f, majorStep) < adaptiveStep * 0.5f);
+        const Vector3 &color = isMajor ? m_MainColor : m_SubColor;
+        auto &targetVec = isMajor ? m_MainGridVertices : m_SubGridVertices;
+
+        unsigned char r = static_cast<unsigned char>(color.x * 255);
+        unsigned char g = static_cast<unsigned char>(color.y * 255);
+        unsigned char b = static_cast<unsigned char>(color.z * 255);
+
+        targetVec.push_back({startX, 0.0f, z, r, g, b, 255});
+        targetVec.push_back({endX, 0.0f, z, r, g, b, 255});
+    }
+}
+
+float CGridEntity::CalculateAdaptiveStep(float distance)
+{
+    // 距离越远，网格步长越大
+    if (distance < 20.0f)
+        return 1.0f; // 近距离：细网格
+    else if (distance < 50.0f)
+        return 2.0f; // 中距离
+    else if (distance < 100.0f)
+        return 5.0f; // 中远距离
+    else if (distance < 200.0f)
+        return 10.0f; // 远距离
+    else
+        return 20.0f; // 超远距离：粗网格
+}
+
+float CGridEntity::CalculateVisibleRange(float distance, float fov)
+{
+    // 根据距离和视野计算可见范围
+    float tangent = tan(fov * 0.5f * 3.14159f / 180.0f);
+    float visibleRange = distance * tangent * 1.5f; // 1.5倍安全系数
+
+    // 限制最大最小范围
+    return Math::Clamp(visibleRange, 50.0f, 500.0f);
+}
+
 void CGridEntity::Update(float deltaTime)
 {
     // 网格通常是静态的，直接调用基类更新矩阵计算
     CEntity::Update(deltaTime);
+
+    // 静态变量保存上一次的相机位置和网格构建状态
+    static Vector3 s_lastCamPos;
+    static float s_lastBuildTime = 0.0f;
+    static BOOL s_firstUpdate = TRUE;
+
+    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
+    if (!pCamera)
+        return;
+
+    Vector3 camPos = pCamera->GetPosition();
+
+    // 首次更新或相机移动显著时重建网格
+    BOOL shouldRebuild = s_firstUpdate;
+
+    if (!shouldRebuild)
+    {
+        // 检查相机是否移动了足够远的距离
+        float moveDistance = (camPos - s_lastCamPos).Length();
+        shouldRebuild = (moveDistance > 10.0f); // 移动超过10个单位就重建
+
+        // 或者每隔一段时间重建一次（避免频繁重建）
+        s_lastBuildTime += deltaTime;
+        if (s_lastBuildTime > 2.0f) // 每2秒强制重建一次
+        {
+            shouldRebuild = TRUE;
+            s_lastBuildTime = 0.0f;
+        }
+    }
+
+    if (shouldRebuild)
+    {
+        BuildAdaptiveGeometry();
+        s_lastCamPos = camPos;
+        s_firstUpdate = FALSE;
+
+        // LogDebug(L"网格动态重建: 相机位置(%.1f, %.1f, %.1f)\n", camPos.x, camPos.y, camPos.z);
+    }
 }
 
 void CGridEntity::Render()
 {
     if (!m_bVisible)
         return;
+
+    // 检查网格数据是否有效
+    if (m_MainGridVertices.empty() && m_SubGridVertices.empty())
+    {
+        // 如果网格数据为空，尝试重建
+        BuildAdaptiveGeometry();
+        if (m_MainGridVertices.empty() && m_SubGridVertices.empty())
+            return; // 重建失败则不渲染
+    }
 
     // 1. 距离裁剪 - 如果网格太远就不渲染
     CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();

@@ -355,37 +355,60 @@ void CTerrainEntity::Render()
     // LogDebug(L"地形渲染前强制清理纹理: %d -> 0.\n", currentTexture);
 
     glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_TEXTURE_BIT);
+    // glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glPushMatrix();
 
-    // 设置渲染状态
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-    // ?: 测试光源
-    // glEnable(GL_LIGHT0); // 启用默认光源
-    // glDisable(GL_LIGHTING);  // 先关闭光照, 看地形是否显示
-    glEnable(GL_COLOR_MATERIAL); // CAUTION: 关键：让顶点颜色生效
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-
-    // 如果没有光源, 这行可以让你看清地形（但失去阴影感）
-    // glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+    // 应用实体变换
+    ApplyTransform();
 
     if (m_bWireframe)
     {
+        // 简化线框模式设置
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDisable(GL_TEXTURE_2D);
+        glDisable(GL_LIGHTING);
+        glDisable(GL_FOG);       // 线框模式下禁用雾效
+        glDisable(GL_CULL_FACE); // 显示所有面
+
+        // 设置线框颜色和宽度
+        glColor3f(1.0f, 1.0f, 1.0f); // 白色线框
+        glLineWidth(1.0f);
+
+        // 确保深度测试开启
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
     }
     else
     {
+        // 正常渲染模式
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_LIGHTING);
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_FOG);
+
+        // 设置材质（仅填充模式需要）
+        GLfloat matAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
+        GLfloat matDiffuse[] = {0.6f, 0.6f, 0.6f, 1.0f};
+        GLfloat matSpecular[] = {0.3f, 0.3f, 0.3f, 1.0f};
+        GLfloat matShininess[] = {100.0f};
+
+        glMaterialfv(GL_FRONT, GL_AMBIENT, matAmbient);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular);
+        glMaterialfv(GL_FRONT, GL_SHININESS, matShininess);
+
+        // 绑定纹理（仅填充模式需要）
+        if (m_pTexture && m_pTexture->GetID() != 0)
+        {
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, m_pTexture->GetID());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+            glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        }
     }
-
-    glPushMatrix();
-    ApplyTransform();
-
-    // 设置材质
-    // TODO: 设置地形材质
-    GLfloat matAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};  // 环境光反射
-    GLfloat matDiffuse[] = {0.6f, 0.6f, 0.6f, 1.0f};  // 漫反射
-    GLfloat matSpecular[] = {0.3f, 0.3f, 0.3f, 1.0f}; // 镜面反射
-    GLfloat matShininess[] = {100.0f};                // 光泽度
 
     // 塑料质感
     // GLfloat matAmbient[] = {0.1f, 0.1f, 0.1f, 1.0f};    // 减少环境光
@@ -404,37 +427,6 @@ void CTerrainEntity::Render()
     // GLfloat matDiffuse[] = {0.2f, 0.5f, 0.1f, 1.0f};    // 绿色漫反射
     // GLfloat matSpecular[] = {0.1f, 0.2f, 0.05f, 1.0f};  // 弱绿色高光
     // GLfloat matShininess[] = {5.0f};                    // 非常粗糙
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, matAmbient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, matShininess);
-
-    // 绑定纹理
-    glActiveTexture(GL_TEXTURE0);
-    if (m_pTexture && m_pTexture->GetID() != 0)
-    {
-        // LogDebug(L"绑定地形纹理: %d.\n", m_uTextureID);
-
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, m_pTexture->GetID());
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-        // 检查纹理绑定状态
-        // GLint boundTexture;
-        // glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
-        // LogDebug(L"当前绑定的纹理: %d.\n", boundTexture);
-    }
-    else
-    {
-        glDisable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        LogWarning(L"地形纹理ID为0, 使用颜色渲染\n");
-    }
 
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
@@ -599,17 +591,24 @@ void CTerrainEntity::DrawNormalsImpl(float scale, unsigned int step)
 
     // 绘制法线线条
     glBegin(GL_LINES);
-    size_t vertexCount = m_vertices.size();
-    for (size_t i = 0; i < vertexCount; i += step)
+    // 使用双重循环，确保 X 和 Z 方向都按照 step 跳跃
+    for (int z = 0; z < m_height; z += step)
     {
-        const Vertex &v = m_vertices[i];
+        for (int x = 0; x < m_width; x += step)
+        {
+            // 重新计算正确的二维索引
+            int i = z * m_width + x;
 
-        if (v.normal.Length() < 0.1f)
-            continue; // 跳过无效法线
-        Vector3 endPos = v.pos + v.normal * scale;
+            const Vertex &v = m_vertices[i];
 
-        glVertex3f(v.pos.x, v.pos.y, v.pos.z);
-        glVertex3f(endPos.x, endPos.y, endPos.z);
+            if (v.normal.Length() < 0.1f)
+                continue;
+
+            Vector3 endPos = v.pos + v.normal * scale;
+
+            glVertex3f(v.pos.x, v.pos.y, v.pos.z);
+            glVertex3f(endPos.x, endPos.y, endPos.z);
+        }
     }
     glEnd();
 

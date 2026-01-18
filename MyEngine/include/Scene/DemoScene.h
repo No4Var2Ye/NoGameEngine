@@ -43,12 +43,17 @@ private:
     void SetupFog();
 
     float m_PossessedEntityYaw;
-
+    
+    // ======================================================================
     // 更新逻辑
-    void ProcessInput(float deltaTime);
     void UpdateLogic(float deltaTime);
     void UpdateEntities(float deltaTime);
     void UpdateAutoSnapping();
+    // ======================================================================
+    // 相机更新逻辑
+    void ProcessInput(float deltaTime);
+    void UpdateFreeLookCamera(float deltaTime);
+    void SyncCameraToEntity(float deltaTime);
 };
 
 #endif // __DEMO_SCENE_H__

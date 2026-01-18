@@ -25,45 +25,59 @@ void CModelEntity::Render()
 {
     if (!m_bVisible || !m_pModel)
         return;
-        
+
     // 1. 保存当前 OpenGL 矩阵状态
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_TEXTURE_BIT | GL_LINE_BIT);
+
     glPushMatrix();
-
-    // 2. 禁用光照
-    glDisable(GL_LIGHTING);
-
-    // 3. 设置纯白色，确保模型纹理正常显示
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     // 2. 应用变换逻辑
     ApplyTransform();
 
-    GLint currentTexture;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &currentTexture);
-    // LogDebug(L"模型渲染前绑定的纹理: %d.\n", currentTexture);
+    // 3. 处理线框模式
+    if (m_bWireframe)
+    {
+        // 切换为线框模式
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        // 线框模式下通常关闭光照和纹理，让结构更清晰
+        glDisable(GL_LIGHTING);
+        glDisable(GL_TEXTURE_2D);
+
+        // 设置线框颜色
+        glColor3f(0.0f, 0.0f, 1.0f);
+        glLineWidth(0.1f);
+    }
+    else
+    {
+        // 正常填充模式
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_LIGHTING);
+        // 如果模型有纹理，可以在这里由 Model 类内部处理绑定
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    }
 
     // 3. 真正绘制模型数据
     m_pModel->Draw();
 
-    // 检查渲染后的纹理状态
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &currentTexture);
-    // LogDebug(L"渲染后绑定的纹理: %d.\n", currentTexture);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_TEXTURE_2D);
 
     // 4. 绘制包围盒
-    if (m_bDrawBBox) {
-        m_pModel->DrawBoundingBox(); 
+    if (m_bDrawBBox)
+    {
+        m_pModel->DrawBoundingBox();
     }
 
     // 5. 绘制法线
-    if (m_bDrawNormals) {
+    if (m_bDrawNormals)
+    {
         m_pModel->DrawNormals(m_fNormalScale, m_uNormalStep);
     }
 
     // 4. 恢复矩阵状态
     glPopMatrix();
     glPopAttrib();
-
 
     // 5. 递归渲染子节点
     for (auto &pChild : m_children)

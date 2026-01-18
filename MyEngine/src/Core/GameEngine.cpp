@@ -1,6 +1,7 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
+#include "EngineConfig.h"
 #include "Core/GameEngine.h"
 #include "Utils/DebugUtils.h"
 #include "Core/Window.h"
@@ -84,7 +85,7 @@ BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
     m_pMainCamera = CCameraEntity::Create();
     if (m_pMainCamera)
     {
-        m_pMainCamera->SetPosition(Vector3(0.0f, 0.0f, 10.0f));
+        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
         FLOAT aspect = (startH > 0) ? (FLOAT)startW / (FLOAT)startH : 1.0f;
         m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
         m_pMainCamera->SetMode(CameraMode::FreeLook);
@@ -249,8 +250,6 @@ INT CGameEngine::Run()
             case EngineState::Running:
             {
                 // 渲染主场景
-                m_pMainCamera->ApplyProjectionMatrix();
-                m_pMainCamera->ApplyViewMatrix();
                 m_SceneManager->Render();
 
                 // 渲染UI
@@ -326,7 +325,6 @@ void CGameEngine::Shutdown()
 }
 // ======================================================================
 
-// TODO: 未来解耦
 void CGameEngine::ProcessInput(FLOAT deltaTime)
 {
     // 1. 全局快捷键处理
@@ -340,7 +338,7 @@ void CGameEngine::ProcessInput(FLOAT deltaTime)
         }
     }
 
-    if (m_InputManager->IsKeyPressed(VK_F1))
+    if (m_InputManager->IsKeyPressed(Hotkeys::ToggleDebugInfo))
     {
         m_ShowDebugInfo = !m_ShowDebugInfo;
     }
@@ -364,27 +362,28 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
     // ======================================================================
     // 0. 基础重置
     // ======================================================================
-    if (m_InputManager->IsKeyPressed('0') || m_InputManager->IsKeyDown(VK_NUMPAD0))
+    if (m_InputManager->IsKeyPressed(Hotkeys::ResetCamera))
     {
         // 重置相机到默认位置和旋转
-        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 15.0f));
-        m_pMainCamera->SetRotation(Vector3(0.0f, -90.0f, 0.0f));
+        m_pMainCamera->SetMode(CameraMode::FreeLook);
+        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
+        m_pMainCamera->ResetOrientation(0.0f, 0.0f);
     }
 
     // 相机模式快速切换
-    if (m_InputManager->IsKeyPressed('1'))
+    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode1))
         GetMainCamera()->SetMode(CameraMode::FirstPerson);
-    if (m_InputManager->IsKeyPressed('2'))
+    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode2))
         GetMainCamera()->SetMode(CameraMode::ThirdPerson);
-    if (m_InputManager->IsKeyPressed('3'))
+    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode3))
         GetMainCamera()->SetMode(CameraMode::FreeLook);
-    if (m_InputManager->IsKeyPressed('4'))
+    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode4))
         GetMainCamera()->SetMode(CameraMode::Orbital);
 
     // 触发震动测试
-    if (m_InputManager->IsKeyPressed('G'))
+    if (m_InputManager->IsKeyPressed(Hotkeys::CameraShakeTest))
     {
-        GetMainCamera()->StartShake(0.2f, 0.1f);
+        GetMainCamera()->StartShake(0.2f, 0.5f);
     }
 
     CameraMode mode = m_pMainCamera->GetMode();
@@ -427,47 +426,8 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
     }
 
     // ======================================================================
-    // 3. 移动处理
+    // 3. 移动处理 -> 已经迁移到Scene中
     // ======================================================================
-
-    if (mode == CameraMode::FreeLook)
-    {
-        float moveSpeed = 10.0f * deltaTime; // 基础移动速度
-        if (m_InputManager->IsKeyDown(VK_SHIFT))
-            moveSpeed *= 2.5f; // 按住Shift加速
-
-        Vector3 currentPos = m_pMainCamera->GetPosition();
-        Vector3 moveVec(0, 0, 0);
-
-        FLOAT fwd = 0.0f, right = 0.0f, up = 0.0f;
-
-        // 利用四元数计算出的局部坐标轴进行位移
-        if (m_InputManager->IsKeyDown('W'))
-            moveVec += m_pMainCamera->GetForward();
-        if (m_InputManager->IsKeyDown('S'))
-            moveVec -= m_pMainCamera->GetForward();
-        if (m_InputManager->IsKeyDown('D'))
-            moveVec += m_pMainCamera->GetRight();
-        if (m_InputManager->IsKeyDown('A'))
-            moveVec -= m_pMainCamera->GetRight();
-        if (m_InputManager->IsKeyDown('E') || m_InputManager->IsKeyDown(VK_SPACE))
-            moveVec += Vector3(0, 1, 0); // 世界空间向上
-        if (m_InputManager->IsKeyDown('Q'))
-            moveVec -= Vector3(0, 1, 0); // 世界空间向下
-
-        if (moveVec.LengthSquared() > 0.0f)
-        {
-            moveVec.Normalize();
-            m_pMainCamera->SetPosition(currentPos + moveVec * moveSpeed);
-        }
-    }
-    else if (mode == CameraMode::FirstPerson)
-    {
-        // 玩家控制
-    }
-    else if (mode == CameraMode::ThirdPerson)
-    {
-    }
 }
 
 void CGameEngine::ProcessUIInput(FLOAT deltaTime)
@@ -557,18 +517,18 @@ void CGameEngine::DisplayDebugInfo()
     // 获取实时按键和鼠标位置
     std::string inputState = "Mouse: (" + std::to_string(m_InputManager->GetMouseX()) + ", " +
                              std::to_string(m_InputManager->GetMouseY()) + ") | Keys: ";
-    if (m_InputManager->IsKeyDown('W'))
-        inputState += "W ";
-    if (m_InputManager->IsKeyDown('A'))
-        inputState += "A ";
-    if (m_InputManager->IsKeyDown('S'))
-        inputState += "S ";
-    if (m_InputManager->IsKeyDown('D'))
-        inputState += "D ";
-    if (m_InputManager->IsKeyDown('E'))
-        inputState += "E ";
-    if (m_InputManager->IsKeyDown('Q'))
-        inputState += "Q ";
+    if (m_InputManager->IsKeyDown(Hotkeys::MoveForward))
+        inputState += "Forward ";
+    if (m_InputManager->IsKeyDown(Hotkeys::MoveBackward))
+        inputState += "Backward ";
+    if (m_InputManager->IsKeyDown(Hotkeys::MoveLeft))
+        inputState += "Left ";
+    if (m_InputManager->IsKeyDown(Hotkeys::MoveRight))
+        inputState += "Right ";
+    if (m_InputManager->IsKeyDown(Hotkeys::MoveUp))
+        inputState += "Up ";
+    if (m_InputManager->IsKeyDown(Hotkeys::MoveDown))
+        inputState += "Down ";
 
     m_Renderer->RenderText2D(inputState, startX, startY + (lineHeight * row++), black, 0.9f);
 

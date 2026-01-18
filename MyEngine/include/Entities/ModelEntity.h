@@ -33,6 +33,7 @@ public:
     // ======================================================================
     // 包围盒
     void SetDrawBoundingBox(BOOL bDraw) { m_bDrawBBox = bDraw; }
+    BOOL IsDrawBoundingBox() const { return m_bDrawBBox; }
 
     // ======================================================================
     // 法线
@@ -43,12 +44,19 @@ public:
     void SetNormalScale(float scale) { m_fNormalScale = scale; }
     void SetNormalStep(unsigned int step) { m_uNormalStep = step; }
 
+    // ======================================================================
+    // 线框模式
+    void SetWireframe(BOOL bEnable) { m_bWireframe = bEnable; }
+    BOOL IsWireframe() const { return m_bWireframe; }
+
 protected:
     // 构造函数受保护，强制使用 Create
     CModelEntity(std::shared_ptr<CModel> pModel);
 
 private:
     std::shared_ptr<CModel> m_pModel; // 引用模型资源
+
+    BOOL m_bWireframe = FALSE;
 
     BOOL m_bDrawBBox = FALSE;
 

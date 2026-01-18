@@ -23,6 +23,15 @@ CEntity::CEntity()
     m_cachedWorldMatrix = Matrix4::Identity();
 }
 
+// ======================================================================
+// 节点树操作
+// ======================================================================
+
+std::shared_ptr<CEntity> CEntity::GetParent() const
+{
+    return m_pParent.lock();
+}
+
 void CEntity::SetParent(std::shared_ptr<CEntity> pParent)
 {
     // 1. 检查是否已经是这个父节点
@@ -82,6 +91,21 @@ BOOL CEntity::RemoveChild(unsigned int id)
     return FALSE;
 }
 
+BOOL CEntity::RemoveChildByName(const std::wstring &name)
+{
+    auto it = std::find_if(m_children.begin(), m_children.end(),
+                           [&name](const std::shared_ptr<CEntity> &child)
+                           {
+                               return child && child->GetName() == name;
+                           });
+
+    if (it != m_children.end())
+    {
+        return RemoveChild((*it)->GetID());
+    }
+    return FALSE;
+}
+
 void CEntity::InternalAddChild(std::shared_ptr<CEntity> pChild)
 {
     if (pChild && m_childrenMap.find(pChild->GetID()) == m_childrenMap.end())
@@ -108,7 +132,35 @@ std::shared_ptr<CEntity> CEntity::GetChild(size_t index) const
         return m_children[index];
     return nullptr;
 }
-// 递归查找子实体
+
+std::vector<std::shared_ptr<CEntity>> CEntity::GetAllChildren(bool recursive) const
+{
+    std::vector<std::shared_ptr<CEntity>> result;
+
+    if (recursive)
+    {
+        GetAllChildrenRecursive(result);
+    }
+    else
+    {
+        result = m_children; // 直接复制
+    }
+
+    return result;
+}
+
+void CEntity::GetAllChildrenRecursive(std::vector<std::shared_ptr<CEntity>> &result) const
+{
+    for (const auto &child : m_children)
+    {
+        if (!child)
+            continue;
+
+        result.push_back(child);
+        child->GetAllChildrenRecursive(result);
+    }
+}
+
 std::shared_ptr<CEntity> CEntity::FindChildByName(const std::wstring &name)
 {
     // 1. 检查自己是不是
@@ -126,6 +178,153 @@ std::shared_ptr<CEntity> CEntity::FindChildByName(const std::wstring &name)
     }
 
     return nullptr;
+}
+
+std::shared_ptr<CEntity> CEntity::FindChildByNameRecursive(const std::wstring &name) const
+{
+    // 遍历所有直接子节点
+    for (const auto &child : m_children)
+    {
+        if (!child)
+            continue;
+
+        // 检查当前子节点是否匹配
+        if (child->GetName() == name)
+        {
+            return child;
+        }
+
+        // 递归查找子节点的子节点
+        auto result = child->FindChildByNameRecursive(name);
+        if (result)
+        {
+            return result;
+        }
+    }
+
+    return nullptr; // 未找到
+}
+
+std::shared_ptr<CEntity> CEntity::FindChildByID(unsigned int uID)
+{
+    // 先检查直接子节点
+    auto it = m_childrenMap.find(uID);
+    if (it != m_childrenMap.end())
+    {
+        return it->second;
+    }
+
+    // 递归查找
+    return FindChildByIDRecursive(uID);
+}
+
+std::shared_ptr<CEntity> CEntity::FindChildByIDRecursive(unsigned int uID) const
+{
+    // 遍历所有直接子节点
+    for (const auto &child : m_children)
+    {
+        if (!child)
+            continue;
+
+        // 检查当前子节点是否匹配
+        if (child->GetID() == uID)
+        {
+            return child;
+        }
+
+        // 递归查找子节点的子节点
+        auto result = child->FindChildByIDRecursive(uID);
+        if (result)
+        {
+            return result;
+        }
+    }
+
+    return nullptr; // 未找到
+}
+
+std::shared_ptr<CEntity> CEntity::GetRoot() const
+{
+    auto current = GetParent();
+    std::shared_ptr<CEntity> root = std::const_pointer_cast<CEntity>(shared_from_this());
+
+    while (auto parent = current ? current->GetParent() : nullptr)
+    {
+        root = current;
+        current = parent;
+    }
+
+    return root;
+}
+
+BOOL CEntity::IsChildOf(std::shared_ptr<CEntity> pParent) const
+{
+    if (!pParent)
+        return FALSE;
+    return pParent->IsParentOf(std::const_pointer_cast<CEntity>(shared_from_this()));
+}
+
+BOOL CEntity::IsParentOf(std::shared_ptr<CEntity> pChild) const
+{
+    if (!pChild)
+        return FALSE;
+
+    for (const auto &child : m_children)
+    {
+        if (child == pChild)
+        {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+BOOL CEntity::IsAncestorOf(std::shared_ptr<CEntity> pDescendant) const
+{
+    if (!pDescendant)
+        return FALSE;
+
+    auto current = pDescendant->GetParent();
+    while (current)
+    {
+        if (current.get() == this)
+        {
+            return TRUE;
+        }
+        current = current->GetParent();
+    }
+    return FALSE;
+}
+
+BOOL CEntity::IsDescendantOf(std::shared_ptr<CEntity> pAncestor) const
+{
+    if (!pAncestor)
+        return FALSE;
+    return pAncestor->IsAncestorOf(std::const_pointer_cast<CEntity>(shared_from_this()));
+}
+
+std::wstring CEntity::GetPath() const
+{
+    std::vector<std::wstring> pathParts;
+    auto current = std::const_pointer_cast<CEntity>(shared_from_this());
+
+    while (current)
+    {
+        pathParts.push_back(current->GetName());
+        current = current->GetParent();
+    }
+
+    std::reverse(pathParts.begin(), pathParts.end());
+
+    std::wstring path;
+    for (size_t i = 0; i < pathParts.size(); ++i)
+    {
+        if (i > 0)
+            path += L"/";
+        path += pathParts[i];
+    }
+
+    return path;
 }
 
 void CEntity::Update(float deltaTime)

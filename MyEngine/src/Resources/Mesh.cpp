@@ -34,13 +34,24 @@ void CMesh::Draw() const
         return;
 
     // 保存当前OpenGL状态
-    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_CURRENT_BIT);
+    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_CURRENT_BIT | GL_POLYGON_BIT);
+
+    GLint polygonMode[2];
+    glGetIntegerv(GL_POLYGON_MODE, polygonMode);
+    bool isWireframe = (polygonMode[0] == GL_LINE);
 
     // 0. 应用材质
-    glMaterialfv(GL_FRONT, GL_AMBIENT, m_material.ambient.GetData());
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, m_material.diffuse.GetData());
-    glMaterialfv(GL_FRONT, GL_SPECULAR, m_material.specular.GetData());
-    glMaterialf(GL_FRONT, GL_SHININESS, m_material.shininess);
+    if (!isWireframe)
+    {
+        glMaterialfv(GL_FRONT, GL_AMBIENT, m_material.ambient.GetData());
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, m_material.diffuse.GetData());
+        glMaterialfv(GL_FRONT, GL_SPECULAR, m_material.specular.GetData());
+        glMaterialf(GL_FRONT, GL_SHININESS, m_material.shininess);
+    }
+    else
+    {
+        glDisable(GL_LIGHTING);
+    }
 
     // 0.1 处理透明度（如果需要）
     if (m_material.opacity < 1.0f)
@@ -62,7 +73,7 @@ void CMesh::Draw() const
     }
 
     // 1. 绑定纹理
-    if (m_pTexture && m_pTexture->IsValid())
+    if (!isWireframe && m_pTexture && m_pTexture->IsValid())
     {
         glActiveTexture(GL_TEXTURE0); // 明确指定纹理单元
         glEnable(GL_TEXTURE_2D);
@@ -109,13 +120,12 @@ void CMesh::Draw() const
     glBindTexture(GL_TEXTURE_2D, 0); // 双重保险
     glDisable(GL_TEXTURE_2D);
 
-    
     // 6. 关闭混合（如果开启了）
     if (m_material.opacity < 1.0f)
     {
         glDisable(GL_BLEND);
     }
-    
+
     glPopAttrib();
 }
 

@@ -17,6 +17,14 @@
 // ======================================================================
 class CModel;
 // ======================================================================
+enum class EntityType
+{
+    General, // 普通模型/节点
+    Camera,  // 摄像机
+    Light,   // 灯光
+    Trigger  // 逻辑触发器
+};
+// ======================================================================
 class CEntity : public std::enable_shared_from_this<CEntity>
 {
 public:
@@ -25,13 +33,43 @@ public:
     CEntity(const CEntity &) = delete;
     CEntity &operator=(const CEntity &) = delete;
 
+    EntityType GetType() const { return m_Type; }
+
+    // ======================================================================
+    // 节点树操作
+    // ======================================================================
     void SetParent(std::shared_ptr<CEntity> pParent);
+    std::shared_ptr<CEntity> GetParent() const;
+    BOOL HasParent() const { return !m_pParent.expired(); }
+
     void AddChild(std::shared_ptr<CEntity> pChild);
     BOOL RemoveChild(unsigned int uID);
+    BOOL RemoveChildByName(const std::wstring &name);
     const std::vector<std::shared_ptr<CEntity>> &GetChildren() const { return m_children; }
     std::shared_ptr<CEntity> GetChild(size_t index) const;
+    std::vector<std::shared_ptr<CEntity>> GetAllChildren(bool recursive = true) const;
+
     // 递归查找子实体
     std::shared_ptr<CEntity> FindChildByName(const std::wstring &name);
+    std::shared_ptr<CEntity> FindChildByID(unsigned int uID);
+
+    // 获取子节点
+    std::shared_ptr<CEntity> GetRoot() const;
+
+    // 节点关系判断
+    BOOL IsChildOf(std::shared_ptr<CEntity> pParent) const;
+    BOOL IsParentOf(std::shared_ptr<CEntity> pChild) const;
+    BOOL IsAncestorOf(std::shared_ptr<CEntity> pDescendant) const;
+    BOOL IsDescendantOf(std::shared_ptr<CEntity> pAncestor) const;
+
+    // 节点路径操作
+    std::wstring GetPath() const;
+    std::shared_ptr<CEntity> FindEntityByPath(const std::wstring &path);
+
+    // 节点统计
+    size_t GetChildCount(bool recursive = false) const;
+    size_t GetDepth() const;
+    // ======================================================================
 
     template <typename... Args>
     static std::shared_ptr<CEntity> Create(Args &&...args)
@@ -41,13 +79,17 @@ public:
         return entity;
     }
 
+    // ======================================================================
     // 更新与渲染
+    // ======================================================================
     virtual void Update(float deltaTime);
     virtual void Render()
     {
+        if (!m_bVisible)
+            return;
         for (auto &pChild : m_children)
         {
-            if (pChild)
+            if (pChild && pChild->IsVisible())
                 pChild->Render();
         }
     };
@@ -58,7 +100,9 @@ public:
     void SetName(const std::wstring &name) { m_name = name; }
     const std::wstring &GetName() const { return m_name; }
 
+    // ======================================================================
     // 变换操作
+    // ======================================================================
     void SetPosition(const Vector3 &pos);
     const Vector3 &GetPosition() const { return m_position; }
     void SetRotation(const Vector3 &euler);
@@ -85,6 +129,8 @@ protected:
     unsigned int m_uID = 0;
     CEntity();
 
+    EntityType m_Type = EntityType::General;
+
     static unsigned int s_nextID;
     std::wstring m_name;
     std::weak_ptr<CEntity> m_pParent;
@@ -93,6 +139,10 @@ protected:
 
     void InternalAddChild(std::shared_ptr<CEntity> pChild);
     void InternalRemoveChild(unsigned int uID);
+
+    void GetAllChildrenRecursive(std::vector<std::shared_ptr<CEntity>> &result) const;
+    std::shared_ptr<CEntity> FindChildByIDRecursive(unsigned int uID) const;
+    std::shared_ptr<CEntity> FindChildByNameRecursive(const std::wstring &name) const;
 
     // 变换属性
     Vector3 m_position;
