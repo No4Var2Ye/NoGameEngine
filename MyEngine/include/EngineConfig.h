@@ -15,6 +15,7 @@ namespace Hotkeys
     const UINT ToggleWireframe = VK_F2;   // 切换线框模式
     const UINT ToggleNormals = VK_F3;     // 切换法线显示
     const UINT ToggleBoundingBox = VK_F4; // 切换包围盒显示
+    const UINT ToggleGrid = VK_F5;        // 全屏切换网格系统
     const UINT ToggleFullScreen = VK_F11; // 全屏切换预留
 
     // 相机与控制
@@ -62,7 +63,7 @@ struct EngineConfig
     INT windowWidth = 800;                  // 窗口宽度
     INT windowHeight = 600;                 // 窗口高度
     BOOL fullscreen = FALSE;                // 是否全屏
-    const wchar_t *title = L"MyGameEngine"; // 窗口标题
+    const wchar_t *title = L"QMT's GameEngine"; // 窗口标题
     // TODO: 配置窗口参数
     INT colorBits = 32;      // 颜色位数
     INT depthBits = 24;      // 深度缓冲位数

@@ -35,10 +35,10 @@ public:
     // 设置地形属性
     void SetTexture(std::shared_ptr<CTexture> pTexture)
     {
-        if (pTexture)
-        {
-            LogDebug(L"设置地形纹理ID: %u.\n", pTexture->GetID()); // 假设 CTexture 有 GetID() 方法
-        }
+        // if (pTexture)
+        // {
+        //     LogDebug(L"设置地形纹理ID: %u.\n", pTexture->GetID()); // 假设 CTexture 有 GetID() 方法
+        // }
         m_pTexture = pTexture;
     }
     void SetColor(const Vector4 &color) { m_terrainColor = color; }

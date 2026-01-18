@@ -48,7 +48,7 @@ CGameEngine::CGameEngine()
 // ======================================================================
 BOOL CGameEngine::Initialize(HINSTANCE hInstance, const EngineConfig &config)
 {
-    LogInfo(L"=--=--=--=--=--=--=--=--= 引擎初始化开始 =--=--=--=--=--=--=--=--=\n");
+    LogInfo(L"=--=--=--=--=--=--= 引擎初始化开始 =--=--=--=--=--=--=--=--=--=\n");
 
     // 判断是是否已经初始化
     if (m_Initialized)
@@ -320,7 +320,7 @@ void CGameEngine::Shutdown()
 
     m_Initialized = FALSE;
 
-    LogInfo(L"=--=--=--=--=--=--=--= 引擎已完全关闭 =--=--=--=--=--=--=--=\n");
+    LogInfo(L"=--=--=--=--=--=--= 引擎已完全关闭 =--=--=--=--=--=--=--=--=---=\n");
     Sleep(1000);
 }
 // ======================================================================
@@ -361,72 +361,10 @@ void CGameEngine::ProcessCameraInput(FLOAT deltaTime)
 
     // ======================================================================
     // 0. 基础重置
-    // ======================================================================
-    if (m_InputManager->IsKeyPressed(Hotkeys::ResetCamera))
-    {
-        // 重置相机到默认位置和旋转
-        m_pMainCamera->SetMode(CameraMode::FreeLook);
-        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
-        m_pMainCamera->ResetOrientation(0.0f, 0.0f);
-    }
-
-    // 相机模式快速切换
-    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode1))
-        GetMainCamera()->SetMode(CameraMode::FirstPerson);
-    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode2))
-        GetMainCamera()->SetMode(CameraMode::ThirdPerson);
-    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode3))
-        GetMainCamera()->SetMode(CameraMode::FreeLook);
-    if (m_InputManager->IsKeyPressed(Hotkeys::CameraMode4))
-        GetMainCamera()->SetMode(CameraMode::Orbital);
-
-    // 触发震动测试
-    if (m_InputManager->IsKeyPressed(Hotkeys::CameraShakeTest))
-    {
-        GetMainCamera()->StartShake(0.2f, 0.5f);
-    }
-
-    CameraMode mode = m_pMainCamera->GetMode();
-
-    // ======================================================================
     // 1. 旋转与观察
-    // ======================================================================
-    // 通常点击左键时才允许相机旋转，这样左键可以留给 UI 或 游戏内交互
-    // 无论是否按下，都先获取 Delta，防止数据积压
-    if (m_InputManager->IsMouseButtonPressed(MouseButton::Left))
-    {
-        m_InputManager->HideCursor();
-        m_InputManager->LockMouse(); // 限制光标在窗口内
-    }
-
-    if (m_InputManager->IsMouseButtonDown(MouseButton::Left))
-    {
-        POINT delta = m_InputManager->GetMouseDelta();
-
-        if (delta.x != 0 || delta.y != 0)
-        {
-            // 调用优化后的四元数合成链路
-            m_pMainCamera->ProcessMouseMovement(delta.x, delta.y);
-        }
-    }
-
-    if (m_InputManager->IsMouseButtonReleased(MouseButton::Left))
-    {
-        m_InputManager->ShowCursor(); // 恢复鼠标显示
-        m_InputManager->UnlockMouse();
-    }
-
-    // ======================================================================
     // 2. 缩放处理
-    // ======================================================================
-    INT wheelDelta = m_InputManager->GetMouseWheelDelta();
-    if (wheelDelta != 0)
-    {
-        m_pMainCamera->ProcessMouseWheel(wheelDelta);
-    }
-
-    // ======================================================================
-    // 3. 移动处理 -> 已经迁移到Scene中
+    // 3. 移动处理
+    //  -> 已经迁移到Scene中
     // ======================================================================
 }
 
@@ -485,6 +423,9 @@ void CGameEngine::DisplayDebugInfo()
 
     // ======================================================================
     // 3. 相机数据
+    std::string camParaText = "[主相机的参数]";
+    m_Renderer->RenderText2D(camParaText, startX, startY + (lineHeight * row++), cyan, 1.0f);
+    
     Vector3 camPos = m_pMainCamera->GetPosition();
     std::string camText = "Pos: (" + std::to_string(camPos.x).substr(0, 5) + ", " +
                           std::to_string(camPos.y).substr(0, 5) + ", " +
@@ -496,6 +437,10 @@ void CGameEngine::DisplayDebugInfo()
                           std::to_string(forward.y).substr(0, 5) + ", " +
                           std::to_string(forward.z).substr(0, 5) + ")";
     m_Renderer->RenderText2D(dirText, startX, startY + (lineHeight * row++), cyan, 1.0f);
+
+    std::string tmpText = "[后续修补场景相机参数读取]";
+    m_Renderer->RenderText2D(tmpText, startX, startY + (lineHeight * row++), cyan, 1.0f);
+    
 
     // 相机模式处理
     CameraMode mode = m_pMainCamera->GetMode();
@@ -538,8 +483,12 @@ void CGameEngine::DisplayDebugInfo()
     // TODO: 4. 操作提示
     m_Renderer->RenderText2D("[ 快捷键 ]", rightX, rightY + (lineHeight * rRow++), black, 0.8f);
     m_Renderer->RenderText2D("ESC: 退出系统", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
-    m_Renderer->RenderText2D("F1 : 切换信息显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
-    m_Renderer->RenderText2D("F11: 切换全屏显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F1 : 切换系统信息显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F2 : 切换模型线框显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F3 : 切换模型法线显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F4 : 切换包围盒子显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F5 : 切换网格系统显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("F11: 切换系统全屏显示", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
     m_Renderer->RenderText2D("鼠标移动: 移动相机", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
     m_Renderer->RenderText2D("鼠标滚动: 缩放视野", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
     m_Renderer->RenderText2D("0: 重置相机位置", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);

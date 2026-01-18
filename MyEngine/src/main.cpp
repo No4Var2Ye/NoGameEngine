@@ -74,7 +74,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     config.windowWidth = 1280;
     config.windowHeight = 800;
     config.fullscreen = FALSE;
-    config.title = L"我的游戏引擎";
+    config.title = L"QMT的游戏引擎";
 
     // 初始化引擎
     if (!engine.Initialize(hInstance, config))

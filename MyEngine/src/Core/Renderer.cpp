@@ -127,7 +127,7 @@ BOOL CRenderer::Initialize(HWND hWnd)
     SetPerspectiveProjection(45.0f, m_AspectRatio, 0.1f, 1000.0f);
 
     // 输出OpenGL信息
-    LogInfo(L"%ls", GetGLInfo().c_str());
+    // LogDebug(L"%ls", GetGLInfo().c_str());
 
     // 初始化高精度计时器
     static LARGE_INTEGER s_Frequency;

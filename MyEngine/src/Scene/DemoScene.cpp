@@ -1,7 +1,6 @@
 ﻿
 // ======================================================================
 #include "stdafx.h"
-#include <functional>
 #include "EngineConfig.h"
 #include "Scene/DemoScene.h"
 #include "Core/GameEngine.h"
@@ -37,7 +36,24 @@ BOOL CDemoScene::Initialize()
     m_pRootEntity->SetName(L"DemoSceneRoot");
 
     // ======================================================================
-    // 2. 添加天空盒
+    // 2. 创建场景主相机实体
+    m_pMainCamera = CCameraEntity::Create();
+    if (m_pMainCamera)
+    {
+        m_pMainCamera->SetName(L"MainSceneCamera");
+        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
+        // FLOAT aspect = (startH > 0) ? (FLOAT)startW / (FLOAT)startH : 1.0f;
+        // m_pMainCamera->SetProjection(45.0f, aspect, 0.1f, 1000.0f);
+        m_pMainCamera->SetMode(CameraMode::FreeLook);
+
+        // CAUTION: 不要一开始就 AddChild 到 Root，因为我们可能要动态绑定到鸭子
+        // TODO: 后续修改逻辑
+        m_pRootEntity->AddChild(m_pMainCamera);
+        LogInfo(L"场景相机加载成功\n");
+    }
+
+    // ======================================================================
+    // 3. 添加天空盒
     GLuint skyboxTexture = LoadSkybox();
     if (skyboxTexture != 0)
     {
@@ -48,11 +64,11 @@ BOOL CDemoScene::Initialize()
         m_pSkybox->SetRotationSpeed(2.0f); // 设置旋转速度
 
         m_pRootEntity->AddChild(m_pSkybox);
-        LogInfo(L"天空盒创建成功\n");
+        LogInfo(L"天空盒加载成功\n");
     }
 
     // ======================================================================
-    // 3. 添加地形
+    // 4. 添加地形
     m_pTerrain = CTerrainEntity::Create(L"Terrain/terrain_heightmap4.png",
                                         L"Terrain/grass.jpg",
                                         300.0f, 15.0f);
@@ -68,11 +84,11 @@ BOOL CDemoScene::Initialize()
         m_pTerrain->SetPosition(Vector3(0, 0, 0));
 
         m_pRootEntity->AddChild(m_pTerrain);
-        LogInfo(L"地形创建成功\n");
+        LogInfo(L"地形加载成功\n");
     }
 
     // ======================================================================
-    // 4. 创建网格坐标实体
+    // 5. 创建网格坐标实体
     m_pGrid = CGridEntity::Create(500.0f, 2.0f);
     if (m_pGrid)
     {
@@ -80,14 +96,14 @@ BOOL CDemoScene::Initialize()
         // m_pGrid->SetPosition(Vector3(0, -0.01f, 0));
         m_pGrid->SetFadeDist(100.0f, 500.0f);
         m_pGrid->SetShowAxes(TRUE);
-        m_pGrid->SetVisible(TRUE);
+        m_pGrid->SetVisible(FALSE);
 
         m_pRootEntity->AddChild(m_pGrid);
-        LogInfo(L"网格创建成功\n");
+        LogInfo(L"网格加载成功\n");
     }
 
     // ======================================================================
-    // 5. 加载鸭子模型资源
+    // 6. 加载鸭子模型资源
     auto pDuckModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
     if (pDuckModel)
     {
@@ -110,6 +126,30 @@ BOOL CDemoScene::Initialize()
         m_pRootEntity->AddChild(pDuckEntity);
 
         RegisterEntityForSnapping(pDuckEntity, TRUE);
+
+        // 5.1 添加子鸭子
+        // ======================================================================
+        auto pChildDuckEntity = CModelEntity::Create(pDuckModel); // 复用同一个模型资源
+        if (pChildDuckEntity)
+        {
+            pChildDuckEntity->SetName(L"FollowerDuck");
+
+            // 注意：这里的变换是相对于父鸭子 (pDuckEntity) 的本地空间
+            // 父鸭子缩放是 0.01，子鸭子如果设为 0.5，则实际世界缩放是 0.005
+            pChildDuckEntity->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+
+            // 位移： (本地坐标)
+            pChildDuckEntity->SetPosition(Vector3(100.0f, 0.0f, 0.0f));
+
+            // 旋转
+            pChildDuckEntity->SetRotation(Vector3(0.0f, 0.0f, 0.0f));
+
+            // 将其添加为主鸭子的子节点
+            pDuckEntity->AddChild(pChildDuckEntity);
+
+            LogDebug(L"子鸭子创建成功，已挂载到主鸭子下\n");
+        }
+
         m_pPossessedEntity = pDuckEntity;
     }
 
@@ -148,16 +188,21 @@ void CDemoScene::Render()
     // glLoadIdentity();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
-    if (pCamera)
+    // auto m_pMainCamera = CGameEngine::GetInstance().m_pMainCamera;
+    // if (m_pMainCamera)
+    // {
+    //     m_pMainCamera->ApplyViewMatrix();
+    //     m_pMainCamera->ApplyProjectionMatrix();
+    // }
+    if (m_pMainCamera)
     {
-        pCamera->ApplyViewMatrix();
-        pCamera->ApplyProjectionMatrix();
+        m_pMainCamera->ApplyViewMatrix(); // 内部应使用 GetWorldPosition()
+        m_pMainCamera->ApplyProjectionMatrix();
     }
 
     // 3. 优化光照设置 - 只在变化时更新
     static Vector3 s_lastCamPos;
-    Vector3 camPos = pCamera ? pCamera->GetPosition() : Vector3::Zero();
+    Vector3 camPos = m_pMainCamera ? m_pMainCamera->GetPosition() : Vector3::Zero();
     if ((camPos - s_lastCamPos).LengthSquared() > 1.0f) // 相机移动超过1单位才更新
     {
         SetupGlobalLighting();
@@ -242,8 +287,7 @@ void CDemoScene::SetupGlobalLighting()
     }
 
     // 只更新变化的光源位置
-    CCameraEntity *pCamera = CGameEngine::GetInstance().GetMainCamera();
-    if (pCamera)
+    if (m_pMainCamera)
     {
         // 关键点：在固定管线中设置光源位置前，通常需要 LoadIdentity
         // 否则光源会随着相机的平移而发生错误的相对位移
@@ -251,7 +295,7 @@ void CDemoScene::SetupGlobalLighting()
         glPushMatrix();
         glLoadIdentity();
 
-        Vector3 camPos = pCamera->GetPosition();
+        Vector3 camPos = m_pMainCamera->GetPosition();
         GLfloat lightPos[] = {camPos.x, camPos.y + 50.0f, camPos.z, 1.0f};
         glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 
@@ -284,17 +328,25 @@ void CDemoScene::CleanupTextureState()
     }
 }
 
+// ======================================================================
+// TODO: 输入管理
+// ======================================================================
 void CDemoScene::ProcessInput(float deltaTime)
 {
+    // 全局快捷键
+    ProcessGlobalHotkeys(deltaTime);
+
+    // 相机快捷键
+    ProcessCameraInput(deltaTime);
+}
+
+void CDemoScene::ProcessGlobalHotkeys(float deltaTime)
+{
     auto inputMgr = CGameEngine::GetInstance().GetInputManager();
-    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
-    if (!pCamera)
-        return;
 
     // ======================================================================
     // 1. 场景全局快捷键
     // ======================================================================
-
     // 按 F2 键切换地形线框模式
     static BOOL s_lastF2 = FALSE;
     BOOL isF2Down = inputMgr->IsKeyDown(Hotkeys::ToggleWireframe);
@@ -303,16 +355,17 @@ void CDemoScene::ProcessInput(float deltaTime)
         if (m_pTerrain)
         {
             m_pTerrain->SetWireframe(!m_pTerrain->IsWireframe());
-            LogDebug(L"[线框模式] 切换至: %d\n", m_pTerrain->IsWireframe());
+            // LogDebug(L"[线框模式] 切换至: %d\n", m_pTerrain->IsWireframe());
         }
         if (m_pPossessedEntity)
         {
             m_pPossessedEntity->SetWireframe(!m_pPossessedEntity->IsWireframe());
-            LogDebug(L"[线框模式] 切换至: %d\n", m_pPossessedEntity->IsWireframe());
+            // LogDebug(L"[线框模式] 切换至: %d\n", m_pPossessedEntity->IsWireframe());
         }
     }
     s_lastF2 = isF2Down;
 
+    // 按 F3 键切换法线模式
     static BOOL s_lastF3 = FALSE;
     BOOL isF3Down = inputMgr->IsKeyDown(Hotkeys::ToggleNormals);
     if (isF3Down && !s_lastF3)
@@ -320,12 +373,12 @@ void CDemoScene::ProcessInput(float deltaTime)
         if (m_pTerrain)
         {
             m_pTerrain->SetDrawNormals(!m_pTerrain->IsDrawNormals());
-            LogDebug(L"[法线模式] 切换至: %d\n", m_pTerrain->IsDrawNormals());
+            // LogDebug(L"[法线模式] 切换至: %d\n", m_pTerrain->IsDrawNormals());
         }
         if (m_pPossessedEntity)
         {
             m_pPossessedEntity->SetDrawNormals(!m_pPossessedEntity->IsDrawNormals());
-            LogDebug(L"[法线模式] 切换至: %d\n", m_pPossessedEntity->IsDrawNormals());
+            // LogDebug(L"[法线模式] 切换至: %d\n", m_pPossessedEntity->IsDrawNormals());
         }
     }
     s_lastF3 = isF3Down;
@@ -338,14 +391,100 @@ void CDemoScene::ProcessInput(float deltaTime)
         if (m_pPossessedEntity)
         {
             m_pPossessedEntity->SetDrawBoundingBox(!m_pPossessedEntity->IsDrawBoundingBox());
-            LogDebug(L"[法线模式] 切换至: %d\n", m_pPossessedEntity->IsDrawBoundingBox());
+            // LogDebug(L"[法线模式] 切换至: %d\n", m_pPossessedEntity->IsDrawBoundingBox());
         }
     }
     s_lastF4 = isF4Down;
+
+    // 按 F5 键切换网格系统显示
+    static BOOL s_lastF5 = FALSE;
+    BOOL isF5Down = inputMgr->IsKeyDown(Hotkeys::ToggleGrid);
+    if (isF5Down && !s_lastF5)
+    {
+        if (m_pGrid)
+        {
+            m_pGrid->SetVisible(!m_pGrid->IsVisible());
+            // LogDebug(L"[网格系统] 切换至: %d\n", m_pGrid->IsVisible());
+        }
+    }
+    s_lastF5 = isF5Down;
+}
+
+void CDemoScene::ProcessCameraInput(float deltaTime)
+{
+    auto inputMgr = CGameEngine::GetInstance().GetInputManager();
+    if (!m_pMainCamera)
+        return;
+
     // ======================================================================
-    // 2. 实体控制逻辑
+    // 0. 基础重置
     // ======================================================================
-    CameraMode mode = pCamera->GetMode();
+    if (inputMgr->IsKeyPressed(Hotkeys::ResetCamera))
+    {
+        // 重置相机到默认位置和旋转
+        m_pMainCamera->SetMode(CameraMode::FreeLook);
+        m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
+        m_pMainCamera->ResetOrientation(0.0f, 0.0f);
+    }
+
+    // 相机模式快速切换
+    if (inputMgr->IsKeyPressed(Hotkeys::CameraMode1))
+        m_pMainCamera->SetMode(CameraMode::FirstPerson);
+    if (inputMgr->IsKeyPressed(Hotkeys::CameraMode2))
+        m_pMainCamera->SetMode(CameraMode::ThirdPerson);
+    if (inputMgr->IsKeyPressed(Hotkeys::CameraMode3))
+        m_pMainCamera->SetMode(CameraMode::FreeLook);
+    if (inputMgr->IsKeyPressed(Hotkeys::CameraMode4))
+        m_pMainCamera->SetMode(CameraMode::Orbital);
+
+    // 触发震动测试
+    if (inputMgr->IsKeyPressed(Hotkeys::CameraShakeTest))
+    {
+        m_pMainCamera->StartShake(0.2f, 0.5f);
+    }
+
+    CameraMode mode = m_pMainCamera->GetMode();
+
+    // ======================================================================
+    // 1. 旋转与观察
+    // ======================================================================
+    // 通常点击左键时才允许相机旋转，这样左键可以留给 UI 或 游戏内交互
+    // 无论是否按下，都先获取 Delta，防止数据积压
+    if (inputMgr->IsMouseButtonPressed(MouseButton::Left))
+    {
+        inputMgr->HideCursor();
+        inputMgr->LockMouse(); // 限制光标在窗口内
+    }
+
+    if (inputMgr->IsMouseButtonDown(MouseButton::Left))
+    {
+        POINT delta = inputMgr->GetMouseDelta();
+
+        if (delta.x != 0 || delta.y != 0)
+        {
+            // 调用优化后的四元数合成链路
+            m_pMainCamera->ProcessMouseMovement(delta.x, delta.y);
+        }
+    }
+
+    if (inputMgr->IsMouseButtonReleased(MouseButton::Left))
+    {
+        inputMgr->ShowCursor(); // 恢复鼠标显示
+        inputMgr->UnlockMouse();
+    }
+
+    // ======================================================================
+    // 2. 缩放处理
+    // ======================================================================
+    INT wheelDelta = inputMgr->GetMouseWheelDelta();
+    if (wheelDelta != 0)
+    {
+        m_pMainCamera->ProcessMouseWheel(wheelDelta);
+    }
+
+    // ======================================================================
+    // 3. 实体控制逻辑
+    // ======================================================================
 
     if (!m_pPossessedEntity)
         return;
@@ -373,9 +512,8 @@ void CDemoScene::UpdateEntities(float deltaTime)
 {
     // 获取引擎子系统
     auto inputMgr = CGameEngine::GetInstance().GetInputManager();
-    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
 
-    if (!m_pPossessedEntity || !pCamera)
+    if (!m_pPossessedEntity || !m_pMainCamera)
         return;
 
     Vector3 inputDir(0, 0, 0);
@@ -394,11 +532,11 @@ void CDemoScene::UpdateEntities(float deltaTime)
         inputDir.Normalize();
 
         // 1. 核心：计算相机参考系下的世界向量
-        Vector3 camForward = pCamera->GetForward();
+        Vector3 camForward = m_pMainCamera->GetForward();
         camForward.y = 0; // 抹平高度差，确保只在地面移动
         camForward.Normalize();
 
-        Vector3 camRight = pCamera->GetRight();
+        Vector3 camRight = m_pMainCamera->GetRight();
         camRight.y = 0;
         camRight.Normalize();
 
@@ -488,7 +626,7 @@ void CDemoScene::UpdateAutoSnapping()
                 // 更新位置（Y轴为高度 + 偏移）
                 pEntity->SetPosition(Vector3(currentPos.x, h + pEntity->GetGroundOffset(), currentPos.z));
 
-                // 【关键修复】：更新最后记录的位置，防止下一帧重复进入
+                // 更新最后记录的位置，防止下一帧重复进入
                 pEntity->SetLastSnapPos(currentPos);
             }
         }
@@ -499,8 +637,11 @@ void CDemoScene::UpdateAutoSnapping()
 // 相机更新逻辑
 void CDemoScene::UpdateFreeLookCamera(float deltaTime)
 {
+
+    if (!m_pMainCamera)
+        return;
+
     auto inputMgr = CGameEngine::GetInstance().GetInputManager();
-    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
 
     float moveSpeed = 5.0f * deltaTime;
     if (inputMgr->IsKeyDown(VK_SHIFT))
@@ -508,13 +649,13 @@ void CDemoScene::UpdateFreeLookCamera(float deltaTime)
 
     Vector3 moveVec(0, 0, 0);
     if (inputMgr->IsKeyDown(Hotkeys::MoveForward))
-        moveVec += pCamera->GetForward();
+        moveVec += m_pMainCamera->GetForward();
     if (inputMgr->IsKeyDown(Hotkeys::MoveBackward))
-        moveVec -= pCamera->GetForward();
+        moveVec -= m_pMainCamera->GetForward();
     if (inputMgr->IsKeyDown(Hotkeys::MoveRight))
-        moveVec += pCamera->GetRight();
+        moveVec += m_pMainCamera->GetRight();
     if (inputMgr->IsKeyDown(Hotkeys::MoveLeft))
-        moveVec -= pCamera->GetRight();
+        moveVec -= m_pMainCamera->GetRight();
     if (inputMgr->IsKeyDown(Hotkeys::MoveUp) || inputMgr->IsKeyDown(Hotkeys::MoveUpAlt))
         moveVec += Vector3(0, 1, 0);
     if (inputMgr->IsKeyDown(Hotkeys::MoveDown))
@@ -523,43 +664,42 @@ void CDemoScene::UpdateFreeLookCamera(float deltaTime)
     if (moveVec.LengthSquared() > 0.0f)
     {
         moveVec.Normalize();
-        pCamera->SetPosition(pCamera->GetPosition() + moveVec * moveSpeed);
+        m_pMainCamera->SetPosition(m_pMainCamera->GetPosition() + moveVec * moveSpeed);
     }
 }
 
 void CDemoScene::SyncCameraToEntity(float deltaTime)
 {
-    auto pCamera = CGameEngine::GetInstance().GetMainCamera();
-    if (!pCamera || !m_pPossessedEntity)
+    if (!m_pMainCamera || !m_pPossessedEntity)
         return;
 
-    CameraMode mode = pCamera->GetMode();
+    CameraMode mode = m_pMainCamera->GetMode();
 
     // 1. 确保相机的父子关系正确 (状态切换检测)
-    if (pCamera->GetParent() != m_pPossessedEntity)
+    if (m_pMainCamera->GetParent() != m_pPossessedEntity)
     {
         // 先脱离原有的父节点
-        auto pCurrentParent = pCamera->GetParent();
+        auto pCurrentParent = m_pMainCamera->GetParent();
         if (pCurrentParent)
         {
             // 使用安全的方式移除子节点
-            pCurrentParent->RemoveChild(pCamera->GetID());
+            pCurrentParent->RemoveChild(m_pMainCamera->GetID());
             LogDebug(L"相机已从原父节点分离\n");
         }
 
         // 绑定到被控实体
-        m_pPossessedEntity->AddChild(pCamera->shared_from_this());
+        m_pPossessedEntity->AddChild(m_pMainCamera->shared_from_this());
         LogInfo(L"相机已绑定到实体: %s\n", m_pPossessedEntity->GetName().c_str());
 
         // 切换模式时的初始化设置
         if (mode == CameraMode::FirstPerson)
         {
-            pCamera->SetPosition(Vector3(0, 1.8f, 0)); // 眼睛高度
+            m_pMainCamera->SetPosition(Vector3(0, 1.8f, 0)); // 眼睛高度
             LogDebug(L"第一人称模式：设置相机高度为 1.8\n");
         }
         else if (mode == CameraMode::ThirdPerson)
         {
-            pCamera->SetPosition(Vector3(0, 1.5f, 5.0f)); // 第三人称默认偏移
+            m_pMainCamera->SetPosition(Vector3(0, 1.5f, 5.0f)); // 第三人称默认偏移
             LogDebug(L"第三人称模式：设置相机初始位置\n");
         }
     }
@@ -569,8 +709,8 @@ void CDemoScene::SyncCameraToEntity(float deltaTime)
     {
         // 第三人称：本地坐标位于父节点后上方
         float dist = 5.0f; // 默认距离
-        float yawRad = pCamera->GetYaw() * 0.01745f;
-        float pitchRad = pCamera->GetPitch() * 0.01745f;
+        float yawRad = m_pMainCamera->GetYaw() * 0.01745f;
+        float pitchRad = m_pMainCamera->GetPitch() * 0.01745f;
 
         // 计算球坐标偏移
         Vector3 localOffset(
@@ -582,20 +722,20 @@ void CDemoScene::SyncCameraToEntity(float deltaTime)
         Vector3 desiredLocalPos = localOffset;
 
         // 应用平滑位置 (防止相机瞬间跳变)
-        Vector3 currentPos = pCamera->GetPosition();
+        Vector3 currentPos = m_pMainCamera->GetPosition();
         Vector3 newPos = Vector3::Lerp(currentPos, desiredLocalPos, deltaTime * 8.0f);
-        pCamera->SetPosition(newPos);
+        m_pMainCamera->SetPosition(newPos);
 
         // 让相机看向父节点中心上方
         Vector3 lookAtTarget(0, 1.5f, 0); // 看向父节点上方 1.5 单位处
-        pCamera->LookAt(lookAtTarget);
+        m_pMainCamera->LookAt(lookAtTarget);
     }
     else if (mode == CameraMode::FirstPerson)
     {
         // 第一人称：相机位置固定，旋转跟随父节点
         // 相机位置已经在父子关系中确定，只需要同步旋转
         Vector3 parentRotation = m_pPossessedEntity->GetRotation().ToEuler();
-        pCamera->SetRotation(Quaternion::FromEuler(0, parentRotation.y, 0));
+        m_pMainCamera->SetRotation(Quaternion::FromEuler(0, parentRotation.y, 0));
     }
     else if (mode == CameraMode::Orbital)
     {
@@ -609,16 +749,16 @@ void CDemoScene::SyncCameraToEntity(float deltaTime)
             3.0f, // 轨道高度
             cosf(orbitAngle) * dist);
 
-        pCamera->SetPosition(orbitalOffset);
-        pCamera->LookAt(Vector3(0, 1.5f, 0)); // 看向父节点中心
+        m_pMainCamera->SetPosition(orbitalOffset);
+        m_pMainCamera->LookAt(Vector3(0, 1.5f, 0)); // 看向父节点中心
     }
     else if (mode == CameraMode::FreeLook)
     {
         // 自由视角：解除父子关系，相机独立控制
-        auto pCurrentParent = pCamera->GetParent();
+        auto pCurrentParent = m_pMainCamera->GetParent();
         if (pCurrentParent)
         {
-            pCurrentParent->RemoveChild(pCamera->GetID());
+            pCurrentParent->RemoveChild(m_pMainCamera->GetID());
             LogDebug(L"自由视角模式：解除相机父子关系\n");
         }
     }

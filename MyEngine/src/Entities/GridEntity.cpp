@@ -75,8 +75,8 @@ void CGridEntity::BuildGeometry()
         }
     }
 
-    LogDebug(L"网格几何构建完成: 粗网格顶点=%d, 细网格顶点=%d.\n",
-             m_MainGridVertices.size(), m_SubGridVertices.size());
+    // LogDebug(L"网格几何构建完成: 粗网格顶点=%d, 细网格顶点=%d.\n",
+    //          m_MainGridVertices.size(), m_SubGridVertices.size());
 }
 
 void CGridEntity::BuildGeometryWithLOD()

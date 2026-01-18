@@ -147,8 +147,7 @@ BOOL CTerrainEntity::LoadHeightmap(const std::wstring &path, float size, float m
     // 尝试创建VBO
     CreateVBO();
 
-    LogInfo(L"地形加载成功: %ls. 分辨率: %dx%d, 实际尺寸: %.1fx%.1f\n",
-            path.c_str(), m_width, m_height, size, size);
+    // LogDebug(L"地形加载成功: %ls. 分辨率: %dx%d, 实际尺寸: %.1fx%.1f\n", path.c_str(), m_width, m_height, size, size);
     return TRUE;
 }
 
@@ -299,7 +298,7 @@ void CTerrainEntity::CreateVBO()
     if (major > 1 || (major == 1 && minor >= 5))
     {
         m_bUseVBO = TRUE;
-        LogInfo(L"OpenGL版本 %d.%d 支持VBO\n", major, minor);
+        // LogDebug(L"OpenGL版本 %d.%d 支持VBO\n", major, minor);
     }
     else
     {
@@ -335,8 +334,7 @@ void CTerrainEntity::CreateVBO()
         return;
     }
 
-    LogDebug(L"地形VBO创建成功, 顶点数: %d, 三角形数: %d.\n",
-             m_vertices.size(), m_indices.size() / 3);
+    // LogDebug(L"地形VBO创建成功, 顶点数: %d, 三角形数: %d.\n", m_vertices.size(), m_indices.size() / 3);
 }
 
 void CTerrainEntity::Update(float deltaTime)

@@ -12,6 +12,7 @@ class CSkyboxEntity;
 class CTerrainEntity;
 class CGridEntity;
 class CModelEntity;
+class CCameraEntity;
 // ======================================================================
 
 class CDemoScene : public CScene
@@ -33,6 +34,7 @@ private:
     std::shared_ptr<CSkyboxEntity> m_pSkybox;
     std::shared_ptr<CTerrainEntity> m_pTerrain;
     std::shared_ptr<CGridEntity> m_pGrid;
+    std::shared_ptr<CCameraEntity> m_pMainCamera;
     std::shared_ptr<CModelEntity> m_pPossessedEntity;
 
     // 动态实体列表
@@ -51,9 +53,14 @@ private:
     void UpdateAutoSnapping();
     // ======================================================================
     // 相机更新逻辑
-    void ProcessInput(float deltaTime);
     void UpdateFreeLookCamera(float deltaTime);
     void SyncCameraToEntity(float deltaTime);
+    // ======================================================================
+    // 按键输入控制
+    void ProcessInput(float deltaTime);
+    void ProcessGlobalHotkeys(float deltaTime);
+    void ProcessCameraInput(float deltaTime);
+
 };
 
 #endif // __DEMO_SCENE_H__

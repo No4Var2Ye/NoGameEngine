@@ -193,7 +193,7 @@ void CWindow::Show()
         DisableIME();
         ForceEnglishKeyboardLayout();
 
-        LogInfo(L"窗口已显示并设置焦点\n");
+        // LogDebug(L"窗口已显示并设置焦点\n");
     }
 }
 

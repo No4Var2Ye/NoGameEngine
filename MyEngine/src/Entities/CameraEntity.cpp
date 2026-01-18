@@ -289,7 +289,7 @@ void CCameraEntity::ProcessMouseWheel(INT delta)
 {
     // 鼠标滚轮控制：自由视角调整FOV，轨道/第三人称调整距离
     FLOAT zoomSpeed = 1.0f;
-    FLOAT zoomAmount = static_cast<float>(delta) * 0.1f * zoomSpeed;
+    FLOAT zoomAmount = static_cast<float>(delta) / 120 * 0.1f * zoomSpeed;
 
     switch (m_Mode)
     {

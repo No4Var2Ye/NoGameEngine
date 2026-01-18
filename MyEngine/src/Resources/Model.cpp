@@ -89,7 +89,7 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
     else
         m_name = fullPath;
 
-    LogDebug(L"模型加载成功: %ls, 网格数: %d.\n", m_name.c_str(), (int)m_meshes.size());
+    // LogDebug(L"模型加载成功: %ls, 网格数: %d.\n", m_name.c_str(), (int)m_meshes.size());
 
     return TRUE;
 }

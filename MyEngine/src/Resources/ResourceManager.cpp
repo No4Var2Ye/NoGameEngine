@@ -86,7 +86,7 @@ void CResourceManager::ReleaseUnusedResources()
 
 BOOL CResourceManager::CreateDefaultResources()
 {
-    LogInfo(L"开始创建默认资源...\n");
+    // LogDebug(L"开始创建默认资源...\n");
 
     // 1. 创建默认纹理
     m_DefaultTexture = CreateDefaultTexture();
@@ -113,11 +113,9 @@ BOOL CResourceManager::CreateDefaultResources()
     //     LogWarning(L"创建默认着色器失败（着色器是可选的）\n");
     // }
 
-    LogInfo(L"默认资源创建成功！\n");
-    LogDebug(L"  - 默认纹理: %dx%d\n",
-            m_DefaultTexture->GetWidth(), m_DefaultTexture->GetHeight());
-    LogDebug(L"  - 默认模型: 顶点数=%u, 三角形数=%u\n",
-            (unsigned int)m_DefaultModel->GetVertexCount(), (unsigned int)m_DefaultModel->GetTriangleCount());
+    // LogDebug(L"默认资源创建成功！\n");
+    // LogDebug(L"  - 默认纹理: %dx%d\n", m_DefaultTexture->GetWidth(), m_DefaultTexture->GetHeight());
+    // LogDebug(L"  - 默认模型: 顶点数=%u, 三角形数=%u\n", (unsigned int)m_DefaultModel->GetVertexCount(), (unsigned int)m_DefaultModel->GetTriangleCount());
 
     return TRUE;
 }
@@ -425,7 +423,7 @@ GLuint CResourceManager::LoadCubemapTexture(const std::vector<std::wstring> &fac
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    LogDebug(L"天空盒加载成功: %ls. \n", facePaths[0].c_str());
+    // LogDebug(L"天空盒加载成功: %ls. \n", facePaths[0].c_str());
     return textureID;
 }
 
