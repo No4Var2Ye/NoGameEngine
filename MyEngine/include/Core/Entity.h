@@ -110,6 +110,7 @@ public:
     const Quaternion &GetRotation() const { return m_rotation; }
     void SetScale(const Vector3 &scale);
     const Vector3 &GetScale() const { return m_scale; }
+    void SetInheritScale(BOOL bInherit) { m_bInheritScale = bInherit; MarkDirty(); }
 
     Vector3 GetWorldPosition() const;
     Matrix4 GetWorldMatrix() const;
@@ -124,6 +125,11 @@ public:
     float GetGroundOffset() const { return m_fTerrainOffset; }
     void SetLastSnapPos(const Vector3 &pos) { m_LastSnapPos = pos; }
     Vector3 GetLastSnapPos() const { return m_LastSnapPos; }
+
+    // ======================================================================
+    // 调试工具
+    // ======================================================================
+    void SetDebugVisualizer(BOOL bShow, std::shared_ptr<CModel> pDebugModel = nullptr);
 
 protected:
     unsigned int m_uID = 0;
@@ -148,6 +154,7 @@ protected:
     Vector3 m_position;
     Quaternion m_rotation;
     Vector3 m_scale;
+    BOOL m_bInheritScale = TRUE; // 是否继承缩放
 
     BOOL m_bVisible;
 
@@ -160,6 +167,10 @@ protected:
 
     void ApplyTransform() const;
     void MarkDirty();
+
+    BOOL m_bShowDebugVisualizer = FALSE;
+    std::shared_ptr<CEntity> m_pDebugHelperEntity = nullptr;
+
 };
 
 #endif // __ENTITY_H__

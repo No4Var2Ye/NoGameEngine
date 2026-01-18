@@ -60,6 +60,7 @@ private:
     void ProcessInput(float deltaTime);
     void ProcessGlobalHotkeys(float deltaTime);
     void ProcessCameraInput(float deltaTime);
+    void UpdateOrbitalCamera(float deltaTime);
 
 };
 

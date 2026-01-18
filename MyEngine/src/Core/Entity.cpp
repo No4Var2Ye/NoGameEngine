@@ -3,7 +3,10 @@
 #include "stdafx.h"
 #include <queue>
 #include "Core/Entity.h"
+#include "Core/GameEngine.h"
+#include "Resources/ResourceManager.h"
 #include "Resources/Model.h"
+#include "Entities/ModelEntity.h"
 // ======================================================================
 
 // 静态变量初始化
@@ -378,10 +381,36 @@ Matrix4 CEntity::GetWorldMatrix() const
     {
         Matrix4 localMatrix = Matrix4::TRS(m_position, m_rotation, m_scale);
 
-        // 使用 lock() 安全获取父节点
         if (auto pParent = m_pParent.lock())
         {
-            m_cachedWorldMatrix = pParent->GetWorldMatrix() * localMatrix;
+            Matrix4 parentWorld = pParent->GetWorldMatrix();
+
+            // 如果当前实体被设置为不继承父级缩放
+            if (!m_bInheritScale)
+            {
+                // 1. 提取父矩阵的每一列向量
+                Vector3 right(parentWorld.m[0], parentWorld.m[1], parentWorld.m[2]);
+                Vector3 up(parentWorld.m[4], parentWorld.m[5], parentWorld.m[6]);
+                Vector3 forward(parentWorld.m[8], parentWorld.m[9], parentWorld.m[10]);
+
+                // 2. 归一化这些向量（移除缩放，仅保留旋转方向）
+                right.Normalize();
+                up.Normalize();
+                forward.Normalize();
+
+                // 3. 将归一化后的轴向量写回矩阵
+                parentWorld.m[0] = right.x;
+                parentWorld.m[1] = right.y;
+                parentWorld.m[2] = right.z;
+                parentWorld.m[4] = up.x;
+                parentWorld.m[5] = up.y;
+                parentWorld.m[6] = up.z;
+                parentWorld.m[8] = forward.x;
+                parentWorld.m[9] = forward.y;
+                parentWorld.m[10] = forward.z;
+            }
+
+            m_cachedWorldMatrix = parentWorld * localMatrix;
         }
         else
         {
@@ -432,4 +461,41 @@ void CEntity::SetSnapToTerrain(BOOL enable, float offset)
 {
     m_bSnapToTerrain = enable;
     m_fTerrainOffset = offset;
+}
+
+void CEntity::SetDebugVisualizer(BOOL bShow, std::shared_ptr<CModel> pDebugModel)
+{
+    m_bShowDebugVisualizer = bShow;
+
+    if (!m_bShowDebugVisualizer)
+    {
+        if (m_pDebugHelperEntity)
+            m_pDebugHelperEntity->SetVisible(FALSE);
+        return;
+    }
+
+    if (m_pDebugHelperEntity)
+    {
+        m_pDebugHelperEntity->SetVisible(TRUE);
+        return;
+    }
+
+    std::shared_ptr<CModel> pModelToUse = pDebugModel;
+    if (!pModelToUse)
+    {
+        pModelToUse = CGameEngine::GetInstance().GetResourceManager()->GetDefaultModel();
+    }
+
+    if (pModelToUse && !m_pDebugHelperEntity)
+    {
+        auto pHelper = CModelEntity::Create(pModelToUse);
+        pHelper->SetName(L"DebugGizmo_" + m_name);
+
+        // --- 核心设置 ---
+        pHelper->SetInheritScale(FALSE);              // 拒绝继承父级的 0.01 缩放
+        pHelper->SetScale(Vector3(0.2f, 0.2f, 0.2f)); // 直接设定在世界空间看起来舒服的大小
+
+        this->AddChild(pHelper);
+        m_pDebugHelperEntity = pHelper;
+    }
 }
