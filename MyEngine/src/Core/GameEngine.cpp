@@ -596,7 +596,7 @@ void CGameEngine::DisplayDebugInfo()
     m_Renderer->RenderText2D("1: 第一人称视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
     m_Renderer->RenderText2D("2: 第三人称视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
     m_Renderer->RenderText2D("3: 自由视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
-    m_Renderer->RenderText2D("4: 轨道视角", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
+    m_Renderer->RenderText2D("4: 轨道视角 调试中", rightX, rightY + (lineHeight * rRow++), gray, 0.75f);
 }
 
 void CGameEngine::SetState(EngineState newState)

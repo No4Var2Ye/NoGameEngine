@@ -40,7 +40,7 @@ public:
     // ======================================================================
     // 渲染应用
     // ======================================================================
-    virtual void Render() override { return;}
+    virtual void Render() override { return; }
     Matrix4 GetViewMatrix() const;
     void ApplyViewMatrix() const;
 
@@ -83,6 +83,8 @@ public:
 
     void ProcessMouseMovement(INT dx, INT dy);
     void ProcessMouseWheel(INT delta);
+    void ProcessKeyboardMovement(FLOAT forward, FLOAT right, FLOAT up, FLOAT deltaTime);
+
 
     void ResetOrientation(float yaw, float pitch);
 

@@ -26,6 +26,10 @@ public:
     virtual void Update(float deltaTime) override;
     virtual void Render() override;
 
+    Vector3 GetForward() const { return GetRotation() * Vector3(0, 0, -1); }
+    Vector3 GetRight() const { return GetRotation() * Vector3(1, 0, 0); }
+    Vector3 GetUp() const { return GetRotation() * Vector3(0, 1, 0); }
+
     // 模型特有操作
     void SetModel(std::shared_ptr<CModel> pModel) { m_pModel = pModel; }
     std::shared_ptr<CModel> GetModel() const { return m_pModel; }
@@ -60,8 +64,8 @@ private:
 
     BOOL m_bDrawBBox = FALSE;
 
-    BOOL m_bDrawNormals = FALSE; // 是否绘制法线开关
-    float m_fNormalScale = 0.5f; // 法线显示长度
+    BOOL m_bDrawNormals = FALSE;    // 是否绘制法线开关
+    float m_fNormalScale = 0.5f;    // 法线显示长度
     unsigned int m_uNormalStep = 1; // 法线步长
 };
 

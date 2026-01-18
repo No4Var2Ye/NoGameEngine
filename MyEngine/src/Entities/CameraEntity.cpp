@@ -135,6 +135,9 @@ void CCameraEntity::Update(float deltaTime)
         // 第一人称：完全跟随父节点，旋转由父节点控制
         if (auto parent = m_pParent.lock())
         {
+            Vector3 parentPos = parent->GetWorldPosition();
+            SetPosition(parentPos + Vector3(0, 1.8f, 0));
+
             // 直接使用父节点的四元数旋转
             m_rotation = parent->GetRotation();
             SetRotation(m_rotation);
@@ -155,32 +158,47 @@ void CCameraEntity::Update(float deltaTime)
         // 第三人称：围绕父节点旋转
         if (auto parent = m_pParent.lock())
         {
-            // 获取父节点位置作为焦点
             Vector3 parentPos = parent->GetWorldPosition();
 
-            // 计算相机位置（球坐标）
-            float distance = 5.0f; // 可配置的距离
-            Vector3 offset = m_rotation * Vector3(0, 0, distance);
+            // 计算球坐标位置
+            float distance = 5.0f;
+            float yawRad = m_CurrentYaw * 0.01745329f; // 度转弧度
+            float pitchRad = m_CurrentPitch * 0.01745329f;
+
+            // 球坐标转直角坐标
+            float x = distance * sinf(yawRad) * cosf(pitchRad);
+            float y = distance * sinf(pitchRad);
+            float z = distance * cosf(yawRad) * cosf(pitchRad);
+
+            Vector3 offset(x, y, z);
             SetPosition(parentPos + offset);
+
+            // 看向父节点（稍微偏上）
+            LookAt(parentPos + Vector3(0, 1.5f, 0));
+        }
+        break;
+
+    case CameraMode::Orbital:
+        if (auto parent = m_pParent.lock())
+        {
+            Vector3 parentPos = parent->GetWorldPosition();
+
+            // 计算球坐标位置
+            float orbitDistance = 8.0f;
+            float yawRad = m_CurrentYaw * 0.01745329f;
+            float pitchRad = m_CurrentPitch * 0.01745329f;
+
+            float x = orbitDistance * sinf(yawRad) * cosf(pitchRad);
+            float y = orbitDistance * sinf(pitchRad);
+            float z = orbitDistance * cosf(yawRad) * cosf(pitchRad);
+
+            Vector3 orbitOffset(x, y, z);
+            SetPosition(parentPos + orbitOffset);
 
             // 看向父节点
             LookAt(parentPos);
         }
         break;
-
-    case CameraMode::Orbital:
-    {                                 // 轨道视角：围绕固定点旋转
-        Vector3 orbitCenter(0, 0, 0); // 可配置的轨道中心
-
-        // 计算相机位置
-        float orbitDistance = 10.0f;
-        Vector3 orbitOffset = m_rotation * Vector3(0, 0, orbitDistance);
-        SetPosition(orbitCenter + orbitOffset);
-
-        // 看向轨道中心
-        LookAt(orbitCenter);
-    }
-    break;
     }
     // 2. 更新震动计时器
     if (m_ShakeEnabled)
@@ -263,13 +281,13 @@ void CCameraEntity::ResetOrientation(float yaw, float pitch)
 
     // 立即根据新的偏航俯仰角更新四元数
     m_rotation = Quaternion::FromEuler(m_CurrentPitch, m_CurrentYaw, 0.0f);
-    MarkDirty();
+    // MarkDirty();
 }
 
 void CCameraEntity::ProcessMouseMovement(INT dx, INT dy)
 {
-    if (m_Mode != CameraMode::FreeLook && m_Mode != CameraMode::Orbital)
-        return; // 只有自由视角和轨道视角需要鼠标控制
+    // if (m_Mode != CameraMode::FreeLook && m_Mode != CameraMode::Orbital)
+    //     return; // 只有自由视角和轨道视角需要鼠标控制
 
     const float kSensitivityScale = 0.05f;
 
@@ -277,6 +295,15 @@ void CCameraEntity::ProcessMouseMovement(INT dx, INT dy)
     m_CurrentYaw -= static_cast<float>(dx) * m_MouseSensitivity * kSensitivityScale;
     m_CurrentPitch -= static_cast<float>(dy) * m_MouseSensitivity * kSensitivityScale;
     m_CurrentPitch = Math::Clamp(m_CurrentPitch, -m_MaxPitchAngle, m_MaxPitchAngle);
+
+    // 限制俯仰角范围
+    m_CurrentPitch = Math::Clamp(m_CurrentPitch, -m_MaxPitchAngle, m_MaxPitchAngle);
+
+    // 规范化偏航角到0-360度范围
+    while (m_CurrentYaw >= 360.0f)
+        m_CurrentYaw -= 360.0f;
+    while (m_CurrentYaw < 0.0f)
+        m_CurrentYaw += 360.0f;
 
     // 2. 合成四元数 (单一源头)
     m_rotation = Quaternion::FromEuler(m_CurrentPitch, m_CurrentYaw, 0.0f);
@@ -287,23 +314,81 @@ void CCameraEntity::ProcessMouseMovement(INT dx, INT dy)
 
 void CCameraEntity::ProcessMouseWheel(INT delta)
 {
-    // 鼠标滚轮控制：自由视角调整FOV，轨道/第三人称调整距离
-    FLOAT zoomSpeed = 1.0f;
-    FLOAT zoomAmount = static_cast<float>(delta) / 120 * 0.1f * zoomSpeed;
+    FLOAT zoomAmount = static_cast<float>(delta) / 120 * 2.0f;
 
-    switch (m_Mode)
+    // 第一人称通常调整 FOV
+    if (m_Mode == CameraMode::FirstPerson)
     {
-    case CameraMode::FreeLook:
-    case CameraMode::FirstPerson:
-        // 自由视角：调整视野
         m_Fov -= zoomAmount;
-        m_Fov = Math::Clamp(m_Fov, 10.0f, 120.0f);
-        break;
+        m_Fov = Math::Clamp(m_Fov, 30.0f, 90.0f);
+    }
+}
 
-    case CameraMode::ThirdPerson:
-    case CameraMode::Orbital:
-        m_fDistance -= zoomAmount;
-        m_fDistance = Math::Clamp(m_fDistance, 1.5f, 50.0f); // 限制最近和最远距离
-        break;
+void CCameraEntity::ProcessKeyboardMovement(FLOAT forward, FLOAT right, FLOAT up, FLOAT deltaTime)
+{
+    float moveSpeed = 5.0f * deltaTime;
+    Vector3 currentPos = GetPosition();
+    Vector3 moveVec(0.0f, 0.0f, 0.0f);
+
+    if (m_Mode == CameraMode::FreeLook)
+    {
+        // 自由视角：键盘控制移动
+        if (forward != 0.0f)
+        {
+            Vector3 dir = GetForward();
+            dir.Normalize();
+            moveVec += dir * forward;
+        }
+
+        if (right != 0.0f)
+        {
+            Vector3 side = GetRight();
+            side.Normalize();
+            moveVec += side * right;
+        }
+
+        if (up != 0.0f)
+        {
+            moveVec += Vector3(0, 1, 0) * up;
+        }
+    }
+    else if (m_Mode == CameraMode::FirstPerson)
+    {
+        // 第一人称：WASD控制转向，不控制移动（移动由父实体控制）
+        float turnSpeed = 90.0f * deltaTime; // 每秒90度转向速度
+
+        if (right > 0.0f) // D键：向右转
+        {
+            m_CurrentYaw -= turnSpeed;
+            LogDebug(L"第一人称转向：向右转，当前Yaw: %.1f°\n", m_CurrentYaw);
+        }
+        else if (right < 0.0f) // A键：向左转
+        {
+            m_CurrentYaw += turnSpeed;
+            LogDebug(L"第一人称转向：向左转，当前Yaw: %.1f°\n", m_CurrentYaw);
+        }
+
+        if (forward < 0.0f) // S键：向后转
+        {
+            m_CurrentYaw += 180.0f * deltaTime;
+            LogDebug(L"第一人称转向：向后转，当前Yaw: %.1f°\n", m_CurrentYaw);
+        }
+
+        // 规范化角度
+        while (m_CurrentYaw >= 360.0f)
+            m_CurrentYaw -= 360.0f;
+        while (m_CurrentYaw < 0.0f)
+            m_CurrentYaw += 360.0f;
+
+        // 更新旋转
+        m_rotation = Quaternion::FromEuler(m_CurrentPitch, m_CurrentYaw, 0.0f);
+        SetRotation(m_rotation);
+
+        return; // 第一人称模式下，相机不移动，只转向
+    }
+    if (moveVec.LengthSquared() > 0.0f && m_Mode == CameraMode::FreeLook)
+    {
+        moveVec.Normalize();
+        SetPosition(currentPos + moveVec * moveSpeed);
     }
 }

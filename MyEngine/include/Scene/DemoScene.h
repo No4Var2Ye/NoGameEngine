@@ -55,6 +55,7 @@ private:
     // 相机更新逻辑
     void UpdateFreeLookCamera(float deltaTime);
     void SyncCameraToEntity(float deltaTime);
+    void SyncEntityToCamera();
     // ======================================================================
     // 按键输入控制
     void ProcessInput(float deltaTime);
@@ -66,9 +67,13 @@ private:
     void SetupFirstPersonCamera();
     void SetupThirdPersonCamera();
     void SetupOrbitalCamera();
-    float m_OrbitalRadius = 10.0f;
-    float m_OrbitalHeight = 5.0f;
-    float m_OrbitalAngle = 0.0f;
+    float m_OrbitalDistance;
+    float m_OrbitalHeight;
+    float m_OrbitalAngle;
+    BOOL m_bOrbitEnabled;
+
+    float m_LastCameraAngle; // 记录上一次的相机角度
+    float m_LastDuckYaw;     // 记录被控实体的当前偏航角
     void SetupFreeLookCamera(const Vector3 &worldPos, const Quaternion &worldRot);
 };
 
