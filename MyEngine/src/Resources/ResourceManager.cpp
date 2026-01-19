@@ -378,7 +378,7 @@ GLuint CResourceManager::LoadTextureToCubeMapFace(const std::wstring &filePath, 
 
     unsigned char *data = stbi_load(narrowPath.c_str(), &width, &height, &channels, 0);
     if (!data)
-        return FALSE;
+        return 0;
 
     GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
 

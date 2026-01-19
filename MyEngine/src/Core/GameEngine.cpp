@@ -377,7 +377,7 @@ void CGameEngine::SetMainCamera(std::shared_ptr<CCameraEntity> pCamera)
     if (pCamera == m_pMainCamera)
         return;
 
-    LogDebug(L"设置主相机: %s\n", pCamera ? pCamera->GetName().c_str() : L"NULL");
+    // LogDebug(L"设置主相机: %s\n", pCamera ? pCamera->GetName().c_str() : L"NULL");
 
     std::shared_ptr<CCameraEntity> pOldCamera = m_pMainCamera;
 
@@ -385,7 +385,7 @@ void CGameEngine::SetMainCamera(std::shared_ptr<CCameraEntity> pCamera)
 
     if (pOldCamera)
     {
-        LogDebug(L"旧主相机已替换\n");
+        // LogDebug(L"旧主相机已替换\n");
     }
 
     if (m_pMainCamera)
@@ -419,7 +419,7 @@ void CGameEngine::SetMainCamera(std::shared_ptr<CCameraEntity> pCamera)
 
 void CGameEngine::ResetMainCamera()
 {
-    LogDebug(L"重置主相机\n");
+    // LogDebug(L"重置主相机\n");
 
     if (m_pMainCamera)
     {
@@ -429,7 +429,7 @@ void CGameEngine::ResetMainCamera()
         m_pMainCamera->SetMode(CameraMode::FreeLook);
         // m_pMainCamera->StopShake();
 
-        LogDebug(L"主相机已重置到默认位置\n");
+        // LogDebug(L"主相机已重置到默认位置\n");
     }
     else
     {

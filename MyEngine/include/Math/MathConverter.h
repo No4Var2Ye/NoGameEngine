@@ -118,6 +118,27 @@ public:
         mat->Get(pKey, type, idx, value);
         return value;
     }
+
+    static inline Matrix4 ToMatrix4(const aiMatrix3x3 &m)
+    {
+        return Matrix4(
+            m.a1, m.a2, m.a3, 0.0f,
+            m.b1, m.b2, m.b3, 0.0f,
+            m.c1, m.c2, m.c3, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f);
+    }
+
+    // 补充：从 Assimp 的位移向量转为你的平移矩阵
+    static inline Matrix4 ToTranslationMatrix(const aiVector3D &v)
+    {
+        // 假设你的 Matrix4 构造函数是行优先传参 (m00, m01, m02, m03...)
+        // 位移值应该放在 m03, m13, m23 的位置
+        return Matrix4(
+            1, 0, 0, v.x,
+            0, 1, 0, v.y,
+            0, 0, 1, v.z,
+            0, 0, 0, 1);
+    }
 };
 
 #endif // __MATH_CONVERTER_H__

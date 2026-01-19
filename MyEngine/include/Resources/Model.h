@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <map>
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
@@ -16,6 +17,12 @@
 // ======================================================================
 
 class CResourceManager;
+
+struct BoneInfo
+{
+    int id;
+    Matrix4 offset; // 从模型空间变换到骨骼空间的矩阵
+};
 
 class CModel
 {
@@ -51,7 +58,7 @@ public:
     const Vector3 &GetMaxBounds() const { return m_maxBounds; }
     const Vector3 &GetCenter() const { return m_center; }
     float GetRadius() const { return m_radius; }
-    void DrawBoundingBox(const Vector3& color = Vector3(0, 1, 0)) const;
+    void DrawBoundingBox(const Vector3 &color = Vector3(0, 1, 0)) const;
 
     BOOL IsPointInside(const Vector3 &point) const;
     BOOL IntersectsSphere(const Vector3 &center, float radius) const;
@@ -59,11 +66,13 @@ public:
     // 绘制法线
     void DrawNormals(float scale = 0.5f, unsigned int step = 1);
 
+    void UpdateAnimation(float timeInSeconds);
+
 private:
     std::vector<std::shared_ptr<CMesh>> m_meshes; // 一个模型由多个网格组成
-    
+
     // 信息统计
-    size_t m_totalVertices = 0; // 顶点数
+    size_t m_totalVertices = 0;  // 顶点数
     size_t m_totalTriangles = 0; // 三角面数
 
     // "Resources/Models/ANBY/"
@@ -88,7 +97,7 @@ private:
 
     mutable Matrix4 m_invTransform; // 缓存逆矩阵
 
-    void ProcessNode(aiNode *node, const aiScene *scene, CResourceManager *pResMgr);    // 递归处理 Assimp 节点
+    void ProcessNode(aiNode *node, const aiScene *scene, CResourceManager *pResMgr);                   // 递归处理 Assimp 节点
     std::shared_ptr<CMesh> ProcessMesh(aiMesh *mesh, const aiScene *scene, CResourceManager *pResMgr); // 转换网格数据 将 Assimp 的网格转换为我们的 CMesh
 
     // 加载材质贴图
@@ -97,5 +106,18 @@ private:
     // 添加边界框计算方法
     void CalculateBoundingBox();
     void UpdateBoundingBox(const Vector3 &point);
+
+    std::map<std::string, BoneInfo> m_BoneMapping; // 骨骼名字 -> ID
+    int m_BoneCount = 0;
+    const aiScene *m_pScene = nullptr; // 保留 Assimp 场景指针用于读取动画
+    Assimp::Importer m_Importer;       // 提升为类成员，防止函数结束被销毁
+
+    // 新增核心方法
+
+    void ReadNodeHierarchy(float AnimationTime, const aiNode *pNode, const Matrix4 &ParentTransform);
+
+    std::vector<Matrix4> m_FinalMatrices;
+
+    const int MAX_BONES = 100;
 };
 #endif // __MODEL_H__

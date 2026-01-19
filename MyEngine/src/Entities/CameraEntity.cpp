@@ -316,12 +316,8 @@ void CCameraEntity::ProcessMouseWheel(INT delta)
 {
     FLOAT zoomAmount = static_cast<float>(delta) / 120 * 2.0f;
 
-    // 第一人称通常调整 FOV
-    if (m_Mode == CameraMode::FirstPerson)
-    {
         m_Fov -= zoomAmount;
         m_Fov = Math::Clamp(m_Fov, 30.0f, 90.0f);
-    }
 }
 
 void CCameraEntity::ProcessKeyboardMovement(FLOAT forward, FLOAT right, FLOAT up, FLOAT deltaTime)
@@ -360,18 +356,18 @@ void CCameraEntity::ProcessKeyboardMovement(FLOAT forward, FLOAT right, FLOAT up
         if (right > 0.0f) // D键：向右转
         {
             m_CurrentYaw -= turnSpeed;
-            LogDebug(L"第一人称转向：向右转，当前Yaw: %.1f°\n", m_CurrentYaw);
+            // LogDebug(L"第一人称转向：向右转，当前Yaw: %.1f°\n", m_CurrentYaw);
         }
         else if (right < 0.0f) // A键：向左转
         {
             m_CurrentYaw += turnSpeed;
-            LogDebug(L"第一人称转向：向左转，当前Yaw: %.1f°\n", m_CurrentYaw);
+            // LogDebug(L"第一人称转向：向左转，当前Yaw: %.1f°\n", m_CurrentYaw);
         }
 
         if (forward < 0.0f) // S键：向后转
         {
             m_CurrentYaw += 180.0f * deltaTime;
-            LogDebug(L"第一人称转向：向后转，当前Yaw: %.1f°\n", m_CurrentYaw);
+            // LogDebug(L"第一人称转向：向后转，当前Yaw: %.1f°\n", m_CurrentYaw);
         }
 
         // 规范化角度

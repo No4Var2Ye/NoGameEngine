@@ -15,6 +15,13 @@ class CGridEntity;
 class CModelEntity;
 // ======================================================================
 
+struct SDuckInstance
+{
+    std::shared_ptr<CModelEntity> pEntity;
+    bool isPickedUp = false;
+    float collisionRadius = 1.5f; // 碰撞半径
+};
+
 class CDemoScene : public CScene
 {
 public:
@@ -36,6 +43,7 @@ private:
     std::shared_ptr<CGridEntity> m_pGrid;
     std::shared_ptr<CCameraEntity> m_pMainCamera;
     std::shared_ptr<CModelEntity> m_pPossessedEntity;
+    std::shared_ptr<CEntity> m_pEffectContainer;
 
     // 动态实体列表
     std::vector<std::shared_ptr<CEntity>> m_DynamicSnapEntities;
@@ -75,6 +83,20 @@ private:
     float m_LastCameraAngle; // 记录上一次的相机角度
     float m_LastDuckYaw;     // 记录被控实体的当前偏航角
     void SetupFreeLookCamera(const Vector3 &worldPos, const Quaternion &worldRot);
+
+    std::vector<SDuckInstance> m_TargetDucks;
+    int m_Score = 0;
+    const int WIN_SCORE = 9;
+    bool m_bGameOver = false;
+
+    void ResetGame();
+
+    static const float UI_BG_COLOR[4];
+    static const float UI_BORDER_COLOR[4];
+    static const float UI_TEXT_COLOR[3];
+
+    void RenderUI();
+    void DrawUIRect(float x, float y, float w, float h, const float *bgColor, const float *borderColor);
 };
 
 #endif // __DEMO_SCENE_H__void CDemoScene::SwitchCameraMode(CameraMode newMode)

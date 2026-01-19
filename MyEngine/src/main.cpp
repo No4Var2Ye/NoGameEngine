@@ -66,6 +66,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     freopen_s(&fp, "CONIN$", "r", stdin);
 #endif // MYDEBUG
 
+    // 初始化随机种子
+    srand((unsigned int)time(NULL));
+
     // 初始化游戏引擎
     CGameEngine &engine = CGameEngine::GetInstance();
 

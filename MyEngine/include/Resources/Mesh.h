@@ -23,6 +23,32 @@ struct Vertex
     Vector3 Position;
     Vector3 Normal;
     Vector2 TexCoords;
+    Vector3 BasePosition;
+    Vector3 BaseNormal;
+    INT BoneIDs[4];   // 影响该顶点的骨骼ID
+    float Weights[4]; // 各骨骼影响的权重
+
+    Vertex(Vector3 pos, Vector3 norm, Vector2 uv)
+    {
+        Position = pos;
+        Normal = norm;
+        TexCoords = uv;
+        BasePosition = pos;
+        BaseNormal = norm;
+        for (int i = 0; i < 4; i++)
+        {
+            BoneIDs[i] = -1; // 默认不受骨骼影响
+            Weights[i] = 0.0f;
+        }
+    }
+    Vertex() : Position(0, 0, 0), Normal(0, 1, 0), TexCoords(0, 0)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            BoneIDs[i] = -1;
+            Weights[i] = 0.0f;
+        }
+    }
 };
 #pragma pack(pop)
 
@@ -125,7 +151,22 @@ public:
     const BoundingBox &GetBoundingBox() const { return m_boundingBox; }
 
     // 渲染法线
-    void DrawNormals(float scale = 0.5f, unsigned int step = 1, const Vector3& color = Vector3(1, 0, 0)) const;
+    void DrawNormals(float scale = 0.5f, unsigned int step = 1, const Vector3 &color = Vector3(1, 0, 0)) const;
+
+    // 骨骼
+    void AddBoneData(unsigned int vertexID, int boneID, float weight)
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            if (m_vertices[vertexID].BoneIDs[i] < 0) // 找到第一个空的骨骼槽位
+            {
+                m_vertices[vertexID].BoneIDs[i] = boneID;
+                m_vertices[vertexID].Weights[i] = weight;
+                return;
+            }
+        }
+    }
+    void SetupMesh(); // 初始化缓冲区的私有方法
 
 private:
     std::vector<Vertex> m_vertices;
@@ -138,5 +179,7 @@ private:
 
     void CalculateBoundingBox();
     BoundingBox m_boundingBox;
+
+    // unsigned int m_VAO = 0, m_VBO = 0, m_EBO = 0;
 };
 #endif // __MESH_H__

@@ -53,6 +53,10 @@ public:
     void SetWireframe(BOOL bEnable) { m_bWireframe = bEnable; }
     BOOL IsWireframe() const { return m_bWireframe; }
 
+    void SetAnimSpeed(float speed) { m_fAnimSpeed = speed; }
+    void SetIsAnimated(BOOL bEnable) { m_bIsAnimated = bEnable; }
+    void ResetAnimation() { m_fAnimTime = 0.0f; }
+
 protected:
     // 构造函数受保护，强制使用 Create
     CModelEntity(std::shared_ptr<CModel> pModel);
@@ -67,6 +71,10 @@ private:
     BOOL m_bDrawNormals = FALSE;    // 是否绘制法线开关
     float m_fNormalScale = 0.5f;    // 法线显示长度
     unsigned int m_uNormalStep = 1; // 法线步长
+
+    float m_fAnimTime = 0.0f;  // 动画累计播放时间
+    float m_fAnimSpeed = 1.0f; // 动画播放倍速
+    BOOL m_bIsAnimated = TRUE; // 是否开启播放
 };
 
 #endif // __MODEL_ENTITY_H__

@@ -20,6 +20,11 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
         return FALSE;
     }
 
+    // --- 1. 初始化动画容器 ---
+    m_FinalMatrices.clear();
+    m_FinalMatrices.resize(MAX_BONES, Matrix4::Identity());
+    m_BoneMapping.clear(); // 清空旧模型的骨骼映射
+
     Unload();
 
     // 转换语义
@@ -29,7 +34,7 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
     // m_filePath = res/Models/Duck/Duck.obj
     m_filePath = fullPath;
 
-    Assimp::Importer importer;
+    // Assimp::Importer importer;
 
     // 1. 将 wstring 转为 string (Assimp 接口要求)
     // 这里可以使用之前提到的 CStringUtils 或简单的转换
@@ -48,20 +53,22 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
         aiProcess_ValidateDataStructure | // 验证数据结构
         aiProcess_OptimizeMeshes;         // 优化网格
 
-    const aiScene *scene = importer.ReadFile(pathStr, flags);
+    // --- 3. 使用类成员 m_Importer 加载 ---
+    // 注意：不要再声明 Assimp::Importer importer; 局部变量了
+    m_pScene = m_Importer.ReadFile(pathStr, flags);
 
-    if (!scene)
+    if (!m_pScene)
     {
-        LogError(L"Assimp Error: %hs \n", importer.GetErrorString());
+        LogError(L"Assimp Error: %hs \n", m_Importer.GetErrorString());
         return FALSE;
     }
 
-    if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
+    if (m_pScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
     {
         LogWarning(L"[Model] 场景不完整，模型可能显示异常: %ls. \n", fullPath.c_str());
     }
 
-    if (!scene->mRootNode)
+    if (!m_pScene->mRootNode)
     {
         LogError(L"[Model] 缺少根节点，无法解析模型: %ls. \n", fullPath.c_str());
         return FALSE;
@@ -73,8 +80,8 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
     // 模型目录 m_directory = res/Models/Duck
 
     // 4. 递归处理节点
-    m_meshes.reserve(scene->mNumMeshes); // 预分配内存
-    ProcessNode(scene->mRootNode, scene, pResMgr);
+    m_meshes.reserve(m_pScene->mNumMeshes); // 预分配内存
+    ProcessNode(m_pScene->mRootNode, m_pScene, pResMgr);
 
     if (m_meshes.empty())
     {
@@ -194,17 +201,19 @@ std::shared_ptr<CMesh> CModel::ProcessMesh(aiMesh *mesh, const aiScene *scene, C
 
         // 位置
         vertex.Position = CMathConverter::ToVector3(mesh->mVertices[i]);
+        // --- 新增：存储原始位置，用于 CPU 蒙皮计算 ---
 
-        // 法线
         if (mesh->HasNormals())
         {
             vertex.Normal = CMathConverter::ToVector3(mesh->mNormals[i]);
         }
         else
         {
-            // 生成默认法线
             vertex.Normal = Vector3(0.0f, 1.0f, 0.0f);
         }
+
+        vertex.BasePosition = vertex.Position;
+        vertex.BaseNormal = vertex.Normal;
 
         // 纹理坐标
         if (mesh->mTextureCoords[0])
@@ -216,6 +225,52 @@ std::shared_ptr<CMesh> CModel::ProcessMesh(aiMesh *mesh, const aiScene *scene, C
         else
         {
             vertex.TexCoords = Vector2(0.0f, 0.0f);
+        }
+
+        // --- 新增：初始化骨骼数据，默认 -1 表示不受骨骼影响 ---
+        for (int j = 0; j < 4; j++)
+        {
+            vertex.BoneIDs[j] = -1;
+            vertex.Weights[j] = 0.0f;
+        }
+    }
+
+    for (unsigned int i = 0; i < mesh->mNumBones; i++)
+    {
+        aiBone *bone = mesh->mBones[i];
+        std::string boneName = bone->mName.C_Str();
+        int boneID = -1;
+
+        // 如果映射表里没有这根骨骼，就分配一个新的全局 ID
+        if (m_BoneMapping.find(boneName) == m_BoneMapping.end())
+        {
+            boneID = (int)m_BoneMapping.size();
+            BoneInfo bi;
+            bi.id = boneID;
+            bi.offset = CMathConverter::ToMatrix4(bone->mOffsetMatrix); // 转换偏移矩阵
+            m_BoneMapping[boneName] = bi;
+        }
+        else
+        {
+            boneID = m_BoneMapping[boneName].id;
+        }
+
+        // 遍历这根骨骼影响的所有顶点
+        for (unsigned int j = 0; j < bone->mNumWeights; j++)
+        {
+            unsigned int vertexID = bone->mWeights[j].mVertexId;
+            float weight = bone->mWeights[j].mWeight;
+
+            // 把骨骼 ID 和权重填入顶点的空槽位（最多4个）
+            for (int k = 0; k < 4; k++)
+            {
+                if (vertices[vertexID].BoneIDs[k] == -1) // 找到空位
+                {
+                    vertices[vertexID].BoneIDs[k] = boneID;
+                    vertices[vertexID].Weights[k] = weight;
+                    break;
+                }
+            }
         }
     }
 
@@ -565,4 +620,136 @@ void CModel::DrawNormals(float scale, unsigned int step)
     }
 
     glPopMatrix();
+}
+
+void CModel::UpdateAnimation(float timeInSeconds)
+{
+    if (!m_pScene || !m_pScene->HasAnimations())
+        return;
+
+    // 1. 计算当前动画的时间点
+    float TicksPerSecond = (float)(m_pScene->mAnimations[0]->mTicksPerSecond != 0 ? m_pScene->mAnimations[0]->mTicksPerSecond : 25.0f);
+    float TimeInTicks = timeInSeconds * TicksPerSecond;
+    float AnimationTime = fmod(TimeInTicks, (float)m_pScene->mAnimations[0]->mDuration);
+
+    // 2. 递归计算所有骨骼的当前矩阵 (ReadNodeHierarchy)
+    // 这里会得到一个 FinalMatrices 数组
+    Matrix4 Identity;
+    ReadNodeHierarchy(AnimationTime, m_pScene->mRootNode, Identity);
+
+    // 3. CPU 蒙皮：手动更新每个 Mesh 的顶点
+    for (auto &mesh : m_meshes)
+    {
+        // 获取顶点的引用以便修改
+        auto &vertices = const_cast<std::vector<Vertex> &>(mesh->GetVertices());
+
+        for (auto &v : vertices)
+        {
+            // 存储混合后的 3x4 变换矩阵（法线不需要第四行，位置只需要前三行的结果）
+            // 初始化为全 0
+            float r00 = 0, r01 = 0, r02 = 0, r03 = 0;
+            float r10 = 0, r11 = 0, r12 = 0, r13 = 0;
+            float r20 = 0, r21 = 0, r22 = 0, r23 = 0;
+
+            // 混合四个骨骼的矩阵分量
+            for (int i = 0; i < 4; i++)
+            {
+                if (v.BoneIDs[i] == -1 || v.Weights[i] <= 0.0f)
+                    continue;
+
+                float w = v.Weights[i];
+                const Matrix4 &b = m_FinalMatrices[v.BoneIDs[i]];
+
+                r00 += b.m00 * w;
+                r01 += b.m01 * w;
+                r02 += b.m02 * w;
+                r03 += b.m03 * w;
+                r10 += b.m10 * w;
+                r11 += b.m11 * w;
+                r12 += b.m12 * w;
+                r13 += b.m13 * w;
+                r20 += b.m20 * w;
+                r21 += b.m21 * w;
+                r22 += b.m22 * w;
+                r23 += b.m23 * w;
+            }
+
+            // --- 计算新位置 (包含矩阵的位移列 r03, r13, r23) ---
+            v.Position.x = r00 * v.BasePosition.x + r01 * v.BasePosition.y + r02 * v.BasePosition.z + r03;
+            v.Position.y = r10 * v.BasePosition.x + r11 * v.BasePosition.y + r12 * v.BasePosition.z + r13;
+            v.Position.z = r20 * v.BasePosition.x + r21 * v.BasePosition.y + r22 * v.BasePosition.z + r23;
+
+            // --- 计算新法线 (不计位移，只计旋转缩放部分) ---
+            v.Normal.x = r00 * v.BaseNormal.x + r01 * v.BaseNormal.y + r02 * v.BaseNormal.z;
+            v.Normal.y = r10 * v.BaseNormal.x + r11 * v.BaseNormal.y + r12 * v.BaseNormal.z;
+            v.Normal.z = r20 * v.BaseNormal.x + r21 * v.BaseNormal.y + r22 * v.BaseNormal.z;
+
+            // 建议：如果你的 Vector3 有 Normalize 方法，最好加上，否则光照会随着模型缩放变奇怪
+            // v.Normal.Normalize();
+        }
+    }
+    CalculateBoundingBox();
+}
+
+void CModel::ReadNodeHierarchy(float AnimationTime, const aiNode *pNode, const Matrix4 &ParentTransform)
+{
+    std::string NodeName(pNode->mName.data);
+    const aiAnimation *pAnim = m_pScene->mAnimations[0];
+    Matrix4 NodeTransformation = CMathConverter::ToMatrix4(pNode->mTransformation);
+
+    // 查找当前节点是否有动画信息
+    const aiNodeAnim *pNodeAnim = nullptr;
+    for (unsigned int i = 0; i < pAnim->mNumChannels; i++)
+    {
+        if (std::string(pAnim->mChannels[i]->mNodeName.data) == NodeName)
+        {
+            pNodeAnim = pAnim->mChannels[i];
+            break;
+        }
+    }
+
+    if (pNodeAnim)
+    {
+        aiVector3D Translation = pNodeAnim->mPositionKeys[0].mValue;
+        for (unsigned int i = 0; i < pNodeAnim->mNumPositionKeys - 1; i++)
+        {
+            if (AnimationTime < (float)pNodeAnim->mPositionKeys[i + 1].mTime)
+            {
+                Translation = pNodeAnim->mPositionKeys[i].mValue;
+                break;
+            }
+        }
+
+        // 2. 计算旋转 (同理)
+        aiQuaternion Rotation = pNodeAnim->mRotationKeys[0].mValue;
+        for (unsigned int i = 0; i < pNodeAnim->mNumRotationKeys - 1; i++)
+        {
+            if (AnimationTime < (float)pNodeAnim->mRotationKeys[i + 1].mTime)
+            {
+                Rotation = pNodeAnim->mRotationKeys[i].mValue;
+                break;
+            }
+        }
+
+        // 3. 构造变换矩阵 (需要你的 Matrix4 支持从 Quaternion 和 Translation 构造)
+        Matrix4 matRotation = CMathConverter::ToMatrix4(Rotation.GetMatrix());
+        Matrix4 matTranslation = Matrix4::Translation(Vector3(Translation.x, Translation.y, Translation.z));
+
+        NodeTransformation = matTranslation * matRotation;
+    }
+
+    Matrix4 GlobalTransformation = ParentTransform * NodeTransformation;
+
+    // 如果该节点是骨骼，计算最终矩阵：Global * Offset
+    if (m_BoneMapping.find(NodeName) != m_BoneMapping.end())
+    {
+        unsigned int BoneIndex = m_BoneMapping[NodeName].id;
+        m_FinalMatrices[BoneIndex] = GlobalTransformation * m_BoneMapping[NodeName].offset;
+    }
+
+    // 递归子节点
+    for (unsigned int i = 0; i < pNode->mNumChildren; i++)
+    {
+        ReadNodeHierarchy(AnimationTime, pNode->mChildren[i], GlobalTransformation);
+    }
 }

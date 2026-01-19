@@ -18,7 +18,16 @@ void CModelEntity::Update(FLOAT deltaTime)
     // 调用基类 Update 以确保子节点的递归更新
     CEntity::Update(deltaTime);
 
-    // TODO: 此处可添加模型特有逻辑，例如骨骼动画更新等
+    // 2. 处理动态动画
+    if (m_pModel && m_bIsAnimated)
+    {
+        // 累加时间
+        m_fAnimTime += deltaTime * m_fAnimSpeed;
+
+        // 调用你之前在 CModel 里写的更新函数
+        // 这会触发 CPU 蒙皮计算，更新顶点坐标
+        m_pModel->UpdateAnimation(m_fAnimTime);
+    }
 }
 
 void CModelEntity::Render()

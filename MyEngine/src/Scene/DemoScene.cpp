@@ -5,6 +5,7 @@
 #include "Scene/DemoScene.h"
 #include "Core/GameEngine.h"
 #include "Core/InputManager.h"
+#include "Core/Renderer.h"
 #include "Core/Entity.h"
 #include "Resources/ResourceManager.h"
 #include "Entities/CameraEntity.h"
@@ -12,7 +13,15 @@
 #include "Entities/SkyboxEntity.h"
 #include "Entities/GridEntity.h"
 #include "Entities/TerrainEntity.h"
+#include "Entities/ParticleEntity.h"
 // ======================================================================
+const float MIN_CAMERA_HEIGHT_ABOVE_GROUND = 5.0f; // 最低不能贴地
+const float MAX_CAMERA_HEIGHT_ABOVE_GROUND = 7.0f; // 最高限制
+// ======================================================================
+
+const float CDemoScene::UI_BG_COLOR[4] = {0.0f, 0.0f, 0.0f, 0.6f};
+const float CDemoScene::UI_BORDER_COLOR[4] = {1.0f, 1.0f, 1.0f, 0.8f};
+const float CDemoScene::UI_TEXT_COLOR[3] = {1.0f, 1.0f, 0.0f};
 
 CDemoScene::CDemoScene()
     : CScene("DemoScene"),        //
@@ -48,7 +57,7 @@ BOOL CDemoScene::Initialize()
     {
         m_pMainCamera->SetName(L"MainSceneCamera");
         m_pMainCamera->SetPosition(Vector3(0.0f, 5.0f, 10.0f));
-        m_pMainCamera->SetMode(CameraMode::FreeLook);
+        m_pMainCamera->SetMode(CameraMode::ThirdPerson);
 
         // m_pRootEntity->AddChild(m_pMainCamera); // CAUTION
         LogInfo(L"场景相机加载成功\n");
@@ -73,7 +82,7 @@ BOOL CDemoScene::Initialize()
     // ======================================================================
     // 4. 添加地形
     m_pTerrain = CTerrainEntity::Create(L"Terrain/terrain_heightmap4.png",
-                                        L"Terrain/grass.jpg",
+                                        L"Terrain/grass2.png",
                                         300.0f, 15.0f);
     if (m_pTerrain)
     {
@@ -106,14 +115,26 @@ BOOL CDemoScene::Initialize()
     }
 
     // ======================================================================
+    // 6. 创建粒子实体
+    auto pRain = CParticleEntity::Create(2000); // 生成2000颗雨滴
+    if (pRain)
+    {
+        pRain->SetName(L"GlobalRain");
+        m_pRootEntity->AddChild(pRain);
+    }
+
+    // ======================================================================
     // 6. 加载鸭子模型资源
-    auto pDuckModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
+    auto pDuckModel = resMgr->GetModel(L"George/George.obj");
+    // auto pDuckModel = resMgr->GetModel(L"George/George.fbx");
+    // auto pDuckModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf");
     if (pDuckModel)
     {
         auto pDuckEntity = CModelEntity::Create(pDuckModel);
         pDuckEntity->SetName(L"MainDuck");
         pDuckEntity->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
-        pDuckEntity->SetScale(Vector3(0.01f, 0.01f, 0.01f));
+        // pDuckEntity->SetScale(Vector3(0.01f, 0.01f, 0.01f));
+        pDuckEntity->SetScale(Vector3(1.0f, 1.0f, 1.0f));
         pDuckEntity->SetRotation(Vector3(0.0f, 90.0f, 0.0f));
 
         pDuckEntity->SetDebugVisualizer(TRUE);
@@ -129,31 +150,82 @@ BOOL CDemoScene::Initialize()
         // 第一人称锚点 First Person Anchor
         auto pFPAnchor = CEntity::Create();
         pFPAnchor->SetName(L"FP_Anchor");
-        pFPAnchor->SetPosition(Vector3(0.8f, 1.5f, 0.0f));
+        pFPAnchor->SetPosition(Vector3(0.0f, 3.0f, 0.8f));
         pFPAnchor->SetDebugVisualizer(TRUE);
         pDuckEntity->AddChild(pFPAnchor);
 
         // 第三人称锚点 Third Person Anchor
         auto pTPAnchor = CEntity::Create();
         pTPAnchor->SetName(L"TP_Anchor");
-        pTPAnchor->SetPosition(Vector3(-2.0f, 2.5f, 0.0f));
+        pTPAnchor->SetPosition(Vector3(0.0f, 6.0f, -4.0f));
         pTPAnchor->SetDebugVisualizer(TRUE);
         pDuckEntity->AddChild(pTPAnchor);
 
-        // 5.1 添加子鸭子
-        // ======================================================================
-        auto pChildDuckEntity = CModelEntity::Create(pDuckModel); // 复用同一个模型资源
-        if (pChildDuckEntity)
-        {
-            pChildDuckEntity->SetName(L"FollowerDuck1");
-            pChildDuckEntity->SetScale(Vector3(0.005f, 0.005f, 0.005f));
-            pChildDuckEntity->SetPosition(Vector3(1.0f, 0.0f, 0.0f));
-            pChildDuckEntity->SetRotation(Vector3(0.0f, 0.0f, 0.0f));
-            pDuckEntity->AddChild(pChildDuckEntity);
-            // LogDebug(L"子鸭子创建成功，已挂载到主鸭子下\n");
-        }
+        // 1. 创建一个专门负责旋转的容器节点，挂在鸭子中心
+        // m_pEffectContainer = CEntity::Create();
+        // m_pEffectContainer->SetName(L"Effect_Rotation_Container");
+        // pDuckEntity->AddChild(m_pEffectContainer);
+
+        // // 2. 循环创建 5 个装饰锚点充当特效
+        // for (int i = 0; i < 5; ++i)
+        // {
+        //     auto pEffectAnchor = CEntity::Create();
+        //     pEffectAnchor->SetName(L"Effect_Anchor_" + std::to_wstring(i));
+
+        //     // 初始位置：均匀分布在半径为 3 的圆周上
+        //     float angle = (360.0f / 5.0f) * i;
+        //     float rad = angle * 0.017453f; // 角度转弧度
+        //     pEffectAnchor->SetPosition(Vector3(sinf(rad) * 3.0f, 2.0f, cosf(rad) * 3.0f));
+
+        //     // 开启调试显示
+        //     pEffectAnchor->SetDebugVisualizer(TRUE);
+
+        //     // 随机缩放：0.2 到 0.8 之间
+        //     float rs = (rand() % 60 + 20) / 100.0f;
+        //     pEffectAnchor->SetScale(Vector3(rs, rs, rs));
+
+        //     // 挂载到旋转容器上
+        //     m_pEffectContainer->AddChild(pEffectAnchor);
+        // }
 
         m_pPossessedEntity = pDuckEntity;
+    }
+
+    // ======================================================================
+    auto pTargetModel = resMgr->GetModel(L"Duck/glTF/Duck.gltf"); // 使用那个小鸭子模型
+    if (pTargetModel)
+    {
+        for (int i = 0; i < 20; ++i)
+        {
+            auto pDuck = CModelEntity::Create(pTargetModel);
+
+            // 1. 随机位置 (在地形范围内，例如 -100 到 100)
+            float rx = (rand() % 2000 - 1000) / 10.0f;
+            float rz = (rand() % 2000 - 1000) / 10.0f;
+            pDuck->SetPosition(Vector3(rx, 0.0f, rz));
+            pDuck->SetScale(Vector3(0.05f, 0.05f, 0.05f)); // 目标鸭子设小一点
+
+            // 2. 随机朝向 (Yaw 轴旋转 0 - 360 度)
+            float ry = (float)(rand() % 360);
+            pDuck->SetRotation(Vector3(0.0f, ry, 0.0f));
+
+            // 3. 随机大小 (例如在 0.4 到 0.8 之间波动)
+            float randomScale = (rand() % 40 + 30) / 1000.0f;
+            pDuck->SetScale(Vector3(randomScale, randomScale, randomScale));
+
+            // 2. 启用自动贴地
+            pDuck->SetSnapToTerrain(TRUE, 0.0f);
+            RegisterEntityForSnapping(pDuck, FALSE); // 静态贴地即可
+
+            // 3. 添加到场景树
+            m_pRootEntity->AddChild(pDuck);
+
+            // 4. 保存到游戏逻辑容器
+            SDuckInstance instance;
+            instance.pEntity = pDuck;
+            instance.collisionRadius = 1.5f * randomScale;
+            m_TargetDucks.push_back(instance);
+        }
     }
 
     // ======================================================================
@@ -172,14 +244,71 @@ void CDemoScene::Update(float deltaTime)
     if (!m_pRootEntity || m_bIsPaused)
         return;
 
-    // 1. 处理输入
-    ProcessInput(deltaTime);
+    if (m_bGameOver)
+    {
+        // === 胜利时刻逻辑 ===
+        if (m_pPossessedEntity)
+        {
+            // 1. 悬浮效果 (Sine Wave)
+            static float totalTime = 0.0f;
+            totalTime += deltaTime;
 
-    // 2. 驱动层更新
-    m_pRootEntity->Update(deltaTime);
+            Vector3 pos = m_pPossessedEntity->GetPosition();
+            // 让鸭子在地表高度以上 2.0 到 3.0 的区间漂浮
+            float groundH = m_pTerrain ? m_pTerrain->GetGroundHeight(pos) : 0.0f;
+            pos.y = groundH + 2.5f + sinf(totalTime * 3.0f) * 0.5f;
+            m_pPossessedEntity->SetPosition(pos);
 
-    // 3.实体更新逻辑
-    UpdateLogic(deltaTime);
+            // 2. 快速自转效果
+            Vector3 rot = m_pPossessedEntity->GetRotationEuler();
+            rot.y += 360.0f * deltaTime; // 每秒转一圈
+            m_pPossessedEntity->SetRotation(rot);
+
+            // 3. 呼吸缩放效果
+            float s = 1.0f + sinf(totalTime * 5.0f) * 0.1f;
+            m_pPossessedEntity->SetScale(Vector3(s, s, s));
+        }
+
+        // 胜利后依然允许更新根实体（保证雨滴、天空盒等依然在动）
+        m_pRootEntity->Update(deltaTime);
+    }
+    else
+    {
+        // === 正常游戏逻辑 ===
+        ProcessInput(deltaTime);
+        m_pRootEntity->Update(deltaTime);
+        UpdateLogic(deltaTime);
+    }
+
+    if (!m_bGameOver)
+    {
+        // === 正常游戏时的特效逻辑 ===
+        if (m_pEffectContainer)
+        {
+            // 1. 容器绕 Y 轴持续旋转
+            static float containerYaw = 0.0f;
+            containerYaw += 30.0f * deltaTime; // 每秒转 120 度
+            m_pEffectContainer->SetRotation(Vector3(0, containerYaw, 0));
+
+            // 2. 让子锚点随机缩放脉动 (呼吸灯效果)
+            static float waveTime = 0.0f;
+            waveTime += deltaTime * 2.0f;
+
+            auto &children = m_pEffectContainer->GetChildren();
+            for (size_t i = 0; i < children.size(); ++i)
+            {
+                // 每个锚点根据索引赋予不同的相位偏移，看起来更杂乱/随机
+                float pulse = 1.0f + sinf(waveTime + i) * 0.4f;
+                // 在初始随机缩放的基础上叠加脉动
+                children[i]->SetScale(Vector3(pulse, pulse, pulse));
+            }
+        }
+
+        ProcessInput(deltaTime);
+        UpdateEntities(deltaTime);
+        m_pRootEntity->Update(deltaTime);
+        UpdateLogic(deltaTime);
+    }
 }
 
 // ======================================================================
@@ -218,6 +347,7 @@ void CDemoScene::Render()
         // 建议在 CSkyboxEntity::Render 内部手动关闭和开启雾
         m_pRootEntity->Render();
     }
+    RenderUI();
 }
 
 void CDemoScene::Shutdown()
@@ -336,6 +466,17 @@ void CDemoScene::CleanupTextureState()
 // ======================================================================
 void CDemoScene::ProcessInput(float deltaTime)
 {
+    auto inputMgr = CGameEngine::GetInstance().GetInputManager();
+
+    // 检测 R 键重置游戏
+    if (inputMgr->IsKeyPressed('R')) // 或者使用你的 Hotkeys::Reset
+    {
+        ResetGame();
+    }
+
+    // 如果游戏已经结束，就不处理移动输入了，只允许重置
+    if (m_bGameOver)
+        return;
     // 全局快捷键
     ProcessGlobalHotkeys(deltaTime);
 
@@ -513,6 +654,49 @@ void CDemoScene::ProcessCameraInput(float deltaTime)
 void CDemoScene::UpdateLogic(float deltaTime)
 {
     UpdateAutoSnapping();
+
+    if (m_bGameOver || !m_pPossessedEntity)
+        return;
+
+    Vector3 playerPos = m_pPossessedEntity->GetPosition();
+
+    for (auto &duck : m_TargetDucks)
+    {
+        if (!duck.isPickedUp)
+        {
+            Vector3 duckPos = duck.pEntity->GetPosition();
+
+            // 计算水平距离 (忽略高度差，方便拾取)
+            float distSq = pow(playerPos.x - duckPos.x, 2) + pow(playerPos.z - duckPos.z, 2);
+
+            float detectionRange = duck.collisionRadius + 3.0f;
+            if (distSq < pow(detectionRange, 2))
+            {
+                // 1. 标记拾取
+                duck.isPickedUp = true;
+                duck.pEntity->SetVisible(FALSE); // 隐藏模型
+
+                // 2. 计分
+                m_Score++;
+                LogInfo(L"捡到鸭子！当前分数: %d / %d\n", m_Score, WIN_SCORE);
+
+                if (m_pMainCamera)
+                {
+                    m_pMainCamera->StartShake(0.1f, 0.2f);
+                }
+
+                // 3. 检查胜利
+                if (m_Score >= WIN_SCORE)
+                {
+                    m_bGameOver = true;
+                    LogInfo(L"恭喜你！集齐了 %d 只鸭子，游戏结束！\n", WIN_SCORE);
+
+                    // 1. 关闭自动贴地，否则它会被强制拽回地面
+                    m_pPossessedEntity->SetSnapToTerrain(FALSE);
+                }
+            }
+        }
+    }
 }
 
 void CDemoScene::UpdateEntities(float deltaTime)
@@ -696,37 +880,48 @@ void CDemoScene::SyncEntityToCamera()
     // 获取鸭子当前的向前向量
     Vector3 duckForward = m_pPossessedEntity->GetForward();
 
+    float terrainH = m_pTerrain->GetGroundHeight(cameraPos);
+
+    float minAllowedY = terrainH + MIN_CAMERA_HEIGHT_ABOVE_GROUND;
+    float maxAllowedY = terrainH + MAX_CAMERA_HEIGHT_ABOVE_GROUND;
+
+    if (cameraPos.y < minAllowedY)
+    {
+        cameraPos.y = minAllowedY;
+        m_pMainCamera->SetPosition(cameraPos); // 强制回弹，防止穿模
+    }
+    else if (cameraPos.y > maxAllowedY)
+    {
+        cameraPos.y = maxAllowedY;
+        m_pMainCamera->SetPosition(cameraPos);
+    }
+
     // 只考虑水平方向
     cameraForward.y = 0;
     cameraForward.Normalize();
 
-    duckForward.y = 0;
-    duckForward.Normalize();
-
     // 鸭子与相机的平面距离
-    float planeDistance = 5.0f; // 默认第三人称距离
+    float planeDistance = 7.0f; // 默认第三人称距离
 
     if (mode == CameraMode::FirstPerson)
     {
-        planeDistance = 0.1f; // 第一人称距离，很接近相机
+        planeDistance = 0.5f; // 第一人称距离，很接近相机
     }
 
     // 计算鸭子的目标位置
     Vector3 targetPos = cameraPos + cameraForward * planeDistance;
-    targetPos.y = m_pPossessedEntity->GetPosition().y; // 保持当前Y坐标
+
+    float duckH = m_pTerrain->GetGroundHeight(targetPos);
+    targetPos.y = duckH + m_pPossessedEntity->GetGroundOffset();
 
     // 设置鸭子的位置
     m_pPossessedEntity->SetPosition(targetPos);
 
-    // ======================================================================
-    // 计算鸭子的目标旋转，使其看向相机的前方
-    // ======================================================================
-    // 方法1：直接计算角度差并旋转
     float dot = Vector3::Dot(duckForward, cameraForward);
     float angleRad = acosf(Math::Clamp(dot, -1.0f, 1.0f));
 
     // 如果角度很小，不更新（避免抖动）
-    if (angleRad < 0.01f)
+    if (angleRad < 0.1f)
     {
         return;
     }
@@ -745,11 +940,137 @@ void CDemoScene::SyncEntityToCamera()
     Quaternion newRot = rotationDiff * currentRot; // 或者 currentRot * rotationDiff
     newRot.Normalize();
 
-    Quaternion modelOffset = Quaternion(Vector3(0, 1, 0), 1.570796f); // -90度弧度
+    // Quaternion modelOffset = Quaternion(Vector3(0, 1, 0), 1.570796f); // -90度弧度
+    Quaternion modelOffset = Quaternion(Vector3(0, 1, 0), 3.141592f); // 180度弧度
     newRot = newRot * modelOffset;                                    // 在最终旋转上应用模型偏置
     newRot.Normalize();
 
     // 设置新旋转
 
     m_pPossessedEntity->SetRotation(newRot);
+}
+
+void CDemoScene::ResetGame()
+{
+    // 1. 重置游戏状态标志
+    m_Score = 0;
+    m_bGameOver = FALSE;
+    LogInfo(L"游戏已重置！\n");
+
+    // 2. 恢复主鸭子（玩家）状态
+    if (m_pPossessedEntity)
+    {
+        m_pPossessedEntity->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
+        m_pPossessedEntity->SetRotation(Vector3(0.0f, 90.0f, 0.0f));
+        m_pPossessedEntity->SetScale(Vector3(1.0f, 1.0f, 1.0f));
+
+        // 重新开启贴地系统，确保玩家回到地面
+        m_pPossessedEntity->SetSnapToTerrain(TRUE, 0.0f);
+
+        // 如果有动画，切回初始闲置动画
+        // m_pPossessedEntity->PlayAnimation(0, true);
+    }
+
+    // 3. 恢复所有目标鸭子的可见性
+    for (auto &duck : m_TargetDucks)
+    {
+        duck.isPickedUp = false;
+        if (duck.pEntity)
+        {
+            duck.pEntity->SetVisible(TRUE);
+            // 可选：在这里重新随机分布鸭子的位置，让每次重置都有新鲜感
+            float rx = (rand() % 2000 - 1000) / 10.0f;
+            float rz = (rand() % 2000 - 1000) / 10.0f;
+            duck.pEntity->SetPosition(Vector3(rx, 0.0f, rz));
+        }
+    }
+
+    // 4. 重置相机模式
+    if (m_pMainCamera)
+    {
+        m_pMainCamera->SetMode(CameraMode::ThirdPerson);
+    }
+}
+
+void CDemoScene::RenderUI()
+{
+    auto renderer = CGameEngine::GetInstance().GetRenderer();
+    if (!renderer)
+        return;
+
+    int screenW = renderer->GetWidth();
+    int screenH = renderer->GetHeight();
+
+    // 1. 切换到 UI 渲染状态（2D 正交投影）
+    renderer->PushState();
+    renderer->SetDepthTest(FALSE); // UI 不需要深度测试
+    renderer->SetBlending(TRUE);   // 开启混合以支持半透明背景
+    renderer->SetBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // 设置正交投影矩阵：左, 右, 下, 上, 近, 远
+    renderer->SetOrthoProjection(0, (float)screenW, 0, (float)screenH, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // ======================================================================
+    // 2. 绘制左计分板
+    // ======================================================================
+    float sbW = 180.0f;
+    float sbH = 60.0f;
+    float sbX = 10.0f;                  // 靠左边缘 10 像素
+    float sbY = (screenH - sbH) * 0.5f; // 屏幕高度的一半减去 UI 高度的一半
+
+    DrawUIRect(sbX, sbY, sbW, sbH, UI_BG_COLOR, UI_BORDER_COLOR);
+
+
+    std::string scoreStr = "Ducks: " + std::to_string(m_Score) + " / " + std::to_string(WIN_SCORE);
+    renderer->RenderSimpleText(scoreStr, (int)sbX + 35, (int)sbY + 40, 1.0f, 1.0f, 0.0f);
+
+    // ======================================================================
+    // 3. 绘制胜利结算画面
+    // ======================================================================
+    if (m_bGameOver)
+    {
+        float winW = 400.0f, winH = 200.0f;
+        float winX = (screenW - winW) * 0.5f;
+        float winY = (screenH - winH) * 0.5f;
+
+        // 绘制大背景框
+        DrawUIRect(winX, winY, winW, winH, UI_BG_COLOR, UI_BORDER_COLOR);
+
+        // 绘制胜利文字（居中感）
+        renderer->RenderSimpleText("CONGRATULATIONS!", (int)winX + 110, (int)winY + 160, 0.0f, 1.0f, 0.0f);
+        renderer->RenderSimpleText("All Ducks Collected!", (int)winX + 105, (int)winY + 130, 1.0f, 1.0f, 1.0f);
+
+        // 绘制操作提示
+        renderer->RenderSimpleText("Press [R] to Restart", (int)winX + 115, (int)winY + 80, 1.0f, 1.0f, 0.0f);
+        renderer->RenderSimpleText("Press [ESC] to Quit", (int)winX + 120, (int)winY + 50, 1.0f, 0.5f, 0.5f);
+    }
+
+    renderer->PopState();
+}
+
+// 辅助函数：绘制带边框的矩形
+void CDemoScene::DrawUIRect(float x, float y, float w, float h, const float *bgColor, const float *borderColor)
+{
+    glDisable(GL_TEXTURE_2D);
+
+    // 1. 填色
+    glColor4fv(bgColor);
+    glBegin(GL_QUADS);
+    glVertex2f(x, y);
+    glVertex2f(x + w, y);
+    glVertex2f(x + w, y + h);
+    glVertex2f(x, y + h);
+    glEnd();
+
+    // 2. 描边
+    glColor4fv(borderColor);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(x, y);
+    glVertex2f(x + w, y);
+    glVertex2f(x + w, y + h);
+    glVertex2f(x, y + h);
+    glEnd();
 }

@@ -41,7 +41,8 @@ build/**/*
 **/assets/Models/*
 !**/assets/Models/Duck
 !**/assets/Models/Teapot
-Resources/**/*
+Resources/*
+Animated Mech/*
 
 
 

@@ -108,6 +108,7 @@ public:
     void SetRotation(const Vector3 &euler);
     void SetRotation(const Quaternion &quat);
     const Quaternion &GetRotation() const { return m_rotation; }
+    Vector3 GetRotationEuler() const { return m_rotation.ToEuler(); }
     void SetScale(const Vector3 &scale);
     const Vector3 &GetScale() const { return m_scale; }
     void SetInheritScale(BOOL bInherit)
