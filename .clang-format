@@ -1,0 +1,17 @@
+﻿# =========================================================================================================
+# .clang-format
+BasedOnStyle                       : LLVM               # 风格（Google, Chromium, Mozilla, WebKit）
+IndentWidth                        : 4                  # 缩进宽度为4个空格
+UseTab                             : Never              # 不使用 Tab
+TabWidth                           : 4                  # 若使用 Tab（此处不启用），宽度为4
+ColumnLimit                        : 0                  # 每行最大字符数（设为0表示不限制，但建议保留限制）
+BreakBeforeBraces                  : Linux              # 大括号风格：Linux 风格（即 { 在新行）
+AllowShortIfStatementsOnASingleLine: false              # 禁止单行 if
+AllowShortFunctionsOnASingleLine   : None               # 函数不允许单行
+PointerAlignment                   : Left               # 指针符号 * 靠左（如 int* p）
+SpaceBeforeParens                  : ControlStatements  # if/for/while 后加空格
+SpacesInParentheses                : false              # 括号内不加空格（如 f( a ) → f(a)）
+AlignTrailingComments              : true               # 尾部注释对齐
+AlignConsecutiveMacros             : true               # 宏定义对齐
+MaxEmptyLinesToKeep                : 2                  # 最多保留1个空行
+KeepEmptyLinesAtTheStartOfBlocks   : false
