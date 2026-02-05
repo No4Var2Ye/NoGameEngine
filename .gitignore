@@ -1,0 +1,41 @@
+﻿
+.vscode/
+*.bak
+
+tmp/**/*
+
+**/*.exe
+
+# Visual Studio
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.ilk
+*.pdb
+*.vcxproj*
+**/Release/
+**/Debug/
+*.sdf
+*.user
+*.filters
+*.user
+*.db
+*.obj
+*.log
+*.tlog
+*.lastbuildstate
+*.cache
+*.ipch
+
+# 构建
+build/**/*
+
+# 资源文件
+**/assets/Models/*
+!**/assets/Models/Duck
+!**/assets/Models/Teapot
+Resources/**/*
+
+
+
