@@ -1,0 +1,123 @@
+﻿
+// ======================================================================
+#ifndef __MODEL_H__
+#define __MODEL_H__
+// ======================================================================
+#include <string>
+#include <vector>
+#include <memory>
+#include <map>
+#include "assimp/Importer.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
+#include "Resources/Mesh.h"
+#include "Math/Matrix4.h"
+#include "Math/Quaternion.h"
+#include "EngineConfig.h"
+// ======================================================================
+
+class CResourceManager;
+
+struct BoneInfo
+{
+    int id;
+    Matrix4 offset; // 从模型空间变换到骨骼空间的矩阵
+};
+
+class CModel
+{
+public:
+    CModel() = default;
+    ~CModel() = default;
+
+    // 加载模型入口
+    BOOL LoadFromFile(const std::wstring &filePath, CResourceManager *pResMgr);
+    void Unload();
+
+    // 模型绘制
+    void Draw() const;
+    void AddMesh(std::shared_ptr<CMesh> pMesh);
+
+    // 模型参数统计
+    size_t GetVertexCount() const { return m_totalVertices; }
+    size_t GetTriangleCount() const { return m_totalTriangles; }
+    size_t GetMeshCount() const { return m_meshes.size(); }
+
+    // 名称相关
+    void SetName(const std::wstring &name) { m_name = name; }
+    const std::wstring &GetName() const { return m_name; }
+
+    // 模型变换
+    void SetPosition(const Vector3 &position);
+    void SetRotation(const Vector3 &eulerAngles);
+    void SetScale(const Vector3 &scale);
+    const Matrix4 &GetWorldMatrix() const;
+
+    // 边界框
+    const Vector3 &GetMinBounds() const { return m_minBounds; }
+    const Vector3 &GetMaxBounds() const { return m_maxBounds; }
+    const Vector3 &GetCenter() const { return m_center; }
+    float GetRadius() const { return m_radius; }
+    void DrawBoundingBox(const Vector3 &color = Vector3(0, 1, 0)) const;
+
+    BOOL IsPointInside(const Vector3 &point) const;
+    BOOL IntersectsSphere(const Vector3 &center, float radius) const;
+
+    // 绘制法线
+    void DrawNormals(float scale = 0.5f, unsigned int step = 1);
+
+    void UpdateAnimation(float timeInSeconds);
+
+private:
+    std::vector<std::shared_ptr<CMesh>> m_meshes; // 一个模型由多个网格组成
+
+    // 信息统计
+    size_t m_totalVertices = 0;  // 顶点数
+    size_t m_totalTriangles = 0; // 三角面数
+
+    // "Resources/Models/ANBY/"
+    std::wstring m_directory; // 模型所在目录，用于纹理查找
+    // "Resources/Models/ANBY/Anby.obj"
+    std::wstring m_filePath; // 完整文件路径，用于重新加载等
+
+    std::wstring m_name;
+
+    Vector3 m_position;
+    Quaternion m_rotation;
+    Vector3 m_scale = Vector3(1, 1, 1);
+
+    mutable Matrix4 m_transform;   // 模型变换矩阵
+    mutable BOOL m_isDirty = TRUE; // 标记是否需要重新计算
+
+    // 边界框
+    Vector3 m_minBounds;
+    Vector3 m_maxBounds;
+    Vector3 m_center;
+    float m_radius = 0.0f;
+
+    mutable Matrix4 m_invTransform; // 缓存逆矩阵
+
+    void ProcessNode(aiNode *node, const aiScene *scene, CResourceManager *pResMgr);                   // 递归处理 Assimp 节点
+    std::shared_ptr<CMesh> ProcessMesh(aiMesh *mesh, const aiScene *scene, CResourceManager *pResMgr); // 转换网格数据 将 Assimp 的网格转换为我们的 CMesh
+
+    // 加载材质贴图
+    std::shared_ptr<CTexture> LoadMaterialTexture(aiMaterial *mat, aiTextureType type, CResourceManager *pResMgr);
+
+    // 添加边界框计算方法
+    void CalculateBoundingBox();
+    void UpdateBoundingBox(const Vector3 &point);
+
+    std::map<std::string, BoneInfo> m_BoneMapping; // 骨骼名字 -> ID
+    int m_BoneCount = 0;
+    const aiScene *m_pScene = nullptr; // 保留 Assimp 场景指针用于读取动画
+    Assimp::Importer m_Importer;       // 提升为类成员，防止函数结束被销毁
+
+    // 新增核心方法
+
+    void ReadNodeHierarchy(float AnimationTime, const aiNode *pNode, const Matrix4 &ParentTransform);
+
+    std::vector<Matrix4> m_FinalMatrices;
+
+    const int MAX_BONES = 100;
+};
+#endif // __MODEL_H__

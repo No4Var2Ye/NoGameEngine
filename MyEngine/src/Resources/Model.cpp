@@ -10,34 +10,19 @@
 #include "Utils/StringUtils.h"
 // ======================================================================
 
-// filepath 参考系 是exe文件
-// 这里传入的文件路径是fullpath, 保证通用性
 BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMgr)
 {
-    if (!pResMgr)
-    {
-        LogError(L"ResourceManager为空\n");
-        return FALSE;
-    }
+    if (!pResMgr) { LogError(L"ResourceManager为空\n");return FALSE; }
 
-    // --- 1. 初始化动画容器 ---
+    // 1. 初始化动画容器
     m_FinalMatrices.clear();
     m_FinalMatrices.resize(MAX_BONES, Matrix4::Identity());
     m_BoneMapping.clear(); // 清空旧模型的骨骼映射
 
     Unload();
 
-    // 转换语义
-    // fullPath = res/Models/Duck/Duck.obj
     std::wstring fullPath = filePath;
-
-    // m_filePath = res/Models/Duck/Duck.obj
     m_filePath = fullPath;
-
-    // Assimp::Importer importer;
-
-    // 1. 将 wstring 转为 string (Assimp 接口要求)
-    // 这里可以使用之前提到的 CStringUtils 或简单的转换
 
     std::string pathStr = CStringUtils::WStringToString(fullPath);
 
@@ -47,47 +32,32 @@ BOOL CModel::LoadFromFile(const std::wstring &filePath, CResourceManager *pResMg
         aiProcess_Triangulate |           // 转为三角形
         aiProcess_FlipUVs |               // 翻转纹理坐标
         aiProcess_GenSmoothNormals |      // 生成平滑法线
-        aiProcess_CalcTangentSpace |      // 计算切线空间（如果需要法线贴图）
+        aiProcess_CalcTangentSpace |      // 计算切线空间
         aiProcess_JoinIdenticalVertices | // 合并重复顶点
         aiProcess_ImproveCacheLocality |  // 优化缓存局部性
         aiProcess_ValidateDataStructure | // 验证数据结构
         aiProcess_OptimizeMeshes;         // 优化网格
 
-    // --- 3. 使用类成员 m_Importer 加载 ---
-    // 注意：不要再声明 Assimp::Importer importer; 局部变量了
+    // 3. 使用类成员 m_Importer 加载
     m_pScene = m_Importer.ReadFile(pathStr, flags);
 
     if (!m_pScene)
-    {
-        LogError(L"Assimp Error: %hs \n", m_Importer.GetErrorString());
-        return FALSE;
-    }
+    { LogError(L"Assimp Error: %hs \n", m_Importer.GetErrorString()); return FALSE; }
 
     if (m_pScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
-    {
-        LogWarning(L"[Model] 场景不完整，模型可能显示异常: %ls. \n", fullPath.c_str());
-    }
+    { LogWarning(L"[Model] 场景不完整，模型可能显示异常: %ls. \n", fullPath.c_str()); }
 
-    if (!m_pScene->mRootNode)
-    {
-        LogError(L"[Model] 缺少根节点，无法解析模型: %ls. \n", fullPath.c_str());
-        return FALSE;
-    }
+    if (!m_pScene->mRootNode) { LogError(L"[Model] 缺少根节点，无法解析模型: %ls. \n", fullPath.c_str());return FALSE;}
 
     // 3. 获取模型目录
     size_t lastSlash = fullPath.find_last_of(L"/\\");
     m_directory = (lastSlash != std::wstring::npos) ? fullPath.substr(0, lastSlash) : L"";
-    // 模型目录 m_directory = res/Models/Duck
 
     // 4. 递归处理节点
     m_meshes.reserve(m_pScene->mNumMeshes); // 预分配内存
     ProcessNode(m_pScene->mRootNode, m_pScene, pResMgr);
 
-    if (m_meshes.empty())
-    {
-        LogWarning(L"当前路径: %ls 下没有网格加载", fullPath);
-        return FALSE;
-    }
+    if (m_meshes.empty()) { LogWarning(L"当前路径: %ls 下没有网格加载", fullPath); return FALSE; }
 
     // 5. 计算边界框
     size_t lastDot = fullPath.find_last_of(L".");
@@ -201,7 +171,7 @@ std::shared_ptr<CMesh> CModel::ProcessMesh(aiMesh *mesh, const aiScene *scene, C
 
         // 位置
         vertex.Position = CMathConverter::ToVector3(mesh->mVertices[i]);
-        // --- 新增：存储原始位置，用于 CPU 蒙皮计算 ---
+        // 存储原始位置，用于 CPU 蒙皮计算
 
         if (mesh->HasNormals())
         {
@@ -227,7 +197,7 @@ std::shared_ptr<CMesh> CModel::ProcessMesh(aiMesh *mesh, const aiScene *scene, C
             vertex.TexCoords = Vector2(0.0f, 0.0f);
         }
 
-        // --- 新增：初始化骨骼数据，默认 -1 表示不受骨骼影响 ---
+        // 初始化骨骼数据，默认 -1 表示不受骨骼影响
         for (int j = 0; j < 4; j++)
         {
             vertex.BoneIDs[j] = -1;

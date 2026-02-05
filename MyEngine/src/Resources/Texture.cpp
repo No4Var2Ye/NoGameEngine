@@ -94,10 +94,7 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
     }
 
     stbi_set_flip_vertically_on_load(false);
-    unsigned char *data = stbi_load(narrowPath.c_str(),
-                                    &m_Width,
-                                    &m_Height,
-                                    &m_Channels, 0);
+    unsigned char *data = stbi_load(narrowPath.c_str(), &m_Width, &m_Height, &m_Channels, 0);
 
     if (!data)
     {
@@ -126,7 +123,6 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
         break;
     case 3:
         format = GL_RGB;
-        // format = GL_BGR_EXT;
         internalFormat = GL_RGB8;
         break;
     case 4:
@@ -150,19 +146,15 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
     glBindTexture(GL_TEXTURE_2D, m_TextureID);
 
     // 4. 设置默认纹理参数 包裹和过滤参数（固定管线常用设置）
-    // SetDefaultParameters();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // 5. 上传数据
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
-                 m_Width, m_Height, 0,
-                 format, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_Width, m_Height, 0, format, GL_UNSIGNED_BYTE, data);
 
     // 6. 上传图像数据并生成 Mipmaps
-    // gluBuild2DMipmaps(GL_TEXTURE_2D, m_Channels, m_Width, m_Height, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     // 7. 释放内存
@@ -172,124 +164,39 @@ BOOL CTexture::LoadFromFile(const std::wstring &filePath)
     return true;
 }
 
-BOOL CTexture::CreateTestTexture()
+BOOL CTexture::LoadFromMemory(const unsigned char *data, INT width, INT height, INT channels, GLenum format)
 {
     Cleanup();
 
-    m_Width = 64;
-    m_Height = 64;
-    m_Channels = 3;
-    m_Path = L"test-texture-red";
-
-    // 创建更明显的测试纹理：红白棋盘格
-    unsigned char *data = new unsigned char[64 * 64 * 3];
-
-    for (int y = 0; y < 64; y++)
-    {
-        for (int x = 0; x < 64; x++)
-        {
-            int idx = (y * 64 + x) * 3;
-            bool isRed = ((x / 8) + (y / 8)) % 2 == 0;
-
-            if (isRed)
-            {
-                data[idx] = 0;       // B
-                data[idx + 1] = 0;   // G
-                data[idx + 2] = 255; // R
-            }
-            else
-            {
-                // 白色：所有通道都是255
-                data[idx] = 255;     // B
-                data[idx + 1] = 255; // G
-                data[idx + 2] = 255; // R
-            }
-        }
-    }
-
-    // 生成纹理
-    glGenTextures(1, &m_TextureID);
-    if (m_TextureID == 0)
-    {
-        std::cerr << "glGenTextures失败" << std::endl;
-        delete[] data;
-        return FALSE;
-    }
-
-    glBindTexture(GL_TEXTURE_2D, m_TextureID);
-
-    // 设置纹理参数
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 64, 64, 0,
-                 GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
-    std::cout << "测试纹理: 使用 GL_BGR_EXT 格式" << std::endl;
-
-    // 生成mipmaps
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    delete[] data;
-
-    std::cout << "测试纹理创建成功: ID=" << m_TextureID << std::endl;
-    return TRUE;
-}
-
-BOOL CTexture::LoadFromMemory(const unsigned char *data,
-                              INT width, INT height,
-                              INT channels,
-                              GLenum format)
-{
-    Cleanup();
-
-    m_Width = width;
-    m_Height = height;
-    m_Channels = channels;
+    m_Width = width; m_Height = height; m_Channels = channels;
 
     if (width <= 0 || height <= 0 || channels <= 0 || channels > 4)
     {
-        std::cerr << "内存纹理参数无效: "
-                  << width << "x" << height << "x" << channels << std::endl;
-        return FALSE;
+        LogError(L"内存纹理参数无效: %dx%dx%d.\n", width, height, channels); return FALSE;
     }
 
     // 确定内部格式
     GLenum internalFormat = GL_RGB8;
     switch (channels)
     {
-    case 1:
-        internalFormat = GL_R8;
-        break;
-    case 2:
-        internalFormat = GL_RG8;
-        break;
-    case 3:
-        internalFormat = GL_RGB8;
-        break;
-    case 4:
-        internalFormat = GL_RGBA8;
-        break;
+    case 1: internalFormat = GL_R8; break;
+    case 2: internalFormat = GL_RG8; break;
+    case 3: internalFormat = GL_RGB8; break;
+    case 4: internalFormat = GL_RGBA8;break;
     }
 
     // 生成纹理
     glGenTextures(1, &m_TextureID);
     if (m_TextureID == 0)
     {
-        std::cerr << "glGenTextures失败" << std::endl;
-        return FALSE;
+        LogError(L"glGenTextures失败"); return FALSE;
     }
 
     SetDefaultParameters();
     return UploadToGPU(data, format, internalFormat);
 }
 
-BOOL CTexture::CreateEmpty(INT width, INT height,
-                           GLenum internalFormat,
-                           GLenum format,
-                           GLenum dataType)
+BOOL CTexture::CreateEmpty(INT width, INT height, GLenum internalFormat, GLenum format, GLenum dataType)
 {
     Cleanup();
 
@@ -324,9 +231,7 @@ BOOL CTexture::CreateEmpty(INT width, INT height,
     }
 
     glBindTexture(GL_TEXTURE_2D, m_TextureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
-                 width, height, 0,
-                 format, dataType, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, dataType, nullptr);
 
     SetDefaultParameters();
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -393,8 +298,7 @@ void CTexture::SetAnisotropy(FLOAT level)
 
     // 检查是否支持各向异性过滤
     const GLubyte *extensions = glGetString(GL_EXTENSIONS);
-    if (extensions && strstr(reinterpret_cast<const char *>(extensions),
-                             "GL_EXT_texture_filter_anisotropic"))
+    if (extensions && strstr(reinterpret_cast<const char *>(extensions), "GL_EXT_texture_filter_anisotropic"))
     {
         float maxAnisotropy = 1.0f;
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
@@ -444,10 +348,9 @@ void CTexture::SetDefaultParameters()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // 设置各向异性过滤（如果支持）
+    // 设置各向异性过滤
     if (glGetString(GL_EXTENSIONS) &&
-        strstr(reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS)),
-               "GL_EXT_texture_filter_anisotropic"))
+        strstr(reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS)), "GL_EXT_texture_filter_anisotropic"))
     {
         float maxAnisotropy = 1.0f;
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
@@ -458,9 +361,7 @@ void CTexture::SetDefaultParameters()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-BOOL CTexture::UploadToGPU(const unsigned char *data,
-                           GLenum format,
-                           GLenum internalFormat)
+BOOL CTexture::UploadToGPU(const unsigned char *data, GLenum format, GLenum internalFormat)
 {
     if (m_TextureID == 0)
     {
@@ -477,9 +378,7 @@ BOOL CTexture::UploadToGPU(const unsigned char *data,
     glBindTexture(GL_TEXTURE_2D, m_TextureID);
 
     // 上传纹理数据
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
-                 m_Width, m_Height, 0,
-                 format, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_Width, m_Height, 0, format, GL_UNSIGNED_BYTE, data);
 
     // 检查OpenGL错误
     GLenum error = glGetError();

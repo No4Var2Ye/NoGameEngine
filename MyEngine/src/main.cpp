@@ -32,9 +32,9 @@
 // ======================================================================
 #include "stdafx.h"
 
-// #ifdef MYDEBUG
-// #undef MYDEBUG
-// #endif
+#ifdef MYDEBUG
+#undef MYDEBUG
+#endif
 
 #include "EngineConfig.h"
 #include "Core/GameEngine.h"
@@ -77,7 +77,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     config.windowWidth = 1280;
     config.windowHeight = 800;
     config.fullscreen = FALSE;
-    config.title = L"QMT的游戏引擎";
 
     // 初始化引擎
     if (!engine.Initialize(hInstance, config))

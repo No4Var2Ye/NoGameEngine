@@ -637,9 +637,9 @@ void CGameEngine::RenderSplashScreen(FLOAT deltaTime, BOOL isFadeOut)
     INT centerY = m_Renderer->GetHeight() / 2;
 
     // 渲染 QMT
-    m_Renderer->RenderText2D("Q M T", centerX, centerY + (lineHeight * row++), textColor, 1.0f);
+    m_Renderer->RenderText2D("N V Y", centerX, centerY + (lineHeight * row++), textColor, 1.0f);
     m_Renderer->RenderText2D("- - - - - - - - -", centerX - 30, centerY + (lineHeight * row++), textColor, 1.0f);
-    m_Renderer->RenderText2D("3D程序设计", centerX - 20, centerY + (lineHeight * row++), textColor, 1.0f);
+    m_Renderer->RenderText2D("渲染引擎开发", centerX - 18, centerY + (lineHeight * row++), textColor, 1.0f);
 
     // 状态切换逻辑
     if (m_SplashTimer >= currentDuration)
