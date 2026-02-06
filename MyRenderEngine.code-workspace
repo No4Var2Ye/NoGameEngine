@@ -1,15 +1,28 @@
 {
     "folders": [
         {
-            "name": "Root",
-            "path": ".."
+            "name": "ROOT",
+            "path": "."
         },
         {
             "name": "Documents",
-            "path": "../docs"
+            "path": "docs"
         },
         {
-            "path": "../NoRenderEngine"
+            "name": "RenderEngine",
+            "path": "RenderEngine"
+        },
+        {
+            "name": "Resources Files",
+            "path": "RenderEngine/assets"
+        },
+        {
+            "name": "Header Files",
+            "path": "RenderEngine/include"
+        },
+        {
+            "name": "Source Files",
+            "path": "RenderEngine/src"
         }
     ],
     "settings": {
@@ -20,7 +33,8 @@
             // ========================================
             // Project
             "docs": true,
-            "NoRenderEngine": true,
+            "RenderEngine": true,
+            "Resources": true,
             // ========================================
             // Computer Graphics
             "**/GL": true,

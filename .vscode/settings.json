@@ -1,10 +1,18 @@
 {
-    // "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    // "cmake.configureOnOpen": true,
-    // "cmake.buildDirectory": "${workspaceFolder}/build",
-    // "cmake.generator": "Ninja",
-    // "cmake.parallelJobs": 8,
+    // =======================================================================
     "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    // =======================================================================
+    "cmake.configureOnOpen": true,
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "Ninja", // "Unix Makefiles" / "Visual Studio 17 2022"
+    // 调试配置（自动检测）
+    "cmake.automaticReconfigure": true, // 当CMakeList.txt 或者依赖文件被修改后,自动配置
+    "cmake.saveBeforeBuild": true, // 在执行Build操作前, 自动报错所有已修改文件
+    "cmake.parallelJobs": 8, // 构建时的并行任务数
+    "cmake.buildType": "Debug",
+    "cmake.sourceDirectory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine",
+    // =======================================================================
     "[cpp]": {
         "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
         "editor.formatOnSave": true,
@@ -30,5 +38,4 @@
         "editor.tabSize": 4,
         "editor.insertSpaces": true
     },
-    // "clang-format.executable": "${workspaceFolder}/tools/clang-format.exe",
 }

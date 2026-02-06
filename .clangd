@@ -18,6 +18,10 @@ CompileFlags:
 # ======================================================================
 # 全局诊断配置
 Diagnostics:
+  ClangTidy:
+    Remove:
+      - cppcoreguidelines-avoid-magic-numbers
+      - bugprone-implicit-widening-of-multiplication-result
   Suppress: 
     - clang-diagnostic-unused-variable
     - clang-diagnostic-unused-parameter
