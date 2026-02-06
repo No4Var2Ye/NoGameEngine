@@ -1,10 +1,10 @@
 ﻿
 # ============================
 # IDE
-.vscode/
-.vscode/settings.json.user
-.vscode/launch.json.user
-.vscode/tasks.json.user
+# .vscode/
+# !.vscode/settings.json.user
+# !.vscode/launch.json.user
+# !.vscode/tasks.json.user
 
 # ============================
 # Backup

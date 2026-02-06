@@ -1,29 +1,41 @@
 ﻿# C:\Users\<username>\AppData\Local\clangd\config.yaml
 # ======================================================================
 # .clangd
-CompileFlags:
-  # 添加全局编译选项（如 C++ 标准）
-  Add: [-xc++, -std=c++17, -I/usr/include, -I./include]
-
-# 如果你有 compile_commands.json，通常不需要额外配置路径
-# 但若缺失，可通过 FallbackFlags 提供默认编译参数
+# CPP 源文件
 If:
-  PathMatch: .*\.cpp$
-  CompileFlags:
-    Add: [-std=c++20]
+  PathMatch: .*\\.cpp$
+CompileFlags:
+  Add: [-xc++, -std=c++23]
+  Remove: [-std=*]
+
+# C 源文件 (.c)
+# If:
+#   PathMatch: .*\.c$
+# CompileFlags:
+#   Add: [-xc, -std=c17]
+#   Remove: [-std=*]
 
 # ======================================================================
+# 全局诊断配置
 Diagnostics:
-  Suppress: [unused-variable, unused-parameter]  # 可选：抑制某些警告
+  Suppress: 
+    - clang-diagnostic-unused-variable
+    - clang-diagnostic-unused-parameter
 
 # ======================================================================
+# 索引
 Index:
   Background: Build             # 后台构建索引，提升跳转/引用速度
+  StandardLibrary: true
 
 # ======================================================================
+# 悬停提示
 Hover:
   ShowAKA: true                 # 悬停时显示 typedef 别名等信息
 
 # ======================================================================
+# 内联提示
 InlayHints:
   Enabled: true                 # 显示类型提示（如变量类型、参数名）
+  ParameterNames: true
+  DeducedTypes: true

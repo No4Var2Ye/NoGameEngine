@@ -1,0 +1,72 @@
+{
+    "folders": [
+        {
+            "name": "Root",
+            "path": ".."
+        },
+        {
+            "name": "Documents",
+            "path": "../docs"
+        },
+        {
+            "path": "../NoRenderEngine"
+        }
+    ],
+    "settings": {
+        "files.exclude": {
+            "**/.git": true,
+            // ========================================
+            // IDE
+            // ========================================
+            // Project
+            "docs": true,
+            "NoRenderEngine": true,
+            // ========================================
+            // Computer Graphics
+            "**/GL": true,
+            "**/assimp": true,
+            "**/lib": true,
+            // ========================================
+            // Debug
+            "**/Debug": true,
+            "**/Release": true,
+            "**/*.ilk": true,
+            "**/*.tlog": true,
+            "**/Debug/*.obj": true,
+            "**/Release/*.obj": true,
+            "**/*.idb": true,
+            "**/*.pdb": true,
+            "**/*.pch": true,
+            "**/*.Build*": true,
+            // ========================================
+            // Output
+            "*.dll": true,
+            "*.exe": true,
+            "*.bat": true,
+        },
+        "files.watcherExclude": {
+            "**/.git/objects/**": true,
+            "**/.git/subtree-cache/**": true,
+            "**/node_modules/*/**": true,
+            "**/build/**": true, // 构建文件
+            "**/output/**": true, // 输出文件
+            "third_party/**": true, // 第三方库
+        },
+        "search.exclude": {
+            "**/build": true,
+            "**/output": true,
+            "third_party": true,
+            "**/*.spv": true
+        },
+        "files.associations": {
+            "*.glsl": "cpp",
+            "*.vert": "cpp",
+            "*.frag": "cpp",
+            "*.comp": "cpp",
+            "*.inc": "cpp",
+            "*.inl": "cpp"
+        },
+        "files.encoding": "utf8bom",
+        "files.eol": "\n",
+    }
+}
