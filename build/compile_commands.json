@@ -1,8 +1,8 @@
 [
 {
-  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/build",
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
   "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -O0 -std=gnu++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -o CMakeFiles\\NoRenderEngine.dir\\src\\main.cpp.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\RenderEngine\\src\\main.cpp",
   "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/src/main.cpp",
-  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/build/CMakeFiles/NoRenderEngine.dir/src/main.cpp.obj"
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/CMakeFiles/NoRenderEngine.dir/src/main.cpp.obj"
 }
 ]

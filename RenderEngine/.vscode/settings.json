@@ -1,0 +1,17 @@
+{
+    "files.exclude": {
+        ".cache": true,
+        "benchmarks": true,
+        // "build":true,
+        "outputs": true,
+        "scripts": true,
+        "third_party": true,
+        // ==============================================
+        // CMake
+        "**/.cmake":true,
+        "**/cmake_install.cmake":true,
+        "**/CMakeCache.txt":true,
+        "**/CMakeFiles":true,
+        "**/*ninja*": true,
+    }
+}

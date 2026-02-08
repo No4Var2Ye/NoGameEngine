@@ -3,5 +3,20 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": []
+    "configurations": [
+        {
+            "name": "Launch NoRenderEngine",
+            "type": "cppdbg", // gdb or cppdbg
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "MIMode": "lldb",
+            "miDebuggerPath": "C:/mingw64/bin/gdb.exe",
+            "args": [
+                "--windowed",
+                "--res=1920x1080"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "externalTerminal"
+        }
+    ]
 }

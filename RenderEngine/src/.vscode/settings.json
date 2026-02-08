@@ -1,0 +1,9 @@
+{
+    "files.exclude": {
+        "algorithms": true,
+        "platform": true,
+        "rhi": true,
+        "testing": true,
+        "tools": true
+    }
+}
