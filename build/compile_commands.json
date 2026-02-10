@@ -1,8 +1,146 @@
 [
 {
   "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
-  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -O0 -std=gnu++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -o CMakeFiles\\NoRenderEngine.dir\\src\\main.cpp.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\RenderEngine\\src\\main.cpp",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DDEBUG_BUILD -DVK_USE_PLATFORM_WIN32_KHR -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -isystem X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/third_party -isystem X:/APPLICATIONS/DEV/CG/VulkanSDK/1.4.341.1/include -O0 -std=gnu++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wpedantic -g -o CMakeFiles\\NoRenderEngine.dir\\src\\main.cpp.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\RenderEngine\\src\\main.cpp",
   "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/src/main.cpp",
   "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/CMakeFiles/NoRenderEngine.dir/src/main.cpp.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DDEBUG_BUILD -DVK_USE_PLATFORM_WIN32_KHR -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -isystem X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/third_party -isystem X:/APPLICATIONS/DEV/CG/VulkanSDK/1.4.341.1/include -O0 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wpedantic -g -o CMakeFiles\\NoRenderEngine.dir\\third_party\\volk\\volk.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\RenderEngine\\third_party\\volk\\volk.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/RenderEngine/third_party/volk/volk.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/CMakeFiles/NoRenderEngine.dir/third_party/volk/volk.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\context.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\context.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/context.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/context.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\init.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\init.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/init.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/init.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\input.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\input.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/input.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/input.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\monitor.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\monitor.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/monitor.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/monitor.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\platform.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\platform.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/platform.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/platform.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\vulkan.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\vulkan.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/vulkan.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/vulkan.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\window.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\window.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/window.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/window.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\egl_context.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\egl_context.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/egl_context.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/egl_context.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\osmesa_context.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\osmesa_context.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/osmesa_context.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/osmesa_context.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\null_init.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\null_init.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/null_init.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/null_init.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\null_monitor.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\null_monitor.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/null_monitor.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/null_monitor.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\null_window.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\null_window.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/null_window.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/null_window.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\null_joystick.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\null_joystick.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/null_joystick.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/null_joystick.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\win32_module.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\win32_module.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/win32_module.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/win32_module.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\win32_time.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\win32_time.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/win32_time.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/win32_time.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\win32_thread.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\win32_thread.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/win32_thread.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/win32_thread.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\win32_init.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\win32_init.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/win32_init.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/win32_init.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\win32_joystick.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\win32_joystick.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/win32_joystick.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/win32_joystick.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\win32_monitor.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\win32_monitor.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/win32_monitor.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/win32_monitor.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\win32_window.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\win32_window.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/win32_window.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/win32_window.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -DUNICODE -D_CRT_SECURE_NO_WARNINGS -D_GLFW_WIN32 -D_UNICODE -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/include -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src -O0 -std=c99 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -o _deps\\glfw-build\\src\\CMakeFiles\\glfw.dir\\wgl_context.c.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glfw-src\\src\\wgl_context.c",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-src/src/wgl_context.c",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glfw-build/src/CMakeFiles/glfw.dir/wgl_context.c.obj"
+},
+{
+  "directory": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build",
+  "command": "C:\\PROGRA~1\\MIB055~1\\2022\\COMMUN~1\\VC\\Tools\\Llvm\\x64\\bin\\clang.exe -IX:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glm-src -O0 -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-switch-default -o _deps\\glm-build\\glm\\CMakeFiles\\glm.dir\\detail\\glm.cpp.obj -c X:\\PROJECTS\\AppDevProjects\\OpenGLProjects\\202601RE\\NoRenderEngine\\build\\_deps\\glm-src\\glm\\detail\\glm.cpp",
+  "file": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glm-src/glm/detail/glm.cpp",
+  "output": "X:/PROJECTS/AppDevProjects/OpenGLProjects/202601RE/NoRenderEngine/build/_deps/glm-build/glm/CMakeFiles/glm.dir/detail/glm.cpp.obj"
 }
 ]

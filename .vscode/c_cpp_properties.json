@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "X:/APPLICATIONS/DEV/CG/VulkanSDK/1.4.341.1/Include",
+                "${workspaceFolder}/third_party"
+            ],
+            "defines": [
+                "_DEBUG"
+            ],
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}
